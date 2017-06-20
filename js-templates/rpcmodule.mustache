@@ -1,0 +1,36 @@
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+
+define(['NativeCalls'], function(NativeCalls){
+    return function(srcPrefix){
+        srcPrefix=srcPrefix?srcPrefix:'';
+        return new NativeCalls.RPCModule({
+            "module": new NativeCalls.NaClModule({name:"{{{name}}}", srcPrefix: srcPrefix}),
+            "interfaces": [
+                {{#interfaces}}
+                    {
+                        "name": "{{{name}}}",
+                        "functions": [
+                            {{#operations}}
+                                {
+                                    "name": "{{name}}",
+                                    "params": {{{argumentsArrayString}}},
+                                    "returnType": {{{schemaTypeString}}}
+                                }{{^endOps}},{{/endOps}}
+                            {{/operations}}
+                        ]
+                    }{{^end}},{{/end}}
+                {{/interfaces}}
+            ],
+
+            "dictionaries": [
+                {{#dictionaries}}
+                    {
+                      "name": "{{{name}}}",
+                      "required": {{{dictRequired}}},
+                      "properties": {{{dictProperties}}}
+                    }{{^end}},{{/end}}
+                {{/dictionaries}}
+            ]
+        });
+    };
+});

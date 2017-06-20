@@ -1,0 +1,31 @@
+{{! we surround everything in a "{{#" construct that can't possibly be
+    existent so that all of the (vertical) whitespace gets translated
+    to the output file }}
+{{^This_String_Wont_Exist_In_The_Input_File_47}}
+/*# AUTOMATICALLY GENERATED ON {{timestamp}} #*/
+#include "{{{moduleName}}}_Types.h"
+
+{{#interfaces}}
+/* {{{interfaceName}}} */
+{{#operations}}
+{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#variadic}}_Array{{/variadic}}{{/C_and_Jerryscript_Types}} {{{name}}}{{#C_and_Jerryscript_Types}}{{#callback}}_context{{/callback}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#hasAttributes}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t this_val{{/hasAttributes}})
+{
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+	{{#callback}}
+#define {{{name}}}(...) (run_{{{C_Type}}}_function({{{name}}}_context, __VA_ARGS__))
+	{{/callback}}
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+
+    // USER CODE GOES HERE
+
+    {{! do we need to undo the #defines for callbacks? }}
+}; /* {{{interfaceName}}}_{{{name}}}_body */
+
+
+{{/operations}}
+
+
+{{/interfaces}}
+{{/This_String_Wont_Exist_In_The_Input_File_47}}

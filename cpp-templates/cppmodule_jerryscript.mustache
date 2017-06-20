@@ -1,0 +1,184 @@
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "jerry-api.h"
+
+// If the user has dictionary types, we'll do all of the #includes
+// there, and we'll get them for free when we include the .h file for the
+// dictionaries; but if they didn't add any dictionaries, we need to
+// ensure that the .c file gets the necessary #includes
+{{#hasDictTypes}}
+#include "{{{moduleName}}}_Types.h"
+{{/hasDictTypes}}
+{{^hasDictTypes}}
+{{#library_includes}}
+#include <{{{name}}}>
+{{/library_includes}}
+{{#local_includes}}
+#include "{{{name}}}"
+{{/local_includes}}
+{{/hasDictTypes}}
+
+/*#include "jerry-port.h"*/
+/*#include "jerry-port-default.h"*/
+
+{{! each object needs a get and create function }}
+{{! start with declarations, in case of ordering problems }}
+{{#dictionaries}}
+static {{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value);
+jerry_value_t jerry_create_{{{name}}}({{{name}}} x);
+{{/dictionaries}}
+
+{{#dictionaries}}
+static {{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value)
+{
+    jerry_value_t object_value = jerry_value_to_object(value);
+    {{{name}}} return_struct;
+
+    {{#members}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
+    {{#C_and_Jerryscript_Types}}
+    return_struct.{{{name}}} = (int)jerry_get_{{{Jerryscript_Type}}}_value({{{name}}}_value);
+    {{/C_and_Jerryscript_Types}}
+    jerry_release_value({{{name}}}_prop_name);
+    jerry_release_value({{{name}}}_value);
+//
+    {{/members}}
+
+    jerry_release_value(object_value);
+
+    return return_struct;
+} /* jerry_get_{{{name}}}_value */
+
+jerry_value_t jerry_create_{{{name}}}({{{name}}} x)
+{
+    jerry_value_t new_jerry_value = jerry_create_object();
+
+    {{#members}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+    {{#C_and_Jerryscript_Types}}
+    jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}(x.{{{name}}});
+    {{/C_and_Jerryscript_Types}}
+    jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value);
+    jerry_release_value({{{name}}}_value);
+    jerry_release_value({{{name}}}_prop_name);
+    {{/members}}
+
+    return new_jerry_value;
+    
+} /* jerry_create_{{{name}}} */
+
+{{/dictionaries}}
+
+
+// put all of the native-code functions (indentifable by the
+// suffix "_handler") here:
+
+typedef jerry_value_t (*jerry_handler_function) (const jerry_value_t,
+	 	      			   const jerry_value_t,
+         				   const jerry_value_t,
+         				   const jerry_length_t);
+
+{{#interfaces}}
+    {{#operations}}
+static jerry_value_t
+{{{name}}}_handler(const jerry_value_t func_value, /**< function object */
+		   const jerry_value_t this_val, /**< this arg */
+                   const jerry_value_t *args_p, /**< function arguments */
+                   const jerry_length_t args_cnt) /**< number of function arguments */
+{
+    // demarshal the arguments
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+    {{C_Type}} {{{name}}} = jerry_get_{{{Jerryscript_Type}}}_value(args_p[{{{paramIndex}}}]);
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+//
+    // set up by AugmentedAST.js
+    {{#C_CODE_BODY}}
+    {{{C_CODE_BODY}}}
+    {{/C_CODE_BODY}}
+    {{^C_CODE_BODY}}
+    //
+    // USER CODE GOES HERE
+    //
+    {{/C_CODE_BODY}}
+//
+    {{#C_and_Jerryscript_Types}}
+    return jerry_create_{{{Jerryscript_Type}}}({{{C_CODE_RETURN_VALUE}}});
+    {{/C_and_Jerryscript_Types}}
+    {{^C_and_Jerryscript_Types}}
+    /* void return value */
+    return jerry_create_undefined();
+    {{/C_and_Jerryscript_Types}}
+    
+} /* {{{name}}}_handler */
+/*
+ *
+ */
+    {{/operations}}
+{{/interfaces}}
+
+
+{{#hasOperations}}
+static void register_function_call(const char *function_name,
+       			           jerry_external_handler_t handler)
+{
+  /* Create a JS function object and wrap into a jerry value */
+  jerry_value_t global_object = jerry_get_global_object();
+  jerry_value_t function_object = jerry_create_external_function(handler);
+
+  /* Set the native function as a property of the global object */
+  /* TODO: namespace hiding */
+  jerry_value_t prop_name =
+                 jerry_create_string((const jerry_char_t *) function_name);
+  jerry_set_property(global_object, prop_name, function_object);
+  jerry_release_value(function_object);
+  jerry_release_value(prop_name);
+  jerry_release_value(global_object);
+} /* register_function_call */
+{{/hasOperations}}
+
+// we define types here, and marshalling/demarshalling methods of each type.
+static void load_types_into_Jerryscript_environment()
+{
+    static bool already_called = false;
+
+    if (already_called) return;
+    else already_called = true;
+
+{{#dictionaries}}
+    /* Create a JS object */
+    const jerry_char_t my_js_object_{{{name}}}[] = " \
+        function {{{name}}}() \
+        { \
+            {{#members}}
+            this.{{{name}}} = {{^default}}undefined{{/default}}{{#default}}{{{value}}}{{/default}}; \
+            {{/members}}
+        }; \
+      ";
+    jerry_value_t my_js_obj_val_{{{name}}};
+
+    /* Evaluate script */
+    my_js_obj_val_{{{name}}} = jerry_eval (my_js_object_{{{name}}},
+                              strlen ((const char *) my_js_object_{{{name}}}),
+                              false);
+    jerry_release_value(my_js_obj_val_{{{name}}});
+{{/dictionaries}}
+} /* load_types_into_Jerryscript_environment */
+
+
+{{#interfaces}}
+void load_{{{name}}}_interface(void)
+{
+    load_types_into_Jerryscript_environment();
+
+    {{#operations}}
+    register_function_call("{{{name}}}", &{{{name}}}_handler);
+    {{/operations}}
+} /* load_{{{name}}}_interface */
+{{/interfaces}}
+

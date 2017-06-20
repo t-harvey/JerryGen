@@ -1,0 +1,19 @@
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+
+#ifndef {{moduleName}}_H_
+#define {{moduleName}}_H_
+
+#include <vector>
+
+{{#dictionaries}}
+typedef struct {{{name}}} {
+{{#members}}
+    {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}} {{{name}}};
+    {{/C_and_Jerryscript_Types}}
+{{/members}}
+};
+{{/dictionaries}}
+
+
+#endif /* {{moduleName}}_H_ */

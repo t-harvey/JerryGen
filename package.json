@@ -1,0 +1,22 @@
+{
+  "name": "generator",
+  "version": "1.0.0",
+  "description": "Webidl->C translator",
+  "main": "pprpcgen_sequential.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Moi",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "file-exists": "^3.0.2",
+    "hogan.js": "^3.0.2",
+    "lodash": "^4.17.4",
+    "minimist": "^1.2.0",
+    "path": "^0.12.7",
+    "q": "^1.5.0",
+    "q-io": "^1.13.2",
+    "topsort": "0.0.2",
+    "webidl2": "^2.4.0"
+  }
+}

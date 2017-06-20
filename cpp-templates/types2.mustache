@@ -1,0 +1,466 @@
+{{! This one .mustache file is used to create both the .h and the .c
+    *_Types files -- look for the "body" and "header" markers }}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{#header}}
+#ifndef {{moduleName}}_TYPES_H_
+#define {{moduleName}}_TYPES_H_
+{{/header}}
+
+// these are included to simplify the generator. Remove if not needed.
+#include <string>
+#include <vector>
+
+{{^header}}
+#include "{{moduleName}}_Types.h"
+{{/header}}
+#include "jerry-api.h"
+
+{{#header}}
+{{#enums}}
+typedef enum { {{#members}}{{{indentation}}}{{{name}}}{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} }{{/onlyOneMember}}{{/members}}
+{{^onlyOneMember}}} {{/onlyOneMember}}{{{name}}};
+
+{{/enums}}
+{{/header}}
+
+{{! TODO: TYPEDEF-DECLARATIONS TO HANDLE ORDERING CONSTRAINTS? }}
+{{#header}}
+{{#has_callbacks}}
+/* calls to functions residing in the Javascript environment require
+   extra context; from the C-programmer's point of view, callbacks
+   can be thought of as _being_ this context -- for example, when
+   passing around a "callback", we'll actually pass around this
+   context structure, and then the generator will generate #def's
+   to wrap the generic call that uses this context into an easily
+   used C function */
+typedef struct {
+    jerry_value_t function_value; /* Jerryscript's function pointer */
+    jerry_value_t this_value;     /* i.e., "this" pointer */
+} callback_context;
+{{/has_callbacks}}
+{{#callbacks}}
+typedef callback_context {{{name}}}_calling_context;
+{{/callbacks}}
+{{/header}}
+
+{{#header}}
+/* DICTIONARIES */
+{{/header}}
+{{#dictionaries}}
+{{#header}}
+typedef struct {
+	{{#members}}
+    {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}}{{#callback}}_calling_context{{/callback}} {{{name}}};
+    {{/C_and_Jerryscript_Types}}
+	{{/members}}
+} {{name}};
+
+{{/header}}
+{{/dictionaries}}
+
+
+{{#interfaces.length}}
+{{#header}}
+/* INTERFACES */
+{{/header}}
+{{/interfaces.length}}
+{{! TODO: WHAT ABOUT PARTIAL INTERFACES? }}
+{{#interfaces}}
+{{! {{#NoInterfaceObject}}
+{{#header}}
+typedef struct {
+    {{#attributes}}
+        {{#C_and_Jerryscript_Types}}
+            {{#callback}}
+    {{{C_Type}}}_calling_context {{{name}}};
+            {{/callback}}
+            {{^callback}}
+    {{{C_Type}}} {{{name}}};
+            {{/callback}}
+        {{/C_and_Jerryscript_Types}}
+    {{/attributes}}
+} {{name}};
+{{/header}}
+
+{{#header}}
+{{! SET UP #DEFS TO GET AT ATTRIBUTES OF THE INTERFACE}}
+    {{#attributes}}
+    {{#C_and_Jerryscript_Types}}
+#define attribute_{{{interfaceName}}}_{{{name}}} (extract_{{{interfaceName}}}_{{{name}}}(this_val))
+    {{/C_and_Jerryscript_Types}}
+    {{/attributes}}
+{{/header}}
+{{! {{/NoInterfaceObject}}
+{{/interfaces}}
+
+{{#header}}
+/* INITIALIZATION FUNCTIONS */
+{{#interfaces}}
+void load_{{{name}}}_interface(void);
+{{/interfaces}}
+
+#define load_all_{{{moduleName}}}_interfaces {\
+{{#interfaces}}
+load_{{{name}}}_interface(); \
+{{/interfaces}}
+} /* load_all_{{{moduleName}}}_interfaces */
+{{/header}}
+
+{{! if we have an idl file with the "any" type, we'll have to create a
+    union to hold all of the possible types }}
+{{! we start with the list of primitive types supported by Jerryscript }}
+{{#uses_any_type}}
+{{#header}}
+union {{{moduleName}}}_types_union {
+    boolean bool_var;
+    double double_var;
+    char * string_var;
+{{#any_type_list}}
+    {{#objects}}
+    {{{type}}} {{{type_name}}};
+    {{/objects}}
+    {{#callbacks.length}}
+    /* all functions are represented with a jerry_value_t */
+    jerry_value_t function_var;
+    {{/callbacks.length}}
+    {{#enums}}
+    {{{type}}} {{{type_name}}};
+    {{/enums}}
+{{/any_type_list}}
+}; /* {{{moduleName}}}_types_union */
+{{/header}}
+{{/uses_any_type}}
+
+{{#header}}
+{{#variadic_types}}
+typedef struct {
+    int length;
+    {{{type_name}}} *items;
+} {{{type_name}}}_Array;
+{{/variadic_types}}
+{{/header}}
+
+{{#header}}
+/***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
+{{/header}}
+
+{{#uses_strings}}
+char *jerry_get_string_value(jerry_value_t string_value){{#header}};{{/header}}
+{{#body}}
+{
+    int string_length = jerry_get_string_length(string_value);
+    jerry_char_t *return_value = (jerry_char_t *)malloc(sizeof(jerry_char_t)*(string_length+1));
+
+    int characters_copied = jerry_string_to_char_buffer(string_value,
+                                        return_value, string_length);
+
+    if (characters_copied != string_length)
+    {
+       fprintf(stderr, "PROBLEM WITH STRING COPY!\n");
+       /*abort();*/
+    }
+
+    return_value[string_length]='\0';
+    return (char *)return_value;
+} /* jerry_get_string_value */
+{{/body}}
+{{/uses_strings}}
+
+{{#uses_any_type}}
+{{{moduleName}}}_types_union jerry_get_any_value(jerry_value_t any_value){{#header}};{{/header}}
+{{#body}}
+{
+    {{{moduleName}}}_types_union return_value;
+ 
+ {{! for now, we'll assume that "any" types are simply pass-through
+     values headed to other javascript functions, and we won't try to
+     do anything with them }}
+{{! "IGNORE" is a made-up value designed to be ignored by mustache }}
+{{^IGNORE}}
+    return_value.function_var = any_value;
+{{/IGNORE}}
+{{#IGNORE}}
+    /* Jerryscript only passes around six types: booleans, numbers (doubles),
+        strings, objects, NULL, and undefined; we'll mimic the last two by
+        setting the string value in the union to be null */
+    if (jerry_value_is_boolean(any_value))
+        return_value.bool_val = jerry_get_boolean(any_value);
+    else if (jerry_value_is_number(any_value))
+    	 return_value.double_var = jerry_get_number(any_value);
+    else if (jerry_value_is_string(any_value))<
+        return_value.string_var = jerry_get_string_value(any_value);
+    else if (jerry_value_is_null(any_value) ||
+             jerry_value_is_undefined(any_value))
+    	 return_value.string_var = NULL;
+    {{#any_type_list}}
+    {{#objects.length}}
+    else if (jerry_value_is_object(any_value))
+    {
+	{{#objects}} 
+        {{^first_in_list}}else {{/first_in_list}}if
+	{{/objects}}
+    }
+    {{/objects.length}}
+    {{#callbacks.length}}
+    else if (jerry_value_is_function(any_value))
+        return_value.function_var = any_value;
+    {{/callbacks.length}}
+    {{/any_type_list}}
+    else if (jerry_value_is_array(any_value))
+    {
+         fprintf(stderr, "WE DON'T DO ARRAYS YET.\n");
+    }
+    else
+    {
+        fprintf(stderr, "Unrecognized type in \"any\" variable.\n");
+    }
+{{/IGNORE}}
+    return return_value;
+} /* jerry_get_any_value */
+{{/body}}
+{{/uses_any_type}}
+
+{{#variadic_types.length}}
+/* these demarshal variadic parameters */
+{{/variadic_types.length}}
+{{#variadic_types}}
+{{{type_name}}}_Array jerry_get_array_of_{{{type_name}}}(jerry_value_t argv,
+		      jerry_length_t argc, jerry_length_t starting_index){{#header}};{{/header}}
+{{#body}}
+{
+    int number_of_elements = argc - (starting_index+1);
+    {{{type_name}}}_Array return_array = { number_of_elements,
+    			  	           ({{{type_name *}}})malloc(sizeof({{{type_name}}})*number_of_elements);
+    for(int i = starting_index, j = 0; i < argc; i++, j++)
+        return_array[j] = jerry_get_{{{type_name}}}_value(argv[i]);
+    return return_array;
+} /* jerry_get_array_of_{{{type_name}}} */
+{{/body}}
+{{/variadic_types}}
+
+{{#dictionaries}}
+{{! really, these functions should be named "get_..._struct" rather
+    than "get_..._value" -- but b/c Jerryscript already has get_*_value
+    for all of the builtin types, it's easier to follow that naming
+    scheme for dictionaries and interfaces...}}
+
+{{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t object_value = jerry_value_to_object(value);
+    {{{name}}} return_struct;
+
+    {{#members}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
+    {{#C_and_Jerryscript_Types}}
+    return_struct.{{{name}}} = (int)jerry_get_{{{Jerryscript_Type}}}_value({{{name}}}_value);
+    {{/C_and_Jerryscript_Types}}
+    jerry_release_value({{{name}}}_prop_name);
+    jerry_release_value({{{name}}}_value);
+//
+    {{/members}}
+
+    jerry_release_value(object_value);
+
+    return return_struct;
+} /* jerry_get_{{{name}}}_value */
+{{/body}}
+
+jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t new_jerry_value = jerry_create_object();
+
+    {{#members}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+    {{#C_and_Jerryscript_Types}}
+    jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}(x.{{{name}}});
+    {{/C_and_Jerryscript_Types}}
+    jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value);
+    jerry_release_value({{{name}}}_value);
+    jerry_release_value({{{name}}}_prop_name);
+    {{/members}}
+
+    return new_jerry_value;
+    
+} /* jerry_create_{{{name}}} */
+{{/body}}
+{{/dictionaries}}
+
+{{#enums.length}}
+{{! enumeration types are represented in Javascript as strings, so
+    getting them across to Jerryscript and back requires some
+    finagling }}
+static int enum_index(char *target, char **array){{#header}};{{/header}}
+{{#body}}
+{
+    int i = 0;
+    while (array[i] != '\0')
+        if (!strcmp(target, array[i]))
+	    return i;
+    /* fallthrough indicates the string's not in the array */
+    return -1;
+} /* enum_index */
+{{/body}}
+{{/enums.length}}
+
+{{#enums}}
+{{! we follow the same naming scheme as for dictionaries... }}
+
+{{! we first need strings that match the enumeration values }}
+{{#body}}
+static char *{{{name}}}_strings[] = { {{#members}}{{{indentation}}}"{{{name}}}"{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} };{{/onlyOneMember}}{{/members}}
+{{^onlyOneMember}}};{{/onlyOneMember}}
+{{/body}}
+
+{{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value){{#header}};{{/header}}
+{{#body}}
+{
+    return ({{{name}}})enum_index(jerry_get_string_value(value), {{{name}}}_strings);
+} /* jerry_get_{{{name}}}_value */
+{{/body}}
+
+jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+{{#body}}
+{
+    return jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+} /* jerry_create_{{{name}}} */
+{{/body}}
+{{/enums}}
+
+
+{{#interfaces}}
+{{#hasAttributes}}
+/* attribute GETTERS */
+{{#attributes}}
+{{#C_and_Jerryscript_Types}}
+{{^callback}}
+{{{C_Type}}} extract_{{{interfaceName}}}_{{{name}}} (jerry_value_t this_pointer){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t attribute_pointer = jerry_get_property(this_pointer, property_pointer);
+    {{{C_Type}}} return_value = ({{{C_Type}}})jerry_get_{{{Jerryscript_Type}}}_value(attribute_pointer);
+    jerry_release_value(property_pointer);
+    jerry_release_value(attribute_pointer);
+    return return_value;
+} /* extract_{{interfaceName}}_{{name}} */
+{{/body}} {{! EXTRACT NON-CALLBACK ATTRIBUTE}}
+{{/callback}}
+{{! if the attribute is a callback, return the calling context for it }}
+{{#callback}}
+{{C_Type}}_calling_context extract_{{{interfaceName}}}_{{{name}}} (jerry_value_t this_pointer){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t attribute_pointer = jerry_get_property(this_pointer, property_pointer);
+
+    jerry_release_value(property_pointer);
+
+    return ({{C_Type}}_calling_context){attribute_pointer, this_pointer};
+} /* extract_{{interfaceName}}_{{name}} */
+{{/body}}
+{{/callback}}
+
+{{/C_and_Jerryscript_Types}}
+{{/attributes}} {{! ATTRIBUTE GETTERS}}
+
+{{/hasAttributes}}
+
+{{/interfaces}}
+
+
+/* if there are any callbacks, we'll use these wrapper functions to
+   marshal the parameters for the function and then call the
+   function through the interpreter */
+
+{{#callbacks}}
+{{#return_type}}{{{C_Type}}}{{/return_type}}
+run_{{{name}}}_function(const {{{name}}}_calling_context {{{name}}}_context{{^arguments.length}}){{#header}};{{/header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+{{#arguments}}{{{indentation}}}{{#C_and_Jerryscript_Types}}{{{C_Type}}} {{{name}}}{{{separator}}}{{/C_and_Jerryscript_Types}}{{/arguments}}{{#arguments.length}}{{#header}};{{/header}}{{/arguments.length}}
+{{#body}}
+{
+{{#arguments}}{{#C_and_Jerryscript_Types}}
+    jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}({{{name}}});
+{{/C_and_Jerryscript_Types}}{{/arguments}}
+
+    jerry_value_t argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
+    jerry_value_t jerry_return_value = jerry_call_function({{{name}}}_context.function_value,
+							   {{{name}}}_context.this_value,
+						           argv, {{{arguments.length}}});
+	
+    {{#return_type}}
+    {{^voidReturnType}}
+    return ({{{C_Type}}})jerry_get_{{{Jerryscript_Type}}}_value(jerry_return_value);
+    {{/voidReturnType}}
+    {{/return_type}}
+} /* run_{{{name}}}_function */
+{{/body}}
+{{/callbacks}} 
+
+
+{{#interfaces}}
+{{! INTERFACE GETTER/SETTER: }}
+{{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t object_value = jerry_value_to_object(value);
+    {{{name}}} return_struct;
+
+    {{#attributes}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
+    {{#C_and_Jerryscript_Types}}
+    {{^callback}}
+    return_struct.{{{name}}} = ({{{C_Type}}})jerry_get_{{{Jerryscript_Type}}}_value({{{name}}}_value);
+    {{/callback}}
+    {{/C_and_Jerryscript_Types}}
+    jerry_release_value({{{name}}}_prop_name);
+    jerry_release_value({{{name}}}_value);
+//
+    {{/attributes}}
+
+    jerry_release_value(object_value);
+
+    return return_struct;
+} /* jerry_get_{{{name}}}_value */
+{{/body}}
+
+jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t dummy_jerry_value;
+extern jerry_value_t create_{{{name}}}_interface_handler(const jerry_value_t,
+					   const jerry_value_t,
+					   const jerry_value_t *,
+					   const jerry_length_t);
+    jerry_value_t new_jerry_value = create_{{{name}}}_interface_handler(
+							dummy_jerry_value,
+							dummy_jerry_value,
+							&dummy_jerry_value,
+							0);
+    {{#attributes}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    {{#C_and_Jerryscript_Types}}
+    {{^callback}}
+    jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
+    jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value);
+    jerry_release_value({{{name}}}_value);
+    {{/callback}}
+    {{! TODO: if it's a callback, apply set_external_handler?}}
+    {{/C_and_Jerryscript_Types}}
+    jerry_release_value({{{name}}}_prop_name);
+    {{/attributes}}
+
+    return new_jerry_value;    
+} /* jerry_create_{{{name}}} */
+{{/body}}
+
+{{/interfaces}}
+
+
+{{#header}}
+#endif /* {{moduleName}}_TYPES_H_ */
+{{/header}}

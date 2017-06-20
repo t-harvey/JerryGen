@@ -1,0 +1,140 @@
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+
+// user
+//{{#hasDictTypes}}
+//#include "PPRPCGEN_{{{moduleName}}}Types.h"
+//{{/hasDictTypes}}
+
+//{{#interfaces}}
+//#include "PPRPCGEN_{{{name}}}.h"
+//{{/interfaces}}
+
+//std
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "jerry-api.h"
+#include "jerry-port.h"
+#include "jerry-port-default.h"
+
+
+// demarshaling arguments from an object is a two step process: first,
+// the argument has to be gotten from the calling context -- this
+// returns a jerry_value_t, which, second, then has to be extracted
+// into a C type; we need an extraction routine for each C/Jerry type
+
+
+// put all of the native-code functions (indentifable by the
+// suffix "_handler") here:
+
+{{#interfaces}}
+    {{#operations}}
+static jerry_value_t
+{{{name}}}_handler(const jerry_value_t func_value, /**< function object */
+		   const jerry_value_t this_val, /**< this arg */
+                   const jerry_value_t *args_p, /**< function arguments */
+                   const jerry_length_t args_cnt) /**< number of function arguments */
+{
+    // demarshal the arguments
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}} {{{name}}} = jerry_get_{{{Jerryscript_Type}}}_value(args_p[{{{paramIndex}}}]);
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+//
+    // set up by AugmentedAST.js
+    {{#C_CODE_BODY}}
+    {{{C_CODE_BODY}}}
+    {{/C_CODE_BODY}}
+    {{^C_CODE_BODY}}
+    //
+    // USER CODE GOES HERE
+    //
+    {{/C_CODE_BODY}}
+//
+    {{#C_and_Jerryscript_Types}}
+    return jerry_create_{{{Jerryscript_Type}}}({{{C_CODE_RETURN_VALUE}}});
+    {{/C_and_Jerryscript_Types}}
+    {{^C_and_Jerryscript_Types}}
+    /* void return value */
+    return jerry_create_undefined();
+    {{/C_and_Jerryscript_Types}}
+    
+} /* {{{name}}}_handler */
+/*
+ *
+ */
+
+    {{/operations}}
+{{/interfaces}}
+
+
+static register_function_call(const char *function_name,
+       			      jerry_value_t *handler)
+{
+  /* Create a JS function object and wrap into a jerry value */
+  jerry_value_t function_obj = jerry_create_external_function(handler);
+
+  /* Set the native function as a property of the global object */
+  /* TODO: namespace hiding */
+  jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+  jerry_set_property(global_object, {{{name}}}_prop_name, {{{name}}}_func_obj);
+  jerry_release_value({{{name}}}_func_obj);
+  jerry_release_value({{{name}}}_prop_name);
+} /* register_function_call */
+
+
+int main()
+{
+  /* Initialize engine */
+  jerry_init (JERRY_INIT_EMPTY);
+
+// we define types here, and marshalling/demarshalling methods of each type.
+
+{{#dictionaries}}
+/* Create a JS object */
+const jerry_char_t my_js_object_{{{name}}}[] = " \
+    function Object_{{{name}}}() = \
+    { \
+      {{#members}}
+      this.{{{name}}} = {{^default}}undefined{{/default}}{{#default}}{{{value}}}{{/default}}; \
+      {{/members}}
+    } \
+  ";
+  jerry_value_t my_js_obj_val_{{{name}}};
+
+  /* Evaluate script */
+  my_js_obj_val_{{{name}}} = jerry_eval (my_js_object_{{{name}}},
+                              strlen ((const char *) my_js_object_{{{name}}}),
+                              false);
+  jerry_release_value(my_js_obj_val_{{{name}}});
+{{/dictionaries}}
+
+  jerry_value_t global_object = jerry_get_global_object();
+{{#interfaces}}
+    {{#operations}}
+    register_function_call();
+/***********************************************/
+    {{/operations}}
+{{/interfaces}}
+
+    /* Free JavaScript value, returned by eval (my_js_object) */
+    jerry_release_value(global_object);
+
+    /* test the code */
+    {{#test_code}}
+    jerry_char_t test_script[] = "{{{test_code}}}";
+    size_t test_script_size = strlen ((const char *) test_script);
+
+    /* Evaluate test_script */
+    jerry_value_t eval_ret = jerry_eval (test_script, test_script_size, false);
+    {{/test_code}}
+    {{^test_code}}
+    /* NO TEST CODE PROVIDED */
+    {{/test_code}}
+
+    jerry_cleanup();
+
+} /* main */

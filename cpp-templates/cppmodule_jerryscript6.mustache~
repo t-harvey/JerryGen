@@ -1,0 +1,232 @@
+{{! Mustache doesn't understand transfer blank lines from this script
+    file to the output file unless those blank lines are within a
+    {{#}}{/}} construct, so we wrap this entire script with a name
+    that shouldn't(!) be in the input file }}
+{{^OBEYFORMATTING}}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "jerry-api.h"
+
+// If the user has dictionary types, we'll do all of the #includes
+// there, and we'll get them for free when we include the .h file for the
+// dictionaries; but if they didn't add any dictionaries, we need to
+// ensure that the .c file gets the necessary #includes
+{{#hasDictTypes}}
+#include "{{{moduleName}}}_Types.h"
+{{/hasDictTypes}}
+{{^hasDictTypes}}
+{{#library_includes}}
+#include <{{{name}}}>
+{{/library_includes}}
+{{#local_includes}}
+#include "{{{name}}}"
+{{/local_includes}}
+{{/hasDictTypes}}
+
+/*#include "jerry-port.h"*/
+/*#include "jerry-port-default.h"*/
+
+{{#interfaces}}
+{{#NoInterfaceObject}}
+jerry_value_t
+create_{{{name}}}_interface_handler(const jerry_value_t func_value,
+		   const jerry_value_t this_val,
+                   const jerry_value_t *args_p,
+                   const jerry_length_t args_cnt);
+{{/NoInterfaceObject}}
+{{/interfaces}}
+
+// put all of the native-code functions (indentifable by the
+// suffix "_handler") here:
+
+{{#interfaces}}
+    {{#operations}}
+static jerry_value_t
+{{{name}}}_handler(const jerry_value_t func_value, /**< function object */
+		   const jerry_value_t this_val, /**< this arg */
+                   const jerry_value_t *args_p, /**< function arguments */
+                   const jerry_length_t args_cnt) /**< number of function arguments */
+{
+    // demarshal the arguments
+{{! TODO: the "this_val" passed in to a function parameter: should it be
+    this_val, or should we gen up a value_t for the global object? }}
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+	{{#callback}}
+    {{{C_Type}}}_calling_context {{{name}}} = ({{{C_Type}}}_calling_context){args_p[{{{paramIndex}}}], this_val};
+	{{/callback}}
+	{{^callback}}
+    {{C_Type}} {{{name}}} = jerry_get_{{{Jerryscript_Type}}}_value(args_p[{{{paramIndex}}}]);
+	{{/callback}}
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+
+{{#C_and_Jerryscript_Types}}
+extern {{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}});
+
+{{^voidReturnType}}{{{C_Type}}} return_value{{#is_string}}_string{{/is_string}} ={{/voidReturnType}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}});
+{{#is_string}}
+jerry_value_t return_value = jerry_create_string((const jerry_char_t *)return_value_string);
+{{/is_string}}
+{{/C_and_Jerryscript_Types}}
+
+    {{! FREE MALLOC'D STRINGS}}
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+	    {{^callback}}
+	        {{#is_string}}
+    if ({{{name}}} != NULL) free({{{name}}});
+       		{{/is_string}}
+    	    {{/callback}}
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+
+    {{#C_and_Jerryscript_Types}}
+        {{#return_is_this}}
+    /* return a reference back to this interface */
+    return this_val;
+        {{/return_is_this}}
+        {{^return_is_this}}
+            {{#voidReturnType}}
+    /* void return value */
+    return jerry_create_undefined();
+            {{/voidReturnType}}
+            {{^voidReturnType}}
+                {{^is_string}}
+    return jerry_create_{{{Jerryscript_Type}}}(return_value);
+                {{/is_string}}
+                {{#is_string}}
+     return return_value;
+                {{/is_string}}
+            {{/voidReturnType}}
+        {{/return_is_this}}
+    {{/C_and_Jerryscript_Types}}
+    
+} /* {{{name}}}_handler */
+/*
+ *
+ */
+    {{/operations}}
+{{/interfaces}}
+
+{{#hasOperations}}
+static void register_function_call(jerry_value_t enclosing_object,
+				   const char *function_name,
+       			           jerry_external_handler_t handler)
+{
+  /* Create a JS function object and wrap into a jerry value */
+  jerry_value_t function_object = jerry_create_external_function(handler);
+
+  /* Set the native function as a property of the enclosing object
+     (either the global object, or a user-define object) */
+  jerry_value_t prop_name =
+                 jerry_create_string((const jerry_char_t *) function_name);
+  jerry_set_property(enclosing_object, prop_name, function_object);
+  jerry_release_value(function_object);
+  jerry_release_value(prop_name);
+} /* register_function_call */
+{{/hasOperations}}
+
+// we define types here, and marshalling/demarshalling methods of each type.
+static void load_types_into_Jerryscript_environment()
+{
+    static bool already_called = false;
+
+    if (already_called) return;
+    else already_called = true;
+
+{{#dictionaries}}
+    /* Create a JS object */
+    const jerry_char_t my_js_object_{{{name}}}[] = " \
+        function {{{name}}}({{#members}}{{{name}}}_parm{{^finalMember}},{{/finalMember}}{{/members}}) \
+        { \
+            {{#members}}
+            this.{{{name}}} = {{{name}}}_parm; \
+            {{/members}}
+	    {{#C_type_list.length}}
+	    this._what_kind_am_I = {{{name}}}; \ {{! name of object }}
+	    {{/C_type_list.length}}
+        }; \
+      ";
+    jerry_value_t my_js_obj_val_{{{name}}};
+
+    /* Evaluate script */
+    my_js_obj_val_{{{name}}} = jerry_eval (my_js_object_{{{name}}},
+                              strlen ((const char *) my_js_object_{{{name}}}),
+                              false);
+    jerry_release_value(my_js_obj_val_{{{name}}});
+{{/dictionaries}}
+} /* load_types_into_Jerryscript_environment */
+
+
+{{! we'll construct each interface object using Jerryscript commands
+and then return the object instance thus created; so for each
+interface: build the Jerryscript commands into a "handler" function,
+and then enter the handler as a language extension with the
+interface's name }}
+{{! (...and only do this for non-global interfaces...) }}
+
+{{#interfaces}}
+{{#NoInterfaceObject}}
+/* external declaration in {{{moduleName}}}_Types.h */
+jerry_value_t
+create_{{{name}}}_interface_handler(const jerry_value_t func_value,
+		   const jerry_value_t this_val,
+                   const jerry_value_t *args_p,
+                   const jerry_length_t args_cnt)
+{
+    jerry_value_t new_{{{interfaceName}}} = jerry_create_object();
+
+    {{#attributes}}
+    if ((((signed int)args_cnt)-1) >= {{{attribute_index}}})
+    {
+        jerry_value_t {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+        jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, args_p[{{{attribute_index}}}]);
+        jerry_release_value({{{name}}}_prop_name);
+    }
+    {{/attributes}}
+
+    {{#operations}}
+    register_function_call(new_{{{interfaceName}}}, "{{{name}}}", &{{{name}}}_handler);
+    {{/operations}}
+
+    return new_{{{interfaceName}}};
+} /* create_{{{name}}}_interface_handler */
+{{/NoInterfaceObject}}
+{{/interfaces}}
+
+
+{{#interfaces}}
+void load_{{{name}}}_interface(void)
+{
+    load_types_into_Jerryscript_environment();
+
+    {{! if the interface is not in the global namespace, then we'll
+       need an object for the whole interface, and we'll need to
+       register operations in that object rather than the global
+       namespace }}
+    {{! for attributes: attributes cannot get a default value, which
+       means that they don't need to be created now; Javascript
+       automagically creates them when they're first defined, so we
+       don't need to do anything -- we probably don't need to do
+       anything in the object version of the interface, either, but it
+       looks nice... }}
+
+    jerry_value_t global_object = jerry_get_global_object();
+{{#NoInterfaceObject}}
+    register_function_call(global_object, "{{{name}}}", &create_{{{name}}}_interface_handler);
+{{/NoInterfaceObject}}
+{{^NoInterfaceObject}}
+    {{#operations}}
+    register_function_call(global_object, "{{{name}}}", &{{{name}}}_handler);
+    {{/operations}}
+{{/NoInterfaceObject}}
+    jerry_release_value(global_object);
+
+} /* load_{{{name}}}_interface */
+{{/interfaces}}
+
+{{/OBEYFORMATTING}}
