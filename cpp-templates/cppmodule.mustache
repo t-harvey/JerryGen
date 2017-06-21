@@ -11,8 +11,9 @@
 #include "jerry-api.h"
 #include "{{{moduleName}}}_Types.h"
 
+{{! I DON'T THINK THIS IS NECESSARY... }}
 {{#interfaces}}
-{{#NoInterfaceObject}}
+{{^NoInterfaceObject}}
 jerry_value_t
 create_{{{name}}}_interface_handler(const jerry_value_t func_value,
 		   const jerry_value_t this_val,
@@ -144,11 +145,7 @@ static void load_types_into_Jerryscript_environment()
 {{/dictionaries}}
 } /* load_types_into_Jerryscript_environment */
 
-
-{{! (...and only do this for non-global interfaces...) -- TODO! }}
-
 {{#interfaces}}
-{{! #NoInterfaceObject}}
 /* external declaration in {{{moduleName}}}_Types.h */
 jerry_value_t
 create_{{{name}}}_interface_handler(const jerry_value_t func_value,
@@ -156,6 +153,18 @@ create_{{{name}}}_interface_handler(const jerry_value_t func_value,
                    const jerry_value_t *args_p,
                    const jerry_length_t args_cnt)
 {
+{{! If the object has been specified as no-interface, then the user's
+    not allowed to create a new one of these; for now, return the
+    (single) global object instead of an error }}
+{{#NoInterfaceObject}}
+    jerry_value_t object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t global_object = jerry_get_global_object();
+    jerry_value_t object = jerry_get_property(global_object, object_name);
+    jerry_release_value(object_name);
+    jerry_release_value(global_object);
+    return object;
+{{/NoInterfaceObject}}
+{{^NoInterfaceObject}}
     jerry_value_t new_{{{interfaceName}}} = jerry_create_object();
 
     {{#attributes}}
@@ -172,8 +181,8 @@ create_{{{name}}}_interface_handler(const jerry_value_t func_value,
     jerry_release_value(prototype);
 
     return new_{{{interfaceName}}};
+{{/NoInterfaceObject}}
 } /* create_{{{name}}}_interface_handler */
-{{! /NoInterfaceObject}}
 {{/interfaces}}
 
 
@@ -182,37 +191,43 @@ void load_{{{name}}}_interface(void)
 {
     load_types_into_Jerryscript_environment();
 
-    {{! if the interface is not in the global namespace, then we'll
-       need an object for the whole interface, and we'll need to
-       register operations in that object rather than the global
-       namespace }}
     {{! for attributes: attributes cannot get a default value, which
        means that they don't need to be created now; Javascript
        automagically creates them when they're first defined, so we
        don't need to do anything -- we probably don't need to do
        anything in the object version of the interface, either, but it
        looks nice... }}
+    {{! IS THE ABOVE STILL TRUE?  WHAT IF IT'S A NOINTERFACEOBJECT? }}
 
     jerry_value_t global_object = jerry_get_global_object();
-{{^NoInterfaceObject}}
 
-    {{! TODO: in a concurrent environment, we could just check here to
-       see if the prototype object is already populated (?) }}
-    /* now, add all of the interface prototypes */
+    /* add all of the interface prototypes */
     jerry_value_t {{{name}}}_prototype_object = jerry_create_object();
     {{#operations}}
     register_function_call({{{interfaceName}}}_prototype_object,
                            "{{{name}}}", &{{{name}}}_handler);
     {{/operations}}
-    set_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
+
+{{! if it's specified as a NoInterfaceObject, then the object goes
+    into the global namespace; otherwise, the object is used as a
+    prototype, so record in the global prototypes holder }}
+{{#NoInterfaceObject}}
+    jerry_value_t object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t throwaway = jerry_set_property(global_object,
+						object_name,
+						{{{name}}}_prototype_object);
+    jerry_release_value(throwaway);
+{{/NoInterfaceObject}}
+{{^NoInterfaceObject}}
+    register_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
+{{/NoInterfaceObject}}
     jerry_release_value({{{name}}}_prototype_object);
 
+{{^NoInterfaceObject}}
+{{! this sets up the ability to "new" the object, if it's not been specified
+    as NoInterface }}
     register_function_call(global_object, "{{{name}}}", &create_{{{name}}}_interface_handler);
-{{/NoInterfaceObject}}
-{{#NoInterfaceObject}}
-    {{#operations}}
-    register_function_call(global_object, "{{{interfaceName}}}_{{{name}}}", &{{{name}}}_handler);
-    {{/operations}}
+
 {{/NoInterfaceObject}}
     jerry_release_value(global_object);
 

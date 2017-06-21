@@ -557,7 +557,7 @@ jerry_value_t get_prototype(char * interface_name){{#header}};{{/header}}
 } /* get_prototype */
 
 {{/body}}
-void set_prototype(char * interface_name, jerry_value_t new_prototype){{#header}};{{/header}}
+void register_prototype(char * interface_name, jerry_value_t new_prototype){{#header}};{{/header}}
 {{#body}}
 {
     jerry_value_t prototypes_holder = get_prototypes_holder();
@@ -569,7 +569,7 @@ void set_prototype(char * interface_name, jerry_value_t new_prototype){{#header}
     /* clean up */
     jerry_release_value(prototypes_holder);
     jerry_release_value(prop_name);
-} /* set_prototype */
+} /* register_prototype */
 
 {{/body}}
 
