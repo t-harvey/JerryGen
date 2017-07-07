@@ -1,9 +1,9 @@
 var _ = require("lodash");
-var CPPHoganHelpers = require("./CPPHoganHelpers.js");
+var CHoganHelpers = require("./CHoganHelpers.js");
 
 module.exports.getContext = function(ast, moduleName, interfaceName){
   // add some more specific stuff
-  var context = CPPHoganHelpers.getContext(ast, moduleName);
+  var context = CHoganHelpers.getContext(ast, moduleName);
 
   // add the specific interface
   context = _.assign(context, ast.interfaces[interfaceName]);

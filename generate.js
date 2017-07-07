@@ -50,7 +50,7 @@ var generate_js = function(){
         return qfs.write(jsFileName, jsString);
 }; /* generate_js */
 
-var generate_cpp = function(){
+var generate_CFile = function(){
     var interfaces_object = augAST.interfaces; // excise the interfaces
     var write_return_value;
 
@@ -60,14 +60,14 @@ var generate_cpp = function(){
 	augAST.interfaces = {}; // not strictly necessary...
 	augAST.interfaces = {[interface_name] : interfaces_object[interface_name]};
     
-        var cppString = Generator.genCPPString(augAST, genPackage);
-        var cppFileName = packagePath + "/" + interface_name + ".cpp";
-        console.log("Creating C++ File... ("+cppFileName+")");
-	write_return_value = qfs.write(cppFileName, cppString);
+        var CFileString = Generator.genCString(augAST, genPackage);
+        var CFileFileName = packagePath + "/" + interface_name + ".c";
+        console.log("Creating C++ File... ("+CFileFileName+")");
+	write_return_value = qfs.write(CFileFileName, CFileString);
     }
     augAST.interfaces = interfaces_object; // put back the interfaces
     return write_return_value; // result of last qfs.write
-}; /* generate_cpp */
+}; /* generate_CFile */
 
 var generate_include_files = function(){
     var returned = [];
@@ -78,7 +78,7 @@ var generate_include_files = function(){
     {
         // we'll need to generate the types
         var headerFilename = packagePath + "/" + genPackage + "_Types.h";
-        var header_bodyFilename = packagePath + "/" + genPackage + "_Types.cpp";
+        var header_bodyFilename = packagePath + "/" + genPackage + "_Types.c";
         var headerString = Generator.genDictionaryTypesString(augAST, genPackage, "generate_header");
         var header_bodyString = Generator.genDictionaryTypesString(augAST, genPackage, "generate_body");
         console.log("Creating header file... (" + headerFilename + ")");
@@ -102,7 +102,7 @@ var generate_stubs = function(){
 	augAST.interfaces = {}; // not strictly necessary...
 	augAST.interfaces = {[interface_name] : interfaces_object[interface_name]};
 	let stubsfileString = Generator.genStubsString(augAST, genPackage);
-	let stubsfileFileName = packagePath + "/" + interface_name + "_stubs.cpp";
+	let stubsfileFileName = packagePath + "/" + interface_name + "_stubs.c";
 
 	if (fileExists.sync(stubsfileFileName) &&
 	    stubs_on_or_off != 'overwrite')
@@ -135,7 +135,7 @@ qfs.makeDirectory(packagePath);
 
 generate_stubs(); /* stubs don't get overwritten, so if the file already
 		     exists, this is a null step */
-generate_cpp();
+generate_CFile();
 generate_include_files();
 
 report_done();

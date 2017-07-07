@@ -3,9 +3,9 @@ var hogan = require('hogan.js');
 var _ = require('lodash');
 
 var JSHoganHelpers = require("./JSHoganHelpers.js"),
-    CPPModuleHoganHelpers = require("./CPPModuleHoganHelpers.js"),
-    CPPInterfaceHoganHelpers = require("./CPPInterfaceHoganHelpers.js"),
-    CPPDictionaryHoganHelpers = require("./CPPDictionaryHoganHelpers.js"),
+    CModuleHoganHelpers = require("./CModuleHoganHelpers.js"),
+    CInterfaceHoganHelpers = require("./CInterfaceHoganHelpers.js"),
+    CDictionaryHoganHelpers = require("./CDictionaryHoganHelpers.js"),
     MakefileHoganHelpers = require("./MakefileHoganHelpers.js");
     StubsHoganHelpers = require("./StubsHoganHelpers.js");
 
@@ -18,8 +18,8 @@ function getJSTemplate(templateName){
   return getTemplate(__dirname+"/js-templates/"+templateName+".mustache");
 }
 
-function getCPPTemplate(templateName){
-  return getTemplate(__dirname+"/cpp-templates/"+templateName+".mustache");
+function getCTemplate(templateName){
+  return getTemplate(__dirname+"/c-templates/"+templateName+".mustache");
 
 }
 
@@ -34,11 +34,11 @@ module.exports.genJSString = function(ast, moduleName){
 C++ Code generation
  */
 
-module.exports.genCPPString = function(ast, moduleName){
+module.exports.genCString = function(ast, moduleName){
 ;
-  var context = CPPModuleHoganHelpers.getContext(ast, moduleName);
+  var context = CModuleHoganHelpers.getContext(ast, moduleName);
 
-  return hogan.compile(getCPPTemplate('cppmodule')).render(context);
+  return hogan.compile(getCTemplate('cmodule')).render(context);
 };
 
 
@@ -47,32 +47,32 @@ module.exports.genInterfaceString = function(ast, interfaceName, moduleName){
     throw "Could not find interface "+interfaceName;
   }
 
-  var context = CPPInterfaceHoganHelpers.getContext(ast, moduleName, interfaceName);
-  return hogan.compile(getCPPTemplate("interface")).render(context);
+  var context = CInterfaceHoganHelpers.getContext(ast, moduleName, interfaceName);
+  return hogan.compile(getCTemplate("interface")).render(context);
 
 };
 
 
 module.exports.genDictionaryTypesString = function(ast, moduleName, header_or_body)
 {
-    var context = CPPDictionaryHoganHelpers.getContext(ast, moduleName);
+    var context = CDictionaryHoganHelpers.getContext(ast, moduleName);
     if (header_or_body === "generate_header")
 	context.header = true;
     else /* header_or_body === "generate_body" */
 	context.body = true;
     
-    return hogan.compile(getCPPTemplate("types")).render(context);
+    return hogan.compile(getCTemplate("types")).render(context);
 }; /* genDictionaryTypesString */
 
 module.exports.genMakefileString = function(ast, moduleName){
   var context = MakefileHoganHelpers.getContext(ast, moduleName);
-  return hogan.compile(getCPPTemplate("Makefile")).render(context);
+  return hogan.compile(getCTemplate("Makefile")).render(context);
 };
 
 
 module.exports.genStubsString = function(ast, moduleName){
   var context = StubsHoganHelpers.getContext(ast, moduleName);
-  return hogan.compile(getCPPTemplate("stubs")).render(context);
+  return hogan.compile(getCTemplate("stubs")).render(context);
 };
 
 
