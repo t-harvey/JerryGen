@@ -1,0 +1,21 @@
+// require returns a UART object
+// var uart = require('uart');
+
+enum UARTParity { "none", "event", "odd" };
+
+dictionary UARTOptions {
+    string port;
+    // number baud = 115200;
+    // number dataBits = 8;
+    // number stopBits = 1;
+    // UARTParity parity = "none";
+    // boolean flowControl = false;
+};
+
+[NoInterfaceObject]
+interface UARTConnection {
+    Promise<void> init(UARTOptions options);
+    // void close();
+    Promise<void> write(Buffer data);
+    void setReadRange(unsigned long min, unsigned long max);
+};

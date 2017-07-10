@@ -1,12 +1,13 @@
-{{! Mustache doesn't understand transfer blank lines from this script
-    file to the output file unless those blank lines are within a
-    #<name> construct, so we wrap this entire script with a name
+{{! Mustache doesn't understand how to transfer blank lines from this
+    script file to the output file unless those blank lines are within
+    a #<name> construct, so we wrap this entire script with a name
     that shouldn't(!) be in the input file }}
 {{^OBEYFORMATTING}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "jerryscript.h"
 #include "{{{moduleName}}}_Types.h"

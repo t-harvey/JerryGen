@@ -1,0 +1,6 @@
+interface Logger {
+  [ThrowsRPCError]
+  DOMString helloName(DOMString name1);
+
+};
+

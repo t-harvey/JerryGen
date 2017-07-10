@@ -1,3 +1,4 @@
+{{^TAG_USED_TO_FORCE_MUSTACHE_TO_OBEY_VERTICAL_WHITESPACING}}
 {{! This one .mustache file is used to create both the .h and the .c
     *_Types files -- look for the "body" and "header" markers }}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
@@ -7,15 +8,82 @@
 {{/header}}
 
 // these are included to simplify the generator. Remove if not needed.
-#include <string>
-#include <vector>
+//#include <string>
+//#include <vector>
+#include <stdio.h>
 
 typedef char * string;
 
 {{#body}}
 #include "{{moduleName}}_Types.h"
 {{/body}}
-#include "jerry-api.h"
+#include "jerryscript.h"
+
+{{#header}}
+/* each Javascript object can have a single C object associated with
+   it, which we call a Native_Object ("native" to the C code); these
+   Native_Objects are attached to their objects by Jerryscript, and
+   Jerryscript also keeps track of when the associated object is
+   destroyed -- when a Javascript object is destroyed, Jerryscript
+   will call a user function to deallocate the associated Native_Object;
+   thus, when we assign a Native_Object to a Javascript object using
+   Native_Object_set, we also give it a deallocator for that
+   Native_Object (note that the function can be null if there isn't
+   any memory to free); getting back the Native_Object with
+   Native_Object_get is straightforward, although there is little error
+   checking on either get() or set(), currently... */
+typedef void (*thing_deallocator) (void *thing_to_be_deallocated);
+
+{{/header}}
+{{#body}}
+/* for Native_Objects, we need to store the deallocator along with the
+   actual object, so we'll keep our own data structure to do this, and
+   this is what actually gets stored in the Javascript object, with the
+   get() and set() routines hiding the details from the user */
+/* if we are outputing this code in a language that has closures, we
+   would be able to delete this object at the same time that we call
+   the user's deallocator function; for now, we'll leak (at least) 2 pointer
+   values every time an object gets deallocated */
+typedef struct {
+    jerry_object_native_info_t deallocator;
+    void *thing;
+} Native_Object;
+{{/body}}
+
+void Native_Object_set(void *thing, thing_deallocator deallocator, jerry_value_t object){{#header}};{{/header}}
+{{#body}}
+{
+    Native_Object *new_thing = (Native_Object *)malloc(sizeof(Native_Object));
+
+    new_thing->deallocator.free_cb = deallocator;
+    new_thing->thing = thing;
+
+    jerry_set_object_native_pointer(object, new_thing, &(new_thing->deallocator));
+} /* Native_Object_set */
+{{/body}}
+
+void *Native_Object_get(jerry_value_t object){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_object_native_info_t *deallocator;
+    Native_Object *thing;
+
+    jerry_get_object_native_pointer(object, (void**)&thing, (const jerry_object_native_info_t **)&deallocator);
+
+    if (thing->deallocator.free_cb != deallocator->free_cb)
+    {
+        fprintf(stderr, "Deallocator is different.\n");
+	return NULL; /* TODO: is this the right thing in this case? */
+    }
+    if (thing == NULL)
+    {
+        fprintf(stderr, "The object has been deallocated.\n");
+	return NULL; /* TODO: is the error message accurate? */
+    }
+    return thing->thing;
+} /* Native_Object_get */
+{{/body}}
+
 
 {{#header}}
 {{#has_callbacks}}
@@ -578,3 +646,4 @@ void register_prototype(char * interface_name, jerry_value_t new_prototype){{#he
 {{#header}}
 #endif /* {{moduleName}}_TYPES_H_ */
 {{/header}}
+{{/TAG_USED_TO_FORCE_MUSTACHE_TO_OBEY_VERTICAL_WHITESPACING}}

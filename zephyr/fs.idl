@@ -1,0 +1,7 @@
+// require returns a FS object
+// var fs = require('fs');
+
+interface Stat {
+    boolean isFile();
+    boolean isDirectory();
+};

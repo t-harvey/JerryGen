@@ -1,0 +1,18 @@
+// Timers
+
+dictionary intervalID {
+    long ID;
+}; /* intervalID */
+
+dictionary timeoutID {
+    long ID;
+}; /* timeoutID */
+
+interface Timers {
+    intervalID setInterval(TimerCallback func, unsigned long delay, any... optionals);
+    timeoutID setTimeout(TimerCallback func, unsigned long delay, any... optionals);
+    void clearInterval(intervalID x);
+    void clearTimeout(timeoutID x);
+}; /* Timers */
+
+callback TimerCallback = void (any... optionals);

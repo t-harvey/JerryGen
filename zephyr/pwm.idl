@@ -1,0 +1,20 @@
+// require returns a PWM object
+// var pwm = require('pwm');
+
+[NoInterfaceObject]
+interface PWM {
+    PWMPin open(PWMInit init);
+};
+
+dictionary PWMInit {
+    unsigned long channel;
+    double period;               // in milliseconds
+    double pulseWidth;           // in milliseconds
+    string polarity = "normal";  // normal, reverse
+};
+
+[NoInterfaceObject]
+interface PWMPin {
+    void setCycles(unsigned long period, unsigned long pulseWidth);
+    void setMilliseconds(double period, double pulseWidth);
+};

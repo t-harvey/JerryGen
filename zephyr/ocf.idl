@@ -1,0 +1,133 @@
+// require returns an OCFObject
+// var ocf = require('ocf');
+
+interface OCFObject {
+    attribute Server server;         // OCF server object
+    attribute Client client;         // OCF client object
+    attribute Platform platform;     // OCF platform info
+    attribute Device device;          // OCF device info
+};
+
+/* cribbed from zjs_ocf_server, from zephyr.js on github */
+dictionary Server {
+    unsigned long error_code;
+    oc_resource_t res;
+    string device_id;
+    string resource_path;
+    string resource_types;
+    string resource_ifaces;
+    octet num_types;
+    octet num_ifaces;
+    octet flags;
+}; /* Server */
+
+/***********************************************/
+/* cribbed from oc_ri.h in iotivity-constrained on github */
+/* note that "oc_resource_t" is just the name for an "oc_resource_s"
+   in that code... */
+
+enum oc_interface_mask_t {  "OC_IF_BASELINE",
+			    "OC_IF_LL",
+			    "OC_IF_B",
+			    "OC_IF_R",
+			    "OC_IF_RW",
+			    "OC_IF_A",
+			    "OC_IF_S"
+};
+
+enum oc_resource_properties_t {
+  "OC_DISCOVERABLE",
+  "OC_OBSERVABLE",
+  "OC_SECURE",
+  "OC_PERIODIC"
+};
+
+
+dictionary oc_request_t {
+    //oc_endpoint_t origin;
+    oc_resource_t resource;
+    string query;
+    long query_len;
+    oc_rep_t request_payload;
+    oc_response_t response;
+}; /* oc_request_t */
+
+callback oc_request_callback_t = void (oc_request_t request, oc_interface_mask_t mask, Buffer buffer);
+
+interface oc_request_handler_t {
+    attribute oc_request_callback_t cb;
+    attribute Buffer user_data;
+}; /* oc_request_handler_t */
+
+
+dictionary oc_rep_t {
+//  oc_rep_value_type_t type;
+//  /*oc_rep_t *next;*/
+//  oc_string_t name;
+//  union oc_rep_value
+//  {
+//    int integer;
+//    bool boolean;
+//    double double_p;
+//    oc_string_t string;
+//    oc_array_t array;
+//   struct oc_rep_s *object;
+//    struct oc_rep_s *object_array;
+//  } value;
+    long I_got_tired_of_chasing_defs;
+};
+
+
+dictionary oc_separate_response_t {
+    long id;
+};
+
+dictionary oc_response_buffer_t {
+    long id;
+};
+
+
+dictionary oc_response_t {
+  oc_separate_response_t separate_response;
+  oc_response_buffer_t response_buffer;
+};
+
+dictionary oc_resource_t {
+    /* oc_resource_t *next; --> I don't know how to do this in webidl */
+    string uri;
+    string[] types;
+    oc_interface_mask_t interfaces;
+    oc_interface_mask_t default_interface;
+    oc_resource_properties_t properties;
+    oc_request_handler_t get_handler;
+    oc_request_handler_t put_handler;
+    oc_request_handler_t post_handler;
+    oc_request_handler_t delete_handler;
+    unsigned short observe_period_seconds;
+    octet num_observers;
+}; /* oc_resource_t */
+
+/***********************************************/
+
+dictionary Client {
+    string id;
+}; /* Client */
+
+dictionary Platform {
+    string id;
+    string osVersion;
+    string model;
+    string manufacturerName;
+    string manufacturerURL;
+    string manufacturerDate;
+    string platformVersion;
+    string firmwareVersion;
+    string supportURL;
+};
+
+dictionary Device {
+    string uuid;
+    string name;
+    string dataModels;
+    string coreSpecVersion;
+};

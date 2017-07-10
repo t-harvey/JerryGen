@@ -1,0 +1,13 @@
+callback ListenerCallback = void (...);
+
+interface EventEmitter {
+    this on(string event, ListenerCallback... listener);
+    this addListener(string event, ListenerCallback[]... listener);
+    boolean emit(string event, optional long arg1, any... rest);
+    this removeListener(string event, ListenerCallback listener);
+    this removeAllListeners(string event);
+    string[] eventNames();
+    long getMaxListeners();
+    ListenerCallback[] listeners(string event);
+    this setMaxListeners(long max);
+};

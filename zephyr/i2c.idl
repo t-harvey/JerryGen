@@ -1,0 +1,20 @@
+// require returns a I2C object
+// var i2c = require('i2c');
+
+[NoInterfaceObject]
+interface I2C {
+    I2CBus open(I2CInit init);
+};
+
+dictionary I2CInit {
+    octet bus;
+    unsigned long speed;
+};
+
+[NoInterfaceObject]
+interface I2CBus {
+    // has all the properties of I2CInit as read-only attributes
+    void write(octet device, Buffer data);
+    Buffer read(octet device, unsigned long size, octet registerAddress);
+    Buffer burstRead(octet device, unsigned long size, octet registerAddress);
+};

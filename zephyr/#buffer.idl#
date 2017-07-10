@@ -1,0 +1,17 @@
+// Buffer is a global object constructor that is always available
+// TJH: changed "char" to "long"
+
+interface Buffer {
+    unsigned long readUInt8(unsigned long offset);
+    void writeUInt8(unsigned long value, unsigned long offset);
+    unsigned short readUInt16BE(unsigned long offset);
+    void writeUInt16BE(unsigned short value, unsigned long offset);
+    unsigned short readUInt16LE(unsigned long offset);
+    void writeUInt16LE(unsigned short value, unsigned long offset);
+    unsigned long readUInt32BE(unsigned long offset);
+    void writeUInt32BE(unsigned long value, unsigned long offset);
+    unsigned long readUInt32LE(unsigned long offset);
+    void writeUInt32LE(unsigned long value, unsigned long offset);
+    string toString(string encoding);
+    readonly attribute unsigned long length;
+};

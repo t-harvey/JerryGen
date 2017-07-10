@@ -1,0 +1,47 @@
+// require returns an K64FPins object
+// var pins = require('k64f_pins');
+
+[NoInterfaceObject]
+interface K64FPins {
+    attribute unsigned long D0;
+    attribute unsigned long D1;
+    attribute unsigned long D2;
+    attribute unsigned long D3;
+    attribute unsigned long D4;
+    attribute unsigned long D5;
+    attribute unsigned long D6;
+    attribute unsigned long D7;
+    attribute unsigned long D8;
+    attribute unsigned long D9;
+    attribute unsigned long D10;
+    attribute unsigned long D11;
+    attribute unsigned long D12;
+    attribute unsigned long D13;
+    attribute unsigned long D14;
+    attribute unsigned long D15;
+
+    attribute unsigned long LEDR;
+    attribute unsigned long LEDG;
+    attribute unsigned long LEDB;
+
+    attribute unsigned long SW2;
+    attribute unsigned long SW3;
+
+    attribute unsigned long PWM0;
+    attribute unsigned long PWM1;
+    attribute unsigned long PWM2;
+    attribute unsigned long PWM3;
+    attribute unsigned long PWM4;
+    attribute unsigned long PWM5;
+    attribute unsigned long PWM6;
+    attribute unsigned long PWM7;
+    attribute unsigned long PWM8;
+    attribute unsigned long PWM9;
+
+    attribute unsigned long A0;
+    attribute unsigned long A1;
+    attribute unsigned long A2;
+    attribute unsigned long A3;
+    attribute unsigned long A4;
+    attribute unsigned long A5;
+};

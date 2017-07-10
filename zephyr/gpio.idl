@@ -1,0 +1,28 @@
+[NoInterfaceObject]
+interface GPIO {
+    GPIOPin open(GPIOInit init);
+    Promise<GPIOPin> openAsync(GPIOInit init);
+};
+
+dictionary GPIOInit {
+    unsigned long pin;
+    boolean activeLow = false;
+    string direction = "out";  // in, out
+    string edge = "any";       // none, rising, falling, any
+    string pull = "none";      // none, up, down
+};
+
+[NoInterfaceObject]
+interface GPIOPin {
+    boolean read();
+    void write(boolean value);
+    void close();
+    attribute ChangeCallback onchange;
+};
+
+callback ChangeCallback = void (GPIOEvent x);
+
+dictionary GPIOEvent {
+    // TODO: probably should add event type here, or else return value directly
+    boolean value;
+};
