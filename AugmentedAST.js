@@ -287,7 +287,7 @@ AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
 		add_type_to_list(member, types);
     }
 
-    for(let interface in this.interfaces)
+    for(var interface in this.interfaces)
     {
 	let operations = this.interfaces[interface].operations;
 
@@ -1018,7 +1018,7 @@ AugmentedAST.prototype.sort_types = function()
     }
     for (let next in this.interfaces)
     {
-	let interface = this.interfaces[next];
+	var interface = this.interfaces[next];
 	let this_index = names.indexOf(interface.name);
 
 	/* operations' arguments list */
@@ -1057,7 +1057,7 @@ AugmentedAST.prototype.sort_types = function()
  */
 AugmentedAST.prototype.mark_operations_with_callback_parameters = function()
 {
-    for (let interface in this.interfaces)
+    for (var interface in this.interfaces)
     {
 	let operations_array = this.interfaces[interface].operations;
 	let operations_length = operations_array.length;
