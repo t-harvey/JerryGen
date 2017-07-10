@@ -1,4 +1,4 @@
-{{^TAG_USED_TO_FORCE_MUSTACHE_TO_OBEY_VERTICAL_WHITESPACING}}
+{{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .h and the .c
     *_Types files -- look for the "body" and "header" markers }}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
@@ -18,7 +18,7 @@ typedef char * string;
 #include "{{moduleName}}_Types.h"
 {{/body}}
 #include "jerryscript.h"
-
+ 
 {{#header}}
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these
@@ -646,4 +646,4 @@ void register_prototype(char * interface_name, jerry_value_t new_prototype){{#he
 {{#header}}
 #endif /* {{moduleName}}_TYPES_H_ */
 {{/header}}
-{{/TAG_USED_TO_FORCE_MUSTACHE_TO_OBEY_VERTICAL_WHITESPACING}}
+{{/OBEYFORMATTING}}
