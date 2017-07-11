@@ -55,21 +55,22 @@ static jerry_value_t
         {{/variadic}}
     {{/arguments}}
 
-{{#repress_stubs}}
-// USER CODE GOES HERE
-{{/repress_stubs}}
 {{^repress_stubs}}
 {{#C_and_Jerryscript_Types}}
-extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{/return_is_this}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#hasAttributes}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t{{/hasAttributes}});
+extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{/return_is_this}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t);
 
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value{{#is_string}}_string{{/is_string}} ={{/return_is_this}}{{/voidReturnType}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#hasAttributes}}{{#arguments.length}}, {{/arguments.length}}this_val{{/hasAttributes}});
-{{#is_string}}
-    jerry_value_t return_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value_string);
-{{/is_string}}
+{{/C_and_Jerryscript_Types}}
+{{/repress_stubs}}
+{{#C_and_Jerryscript_Types}}
+{{#repress_stubs}}{{^voidReturnType}}/* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}this_val);{{/repress_stubs}}
+
 {{/C_and_Jerryscript_Types}}
 
-{{/repress_stubs}}
 {{#repress_stubs}}
+// USER CODE GOES HERE
+
+
     {{! FREE MALLOC'D STRINGS}}
     {{#arguments}}
         {{#C_and_Jerryscript_Types}}
@@ -84,7 +85,7 @@ extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jer
     {{/arguments}}
 
 {{/repress_stubs}}
-{{^repress_stubs}}
+{{! ^repress_stubs}}
     {{#C_and_Jerryscript_Types}}
         {{#return_is_this}}
     /* return a reference back to this interface */
@@ -100,13 +101,13 @@ extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jer
     return jerry_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(return_value);
                 {{/is_string}}
                 {{#is_string}}
-     return return_value;
+     return jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
                 {{/is_string}}
             {{/voidReturnType}}
         {{/return_is_this}}
     {{/C_and_Jerryscript_Types}}
 
-{{/repress_stubs}}
+{{! /repress_stubs}}
 } /* {{{name}}}_handler */
 /*
  *
