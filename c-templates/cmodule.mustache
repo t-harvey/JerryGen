@@ -12,6 +12,45 @@
 #include "jerryscript.h"
 #include "{{{moduleName}}}_Types.h"
 
+{{#interfaces}}
+{{#repress_stubs}}
+/* each Javascript object can have a single C object associated with
+   it, which we call a Native_Object ("native" to the C code); these
+   Native_Objects are attached to their objects by Jerryscript, and
+   Jerryscript also keeps track of when the associated object is
+   destroyed -- when a Javascript object is destroyed, Jerryscript
+   will call a user function to deallocate the associated Native_Object;
+   thus, when we assign a Native_Object to a Javascript object using
+   Native_Object_set, we also give it a deallocator for that
+   Native_Object (note that the function can be null if there isn't
+   any memory to free) */
+typedef struct {
+       // USER CODE GOES HERE
+
+} Native_Object_{{{interfaceName}}};
+
+static void Native_Object_{{{interfaceName}}}_deallocator(void *native_object)
+{
+	// USER CODE GOES HERE
+
+} /* Native_Object_{{{interfaceName}}}_deallocator */
+
+static Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}_create(void)
+{
+    Native_Object_{{{interfaceName}}} *new_object = (Native_Object_{{{interfaceName}}} *)malloc(sizeof(Native_Object_{{{interfaceName}}}));
+
+	// USER CODE GOES HERE
+ 
+    return new_object;
+} /* Native_Object_{{{interfaceName}}_create */
+{{/repress_stubs}}
+{{^repress_stubs}}
+extern void Native_Object_{{{interfaceName}}}_deallocator(void *native_object);
+extern Native_Object_{{{interfaceName}}}* Native_Object_{{{interfaceName}}_create(void);
+{{/repress_stubs}}
+static jerry_object_native_info_t checksum = {Native_Object_{{{interfaceName}}}_deallocator};
+{{/interfaces}}
+
 {{! I DON'T THINK THIS IS NECESSARY... }}
 {{#interfaces}}
 {{^NoInterfaceObject}}
@@ -34,7 +73,7 @@ static jerry_value_t
                    const jerry_value_t *args_p, /**< function arguments */
                    const jerry_length_t args_cnt) /**< number of function arguments */
 {
-    // demarshal the arguments
+    // demarshal the arguments{{#repress_stubs}} and setup the Native_Object{{/repress_stubs}}
 {{! TODO: the "this_val" passed in to a function parameter: should it be
     this_val, or should we gen up a value_t for the global object? }}
     {{#arguments}}
@@ -46,7 +85,8 @@ static jerry_value_t
         {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
 	     {{#callback}}
-    {{{C_Type}}}_calling_context{{#is_array}}_Array{{/is_array}} {{{name}}} = ({{{C_Type}}}_calling_context){args_p[{{{paramIndex}}}], this_val};
+    {{{C_Type}}}_calling_context{{#is_array}}_Array{{/is_array}} {{{name}}}{{#repress_stubs}}_context{{/repress_stubs}} = ({{{C_Type}}}_calling_context){args_p[{{{paramIndex}}}], this_val};
+{{#repress_stubs}}#define {{{name}}}(...) (run_{{{C_Type}}}_function({{{name}}}_context, __VA_ARGS__)){{/repress_stubs}}
 	     {{/callback}}
 	     {{^callback}}
     {{{C_Type}}}{{#is_array}}_Array{{/is_array}} {{{name}}} = jerry_get_{{^is_array}}{{{C_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]);
@@ -54,23 +94,35 @@ static jerry_value_t
              {{/C_and_Jerryscript_Types}}	
         {{/variadic}}
     {{/arguments}}
+{{#repress_stubs}}
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &checksum);
 
+{{/repress_stubs}}
 {{^repress_stubs}}
 {{#C_and_Jerryscript_Types}}
 extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{/return_is_this}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t);
-
 {{/C_and_Jerryscript_Types}}
+
 {{/repress_stubs}}
 {{#C_and_Jerryscript_Types}}
 {{#repress_stubs}}{{^voidReturnType}}/* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
     {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}this_val);{{/repress_stubs}}
 
 {{/C_and_Jerryscript_Types}}
-
 {{#repress_stubs}}
 // USER CODE GOES HERE
 
-
+{{/repress_stubs}}
+    {{! if the return value is a string (or array of strings), we want
+        to enter it into the Jerryscript environment _before_ we
+        deallocate our local strings, as it's possible that the return
+        value is just a copy of one of args }}
+    {{#C_and_Jerryscript_Types}}
+        {{#is_string}}
+    /* put the string into Jerryscript before we cleanup any string arguments */
+    jerry_value_t string_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
+        {{/is_string}}
+    {{/C_and_Jerryscript_Types}}
     {{! FREE MALLOC'D STRINGS}}
     {{#arguments}}
         {{#C_and_Jerryscript_Types}}
@@ -84,7 +136,6 @@ extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jer
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
 
-{{/repress_stubs}}
 {{! ^repress_stubs}}
     {{#C_and_Jerryscript_Types}}
         {{#return_is_this}}
@@ -101,7 +152,7 @@ extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jer
     return jerry_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(return_value);
                 {{/is_string}}
                 {{#is_string}}
-     return jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
+     return string_value;
                 {{/is_string}}
             {{/voidReturnType}}
         {{/return_is_this}}
@@ -150,7 +201,7 @@ static void load_types_into_Jerryscript_environment()
 {{#interfaces}}
 /* external declaration in {{{moduleName}}}_Types.h */
 jerry_value_t
-create_{{{name}}}_interface_handler(const jerry_value_t func_value,
+create_{{{interfaceName}}}_interface_handler(const jerry_value_t func_value,
 		   const jerry_value_t this_val,
                    const jerry_value_t *args_p,
                    const jerry_length_t args_cnt)
@@ -176,11 +227,15 @@ create_{{{name}}}_interface_handler(const jerry_value_t func_value,
         jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, args_p[{{{attribute_index}}}]);
         jerry_release_value({{{name}}}_prop_name);
     }
-    {{/attributes}}
 
+    {{/attributes}}
     jerry_value_t prototype = get_prototype((char *)"{{{interfaceName}}}");
     jerry_set_prototype(new_{{{interfaceName}}}, prototype);
     jerry_release_value(prototype);
+
+    /* setup the Native_Object for the new object */
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}_create();
+    Native_Object_set(native_object, new_{{{interfaceName}}}, &checksum);
 
     return new_{{{interfaceName}}};
 {{/NoInterfaceObject}}
@@ -189,7 +244,7 @@ create_{{{name}}}_interface_handler(const jerry_value_t func_value,
 
 
 {{#interfaces}}
-void load_{{{name}}}_interface(void)
+void load_{{{interfaceName}}}_interface(void)
 {
     load_types_into_Jerryscript_environment();
 
@@ -214,6 +269,10 @@ void load_{{{name}}}_interface(void)
     into the global namespace; otherwise, the object is used as a
     prototype, so record in the global prototypes holder }}
 {{#NoInterfaceObject}}
+    /* setup the Native_Object for the new object */
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}_create();
+    Native_Object_set(native_object, {{{name}}}_prototype_object, &checksum);
+
     jerry_value_t object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
     jerry_value_t throwaway = jerry_set_property(global_object,
 						object_name,

@@ -62,7 +62,7 @@ var generate_CFile = function(){
     
         var CFileString = Generator.genCString(augAST, genPackage);
         var CFileFileName = packagePath + "/" + interface_name + ".c";
-        console.log("Creating C++ File... ("+CFileFileName+")");
+        console.log("Creating C File... ("+CFileFileName+")");
 	write_return_value = qfs.write(CFileFileName, CFileString);
     }
     augAST.interfaces = interfaces_object; // put back the interfaces
@@ -109,7 +109,7 @@ var generate_stubs = function(){
 	    console.log(">"+stubsfileFileName+"< exists; nothing written.");
 	else
 	{
-            console.log("Creating C++ Stubs File: >"+stubsfileFileName+"<");
+            console.log("Creating C Stubs File: >"+stubsfileFileName+"<");
 	    returned.push(qfs.write(stubsfileFileName,
 				    stubsfileString));
 	}
