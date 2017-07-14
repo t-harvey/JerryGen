@@ -13,7 +13,6 @@
 #include "{{{moduleName}}}_Types.h"
 
 {{#interfaces}}
-{{#repress_stubs}}
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these
    Native_Objects are attached to their objects by Jerryscript, and
@@ -25,10 +24,15 @@
    Native_Object (note that the function can be null if there isn't
    any memory to free) */
 typedef struct {
+{{#repress_stubs}}
        // USER CODE GOES HERE
-
+{{/repress_stubs}}
+{{^repress_stubs}}
+	// DEFINED IN THE STUBS FILE
+{{/repress_stubs}}
 } Native_Object_{{{interfaceName}}};
 
+{{#repress_stubs}}
 static void Native_Object_{{{interfaceName}}}_deallocator(void *native_object)
 {
 	// USER CODE GOES HERE
@@ -42,13 +46,17 @@ static Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_crea
 	// USER CODE GOES HERE
  
     return new_object;
-} /* Native_Object_{{{interfaceName}}_create */
+} /* Native_Object_{{{interfaceName}}}_create */
 {{/repress_stubs}}
 {{^repress_stubs}}
 extern void Native_Object_{{{interfaceName}}}_deallocator(void *native_object);
-extern Native_Object_{{{interfaceName}}}* Native_Object_{{{interfaceName}}_create(void);
+extern Native_Object_{{{interfaceName}}}* Native_Object_{{{interfaceName}}}_create(void);
 {{/repress_stubs}}
-static jerry_object_native_info_t checksum = {Native_Object_{{{interfaceName}}}_deallocator};
+{{! the checksum is used by Jerryscript to ensure that the
+    Native_Object is still valid; when we make the stubs, we need to
+    set up the checksum here, but also give it to the stubs file }}
+{{#repress_stubs}}static{{/repress_stubs}}{{^repress_stubs}}extern{{/repress_stubs}}
+jerry_object_native_info_t {{{interfaceName}}}_checksum{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator}{{/repress_stubs}};
 {{/interfaces}}
 
 {{! I DON'T THINK THIS IS NECESSARY... }}
@@ -95,7 +103,7 @@ static jerry_value_t
         {{/variadic}}
     {{/arguments}}
 {{#repress_stubs}}
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &checksum);
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum);
 
 {{/repress_stubs}}
 {{^repress_stubs}}
@@ -234,8 +242,8 @@ create_{{{interfaceName}}}_interface_handler(const jerry_value_t func_value,
     jerry_release_value(prototype);
 
     /* setup the Native_Object for the new object */
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}_create();
-    Native_Object_set(native_object, new_{{{interfaceName}}}, &checksum);
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}}_create();
+    Native_Object_set(native_object, new_{{{interfaceName}}}, &{{{interfaceName}}}_checksum);
 
     return new_{{{interfaceName}}};
 {{/NoInterfaceObject}}
@@ -270,8 +278,8 @@ void load_{{{interfaceName}}}_interface(void)
     prototype, so record in the global prototypes holder }}
 {{#NoInterfaceObject}}
     /* setup the Native_Object for the new object */
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}_create();
-    Native_Object_set(native_object, {{{name}}}_prototype_object, &checksum);
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}}_create();
+    Native_Object_set(native_object, {{{name}}}_prototype_object, &{{{interfaceName}}}_checksum);
 
     jerry_value_t object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
     jerry_value_t throwaway = jerry_set_property(global_object,
