@@ -4,6 +4,9 @@
 {{^OBEYFORMATTING}}
 /*# AUTOMATICALLY GENERATED ON {{timestamp}} #*/
 #include "{{{moduleName}}}_Types.h"
+static jerry_error_t error_check; /* examine this if the value of native_object
+    		  	             might be wrong after a call to
+				     Native_Object_get() */
 {{#interfaces}}
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these
@@ -51,7 +54,9 @@ jerry_object_native_info_t {{{interfaceName}}}_checksum = {Native_Object_{{{inte
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum);
+    /* examine the value of "error_check" if there could be an error
+       with an object's Native_Object */    
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check);
 
     // USER CODE GOES HERE
 

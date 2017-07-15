@@ -11,6 +11,7 @@
 //#include <string>
 //#include <vector>
 #include <stdio.h>
+#include <string.h>
 
 typedef char * string;
 
@@ -65,6 +66,7 @@ typedef struct {
             {{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/attributes}}
+    void *native_object;
 } {{name}};
 {{! SET UP #DEFS TO GET AT ATTRIBUTES OF THE INTERFACE}}
     {{#attributes}}
@@ -140,25 +142,28 @@ void Native_Object_set(void *thing, jerry_value_t object, jerry_object_native_in
 } /* Native_Object_set */
 {{/body}}
 
-void *Native_Object_get(jerry_value_t object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
+void *Native_Object_get(jerry_value_t object, jerry_object_native_info_t *checksum, jerry_error_t *error_value){{#header}};{{/header}}
 {{#body}}
 {
     void *thing = NULL;
     const jerry_object_native_info_t *stored_checksum;
+
+    *error_value = 0; /* when there are no errors, we want to return
+    		        this value */
 
     jerry_get_object_native_pointer(object, &thing, &stored_checksum);
 
     if (/* JUST FOR TESTING, ALLOW THE PASSED-IN CHECKSUM TO BE NULL */
         checksum && stored_checksum != checksum)
     {
-        fprintf(stderr, "Native Objects don't match.\n");
+        /*fprintf(stderr, "Native Objects don't match.\n");*/
+	static const jerry_char_t *message = (jerry_char_t *)"Native Objects don't match.";
+	*error_value =  jerry_create_error_sz (JERRY_ERROR_REFERENCE,
+					     message,
+               				     (jerry_size_t)strlen((char *)message));
 	return NULL; /* TODO: is this the right thing in this case? */
     }
-    if (thing == NULL)
-    {
-        fprintf(stderr, "The object has been deallocated.\n");
-	return NULL; /* TODO: is the error message accurate? */
-    }
+
     return thing;
 } /* Native_Object_get */
 {{/body}}
@@ -497,6 +502,9 @@ extern jerry_value_t create_{{{name}}}_interface_handler(const jerry_value_t,
     {{/C_and_Jerryscript_Types}}
     jerry_release_value({{{name}}}_prop_name);
     {{/attributes}}
+
+extern jerry_object_native_info_t {{{name}}}_checksum;
+    Native_Object_set(x.native_object, new_jerry_value, &{{{name}}}_checksum);
 
     return new_jerry_value;    
 } /* jerry_create_{{{name}}} */

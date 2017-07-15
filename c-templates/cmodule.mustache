@@ -103,7 +103,9 @@ static jerry_value_t
         {{/variadic}}
     {{/arguments}}
 {{#repress_stubs}}
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum);
+    jerry_error_t error_check; /* examine this if the value of native_object
+    		  	          (defined next) might be wrong */
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check);
 
 {{/repress_stubs}}
 {{^repress_stubs}}
