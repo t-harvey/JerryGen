@@ -56,7 +56,15 @@ extern Native_Object_{{{interfaceName}}}* Native_Object_{{{interfaceName}}}_crea
     Native_Object is still valid; when we make the stubs, we need to
     set up the checksum here, but also give it to the stubs file }}
 {{#repress_stubs}}static{{/repress_stubs}}{{^repress_stubs}}extern{{/repress_stubs}}
-jerry_object_native_info_t {{{interfaceName}}}_checksum{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator}{{/repress_stubs}};
+jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/repress_stubs}}{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator};
+#define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object) \
+{ \
+    jerry_error_t error_check; \
+    native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check); \
+    if (error_check) \
+        return error_check; \
+} /*GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
+{{/repress_stubs}}
 {{/interfaces}}
 
 {{! I DON'T THINK THIS IS NECESSARY... }}
@@ -103,10 +111,8 @@ static jerry_value_t
         {{/variadic}}
     {{/arguments}}
 {{#repress_stubs}}
-    jerry_error_t error_check; /* examine this if the value of native_object
-    		  	          (defined next) might be wrong */
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check);
-
+    Native_Object_{{{interfaceName}}} *native_object;
+    GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object);
 {{/repress_stubs}}
 {{^repress_stubs}}
 {{#C_and_Jerryscript_Types}}
@@ -114,8 +120,15 @@ extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jer
 {{/C_and_Jerryscript_Types}}
 
 {{/repress_stubs}}
+{{! for the "return_value", the logic is as follows: 1) don't put out
+the declaration if it's a void return type or this function returns
+the this pointer; 2) if we're repressing stubs, then put it out as a
+simple declaration; 3) if we're not repressing stubs, then put out the
+declaration with an assignment from the stub }}
 {{#C_and_Jerryscript_Types}}
-{{#repress_stubs}}{{^voidReturnType}}/* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
+{{#repress_stubs}}{{^voidReturnType}}
+
+/* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
     {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}this_val);{{/repress_stubs}}
 
 {{/C_and_Jerryscript_Types}}

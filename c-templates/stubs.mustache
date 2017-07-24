@@ -43,6 +43,15 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
     since the support routines need this value }}
 jerry_object_native_info_t {{{interfaceName}}}_checksum = {Native_Object_{{{interfaceName}}}_deallocator};
 
+#define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object) \
+{ \
+    jerry_error_t error_check; \
+    native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check); \
+    if (error_check) \
+        return error_check; \
+} /*GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
+
+
 /* {{{interfaceName}}} */
 {{#operations}}
 {{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{#C_and_Jerryscript_Types}}{{#callback}}_context{{/callback}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t this_val)
@@ -54,9 +63,8 @@ jerry_object_native_info_t {{{interfaceName}}}_checksum = {Native_Object_{{{inte
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
-    /* examine the value of "error_check" if there could be an error
-       with an object's Native_Object */    
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check);
+    Native_Object_{{{interfaceName}}} *native_object;
+    GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object);
 
     // USER CODE GOES HERE
 

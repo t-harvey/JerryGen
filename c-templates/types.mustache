@@ -142,7 +142,9 @@ void Native_Object_set(void *thing, jerry_value_t object, jerry_object_native_in
 } /* Native_Object_set */
 {{/body}}
 
-void *Native_Object_get(jerry_value_t object, jerry_object_native_info_t *checksum, jerry_error_t *error_value){{#header}};{{/header}}
+void *Native_Object_get(jerry_value_t object,
+                        jerry_object_native_info_t *checksum,
+			jerry_error_t *error_value){{#header}};{{/header}}
 {{#body}}
 {
     void *thing = NULL;
