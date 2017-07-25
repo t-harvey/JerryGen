@@ -54,15 +54,7 @@ extern Native_Object_{{{interfaceName}}}* Native_Object_{{{interfaceName}}}_crea
     Native_Object is still valid; when we make the stubs, we need to
     set up the checksum here, but also give it to the stubs file }}
 {{#repress_stubs}}static{{/repress_stubs}}{{^repress_stubs}}extern{{/repress_stubs}}
-jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/repress_stubs}}{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator};
-#define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object) \
-{ \
-    jerry_error_t error_check; \
-    native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check); \
-    if (error_check) \
-        return error_check; \
-} /*GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
-{{/repress_stubs}}
+jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/repress_stubs}}{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator};{{/repress_stubs}}
 {{/interfaces}}
 
 {{! I DON'T THINK THIS IS NECESSARY... }}
@@ -110,7 +102,7 @@ static jerry_value_t
     {{/arguments}}
 {{#repress_stubs}}
     Native_Object_{{{interfaceName}}} *native_object;
-    GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object);
+    GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, {{{interfaceName}}}_checksum);
 
     /* USER CODE GOES HERE */
 
