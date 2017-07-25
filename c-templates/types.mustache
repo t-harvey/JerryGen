@@ -133,6 +133,14 @@ union {{{moduleName}}}_types_union {
 #define jerry_get_double_value (double)jerry_get_number_value
 #define jerry_get_bool_value (bool)jerry_get_boolean_value
 
+#define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
+{ \
+    jerry_error_t error_check; \
+    native_object = Native_Object_get(this_val, &C_type_identifier, &error_check); \
+    if (error_check) \
+        return error_check; \
+} /*GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
+
 {{/header}}
 
 void Native_Object_set(void *thing, jerry_value_t object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
