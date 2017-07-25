@@ -7,9 +7,9 @@
 #define {{moduleName}}_TYPES_H_
 {{/header}}
 
-// these are included to simplify the generator. Remove if not needed.
-//#include <string>
-//#include <vector>
+/* these are included to simplify the generator. Remove if not needed.*/
+/* #include <string> */
+/* #include <vector> */
 #include <stdio.h>
 #include <string.h>
 
@@ -470,7 +470,7 @@ run_{{{name}}}_function(const {{{name}}}_calling_context {{{name}}}_context{{^ar
     {{/C_and_Jerryscript_Types}}
     jerry_release_value({{{name}}}_prop_name);
     jerry_release_value({{{name}}}_value);
-//
+
     {{/attributes}}
 
     jerry_release_value(object_value);

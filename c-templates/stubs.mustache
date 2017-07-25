@@ -19,13 +19,13 @@ static jerry_error_t error_check; /* examine this if the value of native_object
    Native_Object (note that the function can be null if there isn't
    any memory to free) */
 typedef struct {
-       // USER CODE GOES HERE
+       /* USER CODE GOES HERE */
 
 } Native_Object_{{{interfaceName}}};
 
 static void Native_Object_{{{interfaceName}}}_deallocator(void *native_object)
 {
-	// USER CODE GOES HERE
+	/* USER CODE GOES HERE */
 
 } /* Native_Object_{{{interfaceName}}}_deallocator */
 
@@ -33,7 +33,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {
     Native_Object_{{{interfaceName}}} *new_object = (Native_Object_{{{interfaceName}}} *)malloc(sizeof(Native_Object_{{{interfaceName}}}));
 
-	// USER CODE GOES HERE
+	/* USER CODE GOES HERE */
  
     return new_object;
 } /* Native_Object_{{{interfaceName}}}_create */
@@ -66,7 +66,7 @@ jerry_object_native_info_t {{{interfaceName}}}_checksum = {Native_Object_{{{inte
     Native_Object_{{{interfaceName}}} *native_object;
     GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object);
 
-    // USER CODE GOES HERE
+    /* USER CODE GOES HERE */
 
     {{! do we need to undo the #defines for callbacks? }}
 }; /* {{{interfaceName}}}_{{{name}}}_body */
