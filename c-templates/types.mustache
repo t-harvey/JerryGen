@@ -83,14 +83,18 @@ typedef struct {
 {{#header}}
 /* INITIALIZATION FUNCTIONS */
 {{#interfaces}}
-void load_{{{name}}}_interface(void);
+extern void load_{{{name}}}_interface(void);
 {{/interfaces}}
+void load_all_{{{moduleName}}}_dictionaries(void);
 
-#define load_all_{{{moduleName}}}_interfaces {\
+
+#define load_all_{{{moduleName}}}_interfaces { \
 {{#hasOperations}}create_interface_prototypes_holder(); \{{/hasOperations}}
+load_{{{moduleName}}}_types_into_Jerryscript_environment(); \
 {{#interfaces}}
 load_{{{name}}}_interface(); \
 {{/interfaces}}
+load_all_{{{moduleName}}}_dictionaries(); \
 } /* load_all_{{{moduleName}}}_interfaces */
 {{/header}}
 
@@ -132,6 +136,33 @@ union {{{moduleName}}}_types_union {
 #define jerry_get_float_value (float)jerry_get_number_value
 #define jerry_get_double_value (double)jerry_get_number_value
 #define jerry_get_bool_value (bool)jerry_get_boolean_value
+
+/* we define types here, and marshalling/demarshalling methods of each type. */
+static void load_{{{moduleName}}}_types_into_Jerryscript_environment(void)
+{
+	return;
+{{#dictionaries}}
+    /* Create a JS object */
+    const jerry_char_t my_js_object_{{{name}}}[] = " \
+        function {{{name}}}({{#members}}{{{name}}}_parm{{^finalMember}},{{/finalMember}}{{/members}}) \
+        { \
+            {{#members}}
+            this.{{{name}}} = {{{name}}}_parm; \
+            {{/members}}
+	    {{#C_type_list.length}}
+	    this._what_kind_am_I = {{{name}}}; \ {{! name of object }}
+	    {{/C_type_list.length}}
+        }; \
+      ";
+    jerry_value_t my_js_obj_val_{{{name}}};
+
+    /* Evaluate script */
+    my_js_obj_val_{{{name}}} = jerry_eval (my_js_object_{{{name}}},
+                              strlen ((const char *) my_js_object_{{{name}}}),
+                              false);
+    jerry_release_value(my_js_obj_val_{{{name}}});
+{{/dictionaries}}
+} /* load_{{{moduleName}}}_types_into_Jerryscript_environment */
 
 #define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
 { \
@@ -323,7 +354,7 @@ jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
     for (int i = 0; i < x.length; i++)
     {
         jerry_value_t next = jerry_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}(x.items[i]));
-    	jerry_set_property_by_index(new_jerry_value, i, next);
+    	jerry_release_value(jerry_set_property_by_index(new_jerry_value, i, next));
     	jerry_release_value(next);
     }
     {{/C_and_Jerryscript_Types}}
@@ -334,7 +365,7 @@ jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
     {{#C_and_Jerryscript_Types}}
     jerry_value_t {{{name}}}_value = jerry_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(x.{{{name}}});
     {{/C_and_Jerryscript_Types}}
-    jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value);
+    jerry_release_value(jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value));
     jerry_release_value({{{name}}}_value);
     jerry_release_value({{{name}}}_prop_name);
 
@@ -505,7 +536,7 @@ extern jerry_value_t create_{{{name}}}_interface_handler(const jerry_value_t,
     {{#C_and_Jerryscript_Types}}
     {{^callback}}
     jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
-    jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value);
+    jerry_release_value(jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value));
     jerry_release_value({{{name}}}_value);
     {{/callback}}
     {{! TODO: if it's a callback, apply set_external_handler?}}
@@ -522,62 +553,59 @@ extern jerry_object_native_info_t {{{name}}}_checksum;
 
 {{/interfaces}}
 
-{{#hasOperations}}
-void register_function_call(jerry_value_t enclosing_object,
-				   const char *function_name,
-       			           jerry_external_handler_t handler){{#header}};{{/header}}
+
+/* if the handler is NULL, then we'll assume it's a dictionary field
+   rather than an interface operation, and we'll just make its default
+   value undefined */
+void add_field_to_object(jerry_value_t enclosing_object,
+			    const char *function_name,
+       			    jerry_external_handler_t handler){{#header}};{{/header}}
 {{#body}}
 {
   /* Create a JS function object and wrap into a jerry value */
-  jerry_value_t function_object = jerry_create_external_function(handler);
+  jerry_value_t function_object;
+  if (handler)
+      function_object = jerry_create_external_function(handler);
+  else
+      function_object = jerry_create_undefined();
 
   /* Set the native function as a property of the enclosing object
      (either the global object, or a user-define object) */
   jerry_value_t prop_name =
                  jerry_create_string((const jerry_char_t *) function_name);
-  jerry_set_property(enclosing_object, prop_name, function_object);
-  jerry_release_value(function_object);
+  jerry_release_value(jerry_set_property(enclosing_object,
+					 prop_name, function_object));
   jerry_release_value(prop_name);
-} /* register_function_call */
+  jerry_release_value(function_object);
+} /* add_field_to_object */
 
 {{/body}}
-{{! for each interface, we load the operations into an object that we
-    can then apply to each instance; this saves us from creating an
-    object and then assigning each of the operations to it every time
-    we create a new instance of the interface; the problem is that
-    when they make Jerryscript multithreaded, we need someplace to
-    store the prototype object that isn't in a (C) global variable --
-    the safest place is in the Javascript side, so we'll create an
-    object here that will hold all of the interface prototypes as we
-    create/use them }}
+/* for each interface, we load the operations into an
+    object that we can then apply to each instance; this saves us from
+    creating an object and then assigning each of the
+    operations to it every time we create a new instance; the
+    problem is that when they make Jerryscript multithreaded, we need
+    someplace to store the prototype object that isn't in a C global
+    variable -- the safest place is on the Javascript side, so we'll
+    create an object here that will hold all of the interface
+    prototypes as we create/use them */
 {{#body}}
 {{! all of the prototype objects will hoook to this global object }}
     /* add something meaningless to the ends of the name to ensure we
-       don't write over a user name*/
-static const char *q36 = "q36_interface_prototypes_holder_q36";
-static const jerry_char_t q36_script[] = "var q36_interface_prototypes_holder_q36 = {};";
-{{/body}}
-void create_interface_prototypes_holder(){{#header}};{{/header}}
-{{#body}}
-{
-    jerry_value_t new_prototypes_holder = jerry_create_object();
-    jerry_value_t global_object = jerry_get_global_object();
-    jerry_value_t prototype_holder_name =
-                                jerry_create_string((const jerry_char_t *)q36);
-    /* register the new object and immediately release jerry_value */
-    jerry_release_value(jerry_set_property(global_object,
-	                                   prototype_holder_name,
-					   new_prototypes_holder));
-    jerry_release_value(prototype_holder_name);
-    jerry_release_value(global_object);
-    jerry_release_value(new_prototypes_holder);
-} /* create_interface_prototypes_holder */
+       don't write over a user name */
+static const char *q36 = "q36_interface_and_defintions_prototypes_holder_q36";
 
-{{/body}}
+/* in order to keep the garbage collector from eating our prototypes
+holder, we need to maintain at least one pointer to the object, and the
+easiest place to store this is inside the prototype holder itself, so
+create a Native_Object that is nothing more than a struct that will
+hold the jerry_value_t that points to the prototypes holder */
+typedef struct {
+    jerry_value_t self;
+} prototypes_holder_native_object;
 
-{{! next, we'll need a getter and setter for each prototype }}
+
 /* helper function for the getter/setters, below */
-{{#body}}
 static jerry_value_t get_prototypes_holder(void)
 {
     jerry_value_t global_object = jerry_get_global_object();
@@ -592,6 +620,42 @@ static jerry_value_t get_prototypes_holder(void)
 } /* get_prototypes_holder */
 
 {{/body}}
+void create_interface_prototypes_holder(){{#header}};{{/header}}
+{{#body}}
+{
+    /* check to see if the holder already exists; if so,
+       return; if not, create it */
+    jerry_value_t existence_check = get_prototypes_holder();
+    if (jerry_value_has_error_flag(existence_check))
+    {
+	jerry_release_value(existence_check);
+        return;
+    } /* note that if the existence_check value is an error value, it
+         doesn't need to be jerry_release_value()'d */
+
+    jerry_value_t new_prototypes_holder = jerry_create_object();
+    jerry_value_t global_object = jerry_get_global_object();
+    jerry_value_t prototype_holder_name =
+                                jerry_create_string((const jerry_char_t *)q36);
+    /* register the new object and immediately release jerry_value */
+    jerry_release_value(jerry_set_property(global_object,
+	                                   prototype_holder_name,
+					   new_prototypes_holder));
+    jerry_release_value(prototype_holder_name);
+    jerry_release_value(global_object);
+
+    /* store a self-pointer inside the object so that it can't be GC'd */
+    prototypes_holder_native_object *new_self_ptr =
+                               malloc(sizeof(prototypes_holder_native_object));
+    new_self_ptr->self = new_prototypes_holder;
+    Native_Object_set(new_self_ptr, new_prototypes_holder, NULL);
+
+    jerry_release_value(new_prototypes_holder);
+} /* create_interface_prototypes_holder */
+
+{{/body}}
+
+{{! next, we'll need a "get"ter and "set"ter for each prototype }}
 jerry_value_t get_prototype(char * interface_name){{#header}};{{/header}}
 {{#body}}
 {
@@ -615,15 +679,73 @@ void register_prototype(char * interface_name, jerry_value_t new_prototype){{#he
     /* set the prototype and release the return value without any check */
     jerry_release_value(jerry_set_property (prototypes_holder,
                                             prop_name, new_prototype));
-
     /* clean up */
     jerry_release_value(prototypes_holder);
     jerry_release_value(prop_name);
 } /* register_prototype */
-
 {{/body}}
 
-{{/hasOperations}}
+
+{{#dictionaries}}
+static jerry_value_t
+create_{{{name}}}_dictionary_handler(const jerry_value_t func_value,
+                   const jerry_value_t this_val,
+                   const jerry_value_t *args_p,
+                   const jerry_length_t args_cnt){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t new_{{{name}}} = jerry_create_object();
+    jerry_value_t prototype = get_prototype((char *) "{{{name}}}");
+    jerry_release_value(jerry_set_prototype(new_{{{name}}}, prototype));
+    jerry_release_value(prototype);
+
+    {{#members}}
+    if ((((signed int)args_cnt)-1) >= {{{member_index}}})
+    {
+        jerry_value_t {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+        jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{name}}}_prop_name, args_p[{{{member_index}}}]));
+        jerry_release_value({{{name}}}_prop_name);
+    }
+
+    {{/members}}
+    return new_{{{name}}};
+} /* create_{{{name}}}_dictionary_handler */
+{{/body}}
+
+void initialize_{{{dictionaryName}}}_dictionary(void){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t global_object = jerry_get_global_object();
+
+    /* add all of the dictionary fields, and set them to undefined */
+    jerry_value_t {{{name}}}_prototype_object = jerry_create_object();
+    {{#members}}
+    add_field_to_object({{{dictionaryName}}}_prototype_object,
+                           "{{{name}}}", NULL);
+    {{/members}}
+
+    /* store the prototype in the global prototypes holder */
+    register_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
+    jerry_release_value({{{name}}}_prototype_object);
+
+    /* this sets up the ability to "new" the object */
+    add_field_to_object(global_object, "{{{name}}}", &create_{{{name}}}_dictionary_handler);
+
+    jerry_release_value(global_object);
+
+} /* initialize_{{{dictionaryName}}}_dictionary */
+{{/body}}
+
+{{/dictionaries}}
+
+void load_all_{{{moduleName}}}_dictionaries(void){{#header}};{{/header}}
+{{#body}}
+{
+    {{#dictionaries}}
+    initialize_{{{dictionaryName}}}_dictionary();
+    {{/dictionaries}}
+} /* load_all_{{{moduleName}}}_dictionaries */
+{{/body}}
 
 {{#header}}
 #endif /* {{moduleName}}_TYPES_H_ */
