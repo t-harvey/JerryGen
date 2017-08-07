@@ -565,7 +565,7 @@ AugmentedAST.prototype.getConversionTypes = function(idlType) {
  */
 AugmentedAST.prototype.addDictionary = function (d, index) {
   "use strict";
-  //A dictionary looks like this
+  //A dictionary looks like this:
   //{ type: 'dictionary', name: 'Di', partial: false, members: [ [Object],[Object] ], inheritance: null, extAttrs: [] }
 
   // does the dictionary already exist?
@@ -584,17 +584,10 @@ AugmentedAST.prototype.addDictionary = function (d, index) {
     } else {
       throw "The dictionary already exists: " + d.name;
     }
-  }
-  /* expects: 
-     dictionary Jerry_TEST_CODE {
-         string test_code = "...<Jerryscript code>...";
-     };
-  */
-  else if (d.name === "Jerry_TEST_CODE") {
-      this.test_code = d.members[0].default.value;
   } else {
     // doesn't exist. Add it as a new key.
     this.dictionaries[d.name] = d;
+      d.dictionaryName = d.name;
     // augment and add members
     for(var i = 0 ; i < d.members.length; i++){
       d.members[i].schemaType = this.idlTypeToSchema(d.members[i].idlType);
@@ -605,6 +598,11 @@ AugmentedAST.prototype.addDictionary = function (d, index) {
 //    console.log("    NOT existingDict, d.members");
     this.addToTypeCheckQueue(d.members);
   }
+
+  // add an index to the dictionary members so it's easy to assign
+  // to them when the user does a new
+  for(var i = 0 ; i < d.members.length; i++)
+      d.members[i].member_index = i;
 
   return true;
 }; /* addDictionary */
@@ -834,6 +832,8 @@ AugmentedAST.prototype.addNewInterface = function (newInterface) {
   this.interfaces[newInterface.name] = newInterface;
   this.addInterfaceMembers(newInterface.name, newInterface.members);
 
+  // add an index to the interface attributes so it's easy to assign
+  // to them when the user does a new
   for(var i = 0 ; i < newInterface.attributes.length; i++)
       newInterface.attributes[i].attribute_index = i;
 
@@ -897,7 +897,7 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
       }
   }
 
-  // does the dictionary already exist?
+  // does the interface already exist?
   var existingI = this.interfaces[theInterface.name];
   var interfaceMembers = [];
   if (existingI) {
