@@ -99,6 +99,7 @@ function AugmentedAST(ast, fix_type_errors, moduleName) {
   this.typedefs = Object.create(null);
   this.exceptions = Object.create(null);
   this.enums = Object.create(null);
+  this.allExternalTypes = Object.create(null);
   this.array_types = Object.create(null);
   this.variadic_types = Object.create(null);
 
@@ -399,6 +400,7 @@ AugmentedAST.prototype.isAllowedType = function (t) {
          this.isCallbackType(tname) ||
          this.isExceptionType(tname) ||
          this.isEnumType(tname) ||
+         this.isExternalType(tname) ||
          this.isTypedefType(tname);
 };
 
@@ -463,6 +465,16 @@ AugmentedAST.prototype.isExceptionType = function (t) {
  */
 AugmentedAST.prototype.isEnumType = function (t) {
   return this.enums[this.getTypeName(t)] != undefined;
+};
+
+/**
+ * Returns true if the given type has been defined as an external type
+ * in the IDL
+ * @param t
+ * @returns {boolean}
+ */
+AugmentedAST.prototype.isExternalType = function (t) {
+  return this.allExternalTypes[this.getTypeName(t)] != undefined;
 };
 
 /**
@@ -557,6 +569,135 @@ AugmentedAST.prototype.getConversionTypes = function(idlType) {
     return return_types;
 }; /* AugmentedAST.getConversionTypes */
 
+
+/* look through "thing"'s external attributes and see if any are specifying
+   references to types defined in other places */
+AugmentedAST.prototype.set_external_types = function(thing)
+{
+  thing.externalTypes = new Array();
+
+  for (let extAttr of thing.extAttrs)
+  {
+      if (extAttr.name != undefined &&
+	  extAttr.name == "ExternalType")
+      {
+          if (extAttr.rhs == undefined ||
+              extAttr.rhs.value == undefined ||
+              extAttr.rhs.value.length != 2)
+          {
+              throw new Error("External type declarations take two comma-separated, parentheses-delimited parameters representing: 1) the package name and 2) the interface name.");
+          }
+          else
+          {
+	      /* for the local list attached to the "thing" object and
+	       * the global list attached to the "this" object, if
+	       * it's not a duplicate, add it */
+	      var type_name = extAttr.rhs.value[1];
+	      var type_struct = { package: extAttr.rhs.value[0],
+				  type:    type_name };
+
+	      thing.externalTypes.push(type_struct);
+
+	      if (this.allExternalTypes[type_name] == undefined)
+		  this.allExternalTypes[type_name] = type_struct;
+	      else if (this.allExternalTypes[type_name].package !=
+		       type_struct.package)
+              {
+		  /* TODO: tell the user what we saw! */
+		  throw new Error("External type declarations must agree in package/type name.");
+              }
+          }
+      }
+  }
+} /* AugmentedAST.set_external_types */
+
+
+
+/* for the C file for each dictionary, callback, and interface, we'll
+   need to include all of the other types' .h files, so build a list
+   of the includes that this thing's .c file will need to include */
+/* we assume that anything not in the intrinsics list is a
+   non-intrinsic, but then we'll divide the list between
+   non-intrinsics that are defined in this .idl file vs. those that
+   have an explicit ExternalType attribute; we assume that the
+   ExternalTypes has already been built for this thing, so as a final
+   step of this routine, we'll remove everything in the ExternalTypes
+   list from the intrinsics type list */
+/* WHAT ABOUT THE "ANY" TYPE?!? */ /* probably have to gather all
+                                      types at the end? */
+AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
+{
+    let process_call = function(this_ptr, list, call)
+    {
+	// examine the return type
+	if (!(this_ptr.isPrimitiveType(call.idlType.idlType)))
+	    list.push(call.idlType.idlType);
+
+	// examine the types of the arguments
+	for (let j = 0; j < call.arguments.length; j++)
+	{
+	    let argument = call.arguments[j];
+
+	    if (!(this_ptr.isPrimitiveType(argument.idlType.idlType)))
+		list.push(argument.idlType.idlType);
+	}
+    }; /* process_call */
+
+    let list = [];
+
+    /* for interfaces, we have to look at each operation's return type
+       and parameter types, and at attributes; then, we have to remove
+       any names defined use the external attribute "ExternalType" */
+    if (thing.type == "interface")
+    {
+	for (let i = 0; i < thing.operations.length; i++)
+	{
+	    let operation = thing.operations[i];
+	    process_call(this, list, operation);
+	}
+	// examine the attributes (just struct fields, so they're easy)
+	for (let i = 0; i < thing.attributes.length; i++)
+	{
+	    let attribute = thing.attributes[i];
+
+	    if (!(this.isPrimitiveType(attribute.idlType.idlType)))
+		list.push(attribute.idlType.idlType);
+	}
+    }
+    else if (thing.type == "callback")
+	process_call(this, list, thing);
+    /* dictionaries are easy: look at each field's type */
+    else if (thing.type == "dictionary")
+    {
+	for (let i =0; i<thing.members.length; i++)
+	{
+	    let field = thing.members[i];
+
+	    if (!(this.isPrimitiveType(field.idlType.idlType)))
+		list.push(field.idlType.idlType);
+	}
+    }
+    else
+	console.log("ERROR!!!");
+
+    /* unique-ify the list of types */
+    let uniq_list =
+	    list.filter( function(item, pos){return list.indexOf(item)==pos;} );
+
+    /* cull explicitly external types from the list of types */
+    /* NOTE: assumes that thing.externalTypes has been set up! */
+    thing.non_intrinsic_types = uniq_list.filter(
+	            function(item){return this.indexOf(item)<0;},
+                    thing.externalTypes.map(function(x) {return x.type;} ));
+
+    /* the following lines are just placeholders for debugging: */
+    if (this.callbacks)
+	console.log("here.");
+    let j = 0;
+    j += 7;
+} /* AugmentedAST.prototype.get_non_intrinsic_type_list */
+
+
 /**
  * Adds a dictionary to our map of dictionaries
  * @param d The original ast dictionary object
@@ -567,6 +708,8 @@ AugmentedAST.prototype.addDictionary = function (d, index) {
   "use strict";
   //A dictionary looks like this:
   //{ type: 'dictionary', name: 'Di', partial: false, members: [ [Object],[Object] ], inheritance: null, extAttrs: [] }
+
+  this.set_external_types(d);
 
   // does the dictionary already exist?
   var existingDict = this.dictionaries[d.name];
@@ -603,6 +746,10 @@ AugmentedAST.prototype.addDictionary = function (d, index) {
   // to them when the user does a new
   for(var i = 0 ; i < d.members.length; i++)
       d.members[i].member_index = i;
+
+ // get a list of types that will need to be included in the .c file for this
+ // dictionary
+ this.get_non_intrinsic_type_list(d);
 
   return true;
 }; /* addDictionary */
@@ -666,10 +813,9 @@ AugmentedAST.prototype.addCallback = function (d, index) {
   //	             extAttrs: [], idlType, name: ' ' } ],
   //  extAttrs: [] }
 
-  // does the callback already exist?
+  // does the callback already exist?...if so, throw an exception
   var existingCallback = this.callbacks[d.name];
   if (existingCallback)
-    // exists, so throw and exception
       throw "The callback already exists: " + d.name;
   else
   {
@@ -713,7 +859,12 @@ AugmentedAST.prototype.addCallback = function (d, index) {
 	  d.arguments[i].finalArgument = true;
 	  
     }
+    this.addToTypeCheckQueue(d.idlType);
     this.addToTypeCheckQueue(d.arguments);
+
+    this.set_external_types(d);
+
+    this.get_non_intrinsic_type_list(d);
   }
 
   return true;
@@ -850,6 +1001,11 @@ AugmentedAST.prototype.addToExistingInterface = function (partialInterface, inde
   var existingI = this.interfaces[partialInterface.name];
   if (existingI && partialInterface.partial) {
     existingI.members = existingI.members.concat(partialInterface.members);
+    existingI.externalTypes = existingI.externalTypes.concat(partialInterface.externalTypes);
+    /* cull repeats: */
+    existingI.externalTypes = existingI.externalTypes.filter(
+	  function(item, pos){return
+			      existingI.externalTypes.indexOf(item)==pos;});
     this.addInterfaceMembers(partialInterface.name, partialInterface.members);
 
     // remove partial definition
@@ -869,7 +1025,7 @@ AugmentedAST.prototype.addToExistingInterface = function (partialInterface, inde
  */
 AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_errors) {
   "use strict";
-  //An interface looks like this
+  //An interface looks like this:
   //{type:'interface', name:'In', partial:false, members:[ [Object],[Object] ], inheritance:null, extAttrs:[] }
 
   // zephyr's idl contains operations with no preceding type, which is
@@ -897,6 +1053,10 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
       }
   }
 
+  /* look through the external attributes and see if any are specifying
+     references to types defined in other places */
+  this.set_external_types(theInterface);
+
   // does the interface already exist?
   var existingI = this.interfaces[theInterface.name];
   var interfaceMembers = [];
@@ -908,6 +1068,11 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
   }
 
   // augment the interface by adding operation fields.
+  // ????????????
+
+  // get a list of types that will need to be included in the .c file for this
+  // interface
+  this.get_non_intrinsic_type_list(theInterface);
 
   return true;
 }; /* addInterface */
@@ -1148,7 +1313,6 @@ AugmentedAST.prototype.augment = function (ast) {
     // while walking the ast, we built up a list of all of the type names
     // that we saw; now, we'll walk the list to make sure they're all valid
     this.processTypeCheckQueue();
-
     this.mark_operations_with_callback_parameters();
 
     // callbacks require a special data structure, which we only need to
@@ -1291,6 +1455,27 @@ AugmentedAST.prototype.getInterfaceArray = function(){
 
   return out;
 };
+
+/* change the type of the externalTypes so that the Hogan compiler
+   can iterate through it */
+/* also, it's not an error to declare an ExternalType in the .idl file
+   and then call the generator with both .idl files -- in this case, we
+   shouldn't put out include directives, b/c all of those types will be
+   included */
+AugmentedAST.prototype.getExternalTypesArray = function()
+{
+    var list_of_defined_types = Array().concat(Object.keys(this.dictionaries),
+					       Object.keys(this.interfaces),
+					       Object.keys(this.callbacks));
+
+    var out = [];
+    for(var key of Object.keys(this.allExternalTypes))
+	if (list_of_defined_types.indexOf(key) == -1)
+	    out.push(this.allExternalTypes[key]);
+    return out;
+} /* getExternalTypesArray */
+
+
 
 AugmentedAST.prototype.turn_object_into_array = function(x)
 {

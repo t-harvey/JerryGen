@@ -23,22 +23,13 @@
    Native_Object_set, we also give it a deallocator for that
    Native_Object (note that the function can be null if there isn't
    any memory to free) */
-typedef struct {
 {{#repress_stubs}}
-        /* USER CODE GOES HERE */
-{{/repress_stubs}}
-{{^repress_stubs}}
-        /* DEFINED IN THE STUBS FILE */
-{{/repress_stubs}}
-} Native_Object_{{{interfaceName}}};
-
-{{#repress_stubs}}
-static void Native_Object_{{{interfaceName}}}_deallocator(void *native_object)
+void Native_Object_{{{interfaceName}}}_deallocator(Native_Object_{{{interfaceName}}} *native_object)
 {
 	/* USER CODE GOES HERE */
 } /* Native_Object_{{{interfaceName}}}_deallocator */
 
-static Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void)
+Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void)
 {
     Native_Object_{{{interfaceName}}} *new_object = (Native_Object_{{{interfaceName}}} *)malloc(sizeof(Native_Object_{{{interfaceName}}}));
 
@@ -55,17 +46,6 @@ extern Native_Object_{{{interfaceName}}}* Native_Object_{{{interfaceName}}}_crea
     set up the checksum here, but also give it to the stubs file }}
 {{#repress_stubs}}static{{/repress_stubs}}{{^repress_stubs}}extern{{/repress_stubs}}
 jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/repress_stubs}}{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator};{{/repress_stubs}}
-{{/interfaces}}
-
-{{! I DON'T THINK THIS IS NECESSARY... }}
-{{#interfaces}}
-{{^NoInterfaceObject}}
-jerry_value_t
-create_{{{name}}}_interface_handler(const jerry_value_t func_value,
-		   const jerry_value_t this_val,
-                   const jerry_value_t *args_p,
-                   const jerry_length_t args_cnt);
-{{/NoInterfaceObject}}
 {{/interfaces}}
 
 /* put all of the native-code functions (indentifable by the
@@ -222,6 +202,14 @@ create_{{{interfaceName}}}_interface_handler(const jerry_value_t func_value,
 {{#interfaces}}
 void load_{{{interfaceName}}}_interface(void)
 {
+    /* first, make sure that this prototype doesn't already exist */
+    jerry_value_t existing_prototype = get_prototype((char *)"{{{name}}}");
+    if (!jerry_value_has_error_flag(existing_prototype))
+    {
+        jerry_release_value(existing_prototype);
+	return;
+    }
+
     {{! for attributes: attributes cannot get a default value, which
        means that they don't need to be created now; Javascript
        automagically creates them when they're first defined, so we

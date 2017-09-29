@@ -4,6 +4,9 @@
 {{^OBEYFORMATTING}}
 /*# AUTOMATICALLY GENERATED ON {{timestamp}} #*/
 #include "{{{moduleName}}}_Types.h"
+{{#unit_testing}}
+#include <stdio.h>
+{{/unit_testing}}
 static jerry_error_t error_check; /* examine this if the value of native_object
     		  	             might be wrong after a call to
 				     Native_Object_get() */
@@ -18,11 +21,6 @@ static jerry_error_t error_check; /* examine this if the value of native_object
    Native_Object_set, we also give it a deallocator for that
    Native_Object (note that the function can be null if there isn't
    any memory to free) */
-typedef struct {
-       /* USER CODE GOES HERE */
-
-} Native_Object_{{{interfaceName}}};
-
 static void Native_Object_{{{interfaceName}}}_deallocator(void *native_object)
 {
 	/* USER CODE GOES HERE */
@@ -58,6 +56,15 @@ jerry_object_native_info_t {{{interfaceName}}}_checksum = {Native_Object_{{{inte
        WITH AN OBJECT'S Native_Object */    
     Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check);
 
+{{#unit_testing}}
+{{#arguments}}
+fprintf(stdout, "ARGUMENT VALUES:\n");
+    {{#arguments}}
+    fprintf(stdout, "\t
+    {{/arguments}}
+{{/arguments}}
+
+{{/unit_testing}}
     /* USER CODE GOES HERE */
 
     {{! do we need to undo the #defines for callbacks? }}
