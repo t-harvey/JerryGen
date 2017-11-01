@@ -1,0 +1,365 @@
+	{{^OBEYFORMATTING}}
+{{! This one .mustache file is used to create both the .h and the .c
+    *_Types files -- look for the "body" and "header" markers }}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{#header}}
+#ifndef UTILITY_FUNCTIONS_H_
+#define UTILITY_FUNCTIONS_H_
+{{/header}}
+
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+{{#header}}
+typedef char * string;
+
+{{/header}}
+{{#header}}
+#include "jerryscript.h"
+{{/header}}
+{{#body}}
+#include "{{{utilities_filename}}}.h"
+{{/body}}
+
+{{#header}}
+/* calls to functions residing in the Javascript environment require
+   extra context; from the C-programmer's point of view, callbacks
+   can be thought of as _being_ this context -- for example, when
+   passing around a "callback", we'll actually pass around this
+   context structure, and then the generator will generate #def's
+   to wrap the generic call that uses this context into an easily
+   used C function */
+typedef struct {
+    jerry_value_t function_value; /* Jerryscript's function pointer */
+    jerry_value_t this_value;     /* i.e., "this" pointer */
+} calling_context;
+
+{{/header}}
+{{#header}}
+
+/***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
+#define jerry_get_int8_t_value (int8_t)jerry_get_number_value
+#define jerry_get_uint8_t_value (uint8_t)jerry_get_number_value
+#define jerry_get_int16_t_value (int16_t)jerry_get_number_value
+#define jerry_get_uint16_t_value (uint16_t)jerry_get_number_value
+#define jerry_get_int32_t_value (int32_t)jerry_get_number_value
+#define jerry_get_uint32_t_value (uint32_t)jerry_get_number_value
+#define jerry_get_int64_t_value (int64_t)jerry_get_number_value
+#define jerry_get_uint64_t_value (uint64_t)jerry_get_number_value
+#define jerry_get_float_value (float)jerry_get_number_value
+#define jerry_get_double_value (double)jerry_get_number_value
+#define jerry_get_bool_value (bool)jerry_get_boolean_value
+
+#ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
+#define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
+{ \
+    jerry_error_t error_check; \
+    native_object = Native_Object_get(this_val, &C_type_identifier, &error_check); \
+    if (error_check) \
+        return error_check; \
+} /*GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
+#endif
+
+{{/header}}
+
+void Native_Object_set(void *thing, jerry_value_t object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_set_object_native_pointer(object, thing, checksum);
+} /* Native_Object_set */
+
+{{/body}}
+void *Native_Object_get(jerry_value_t object,
+                        jerry_object_native_info_t *checksum,
+			jerry_error_t *error_value){{#header}};{{/header}}
+{{#body}}
+{
+    /* points to the native object */
+    void *thing = NULL;
+    /* used for error checking; this value, upon return from
+                        jerry_get_object_native_pointer, has to equal
+                        the passed-in checksum */
+    const jerry_object_native_info_t *stored_checksum;
+    bool object_contains_native_object;
+
+    *error_value = 0; /* when there are no errors, we want to return
+    		        zero */
+
+    object_contains_native_object = jerry_get_object_native_pointer(
+                                             object, &thing, &stored_checksum);
+    if (!object_contains_native_object)
+        return NULL;
+
+    if (/* JUST FOR TESTING, ALLOW THE PASSED-IN CHECKSUM TO BE NULL */
+        checksum && stored_checksum != checksum)
+    {
+        /*fprintf(stderr, "Native Objects don't match.\n");*/
+	static const jerry_char_t *message = (jerry_char_t *)"Native Objects don't match.";
+	*error_value =  jerry_create_error_sz (JERRY_ERROR_REFERENCE,
+					     message,
+               				     (jerry_size_t)strlen((char *)message));
+	return NULL; /* TODO: is this the right thing in this case? */
+    }
+
+    return thing;
+} /* Native_Object_get */
+{{/body}}
+
+#include <stdlib.h>
+char *jerry_get_string_value(jerry_value_t string_value){{#header}};{{/header}}
+{{#body}}
+{
+    int string_length = jerry_get_string_length(string_value);
+    jerry_char_t *return_value = (jerry_char_t *)malloc(sizeof(jerry_char_t)*(string_length+1));
+
+    int characters_copied = jerry_string_to_char_buffer(string_value,
+                                        return_value, string_length);
+
+    if (characters_copied != string_length)
+    {
+       fprintf(stderr, "PROBLEM WITH STRING COPY!\n");
+       /*abort();*/
+    }
+
+    return_value[string_length]='\0';
+    return (char *)return_value;
+} /* jerry_get_string_value */
+{{/body}}
+
+{{! enumeration types are represented in Javascript as strings, so
+    getting them across to Jerryscript and back requires some
+    finagling }}
+int enum_index(char *target, char **array){{#header}};{{/header}}
+{{#body}}
+{
+    int i = 0;
+    while (array[i] != '\0')
+        if (!strcmp(target, array[i]))
+	    return i;
+    /* fallthrough indicates the string's not in the array */
+    return -1;
+} /* enum_index */
+{{/body}}
+
+
+/* if the handler is NULL, then we'll assume it's a dictionary field
+   rather than an interface operation, and we'll just make its default
+   value undefined */
+void add_field_to_object(jerry_value_t enclosing_object,
+			    const char *function_name,
+       			    jerry_external_handler_t handler){{#header}};{{/header}}
+{{#body}}
+{
+  /* Create a JS function object and wrap into a jerry value */
+  jerry_value_t function_object;
+  if (handler)
+      function_object = jerry_create_external_function(handler);
+  else
+      function_object = jerry_create_undefined();
+
+  /* Set the native function as a property of the enclosing object
+     (either the global object, or a user-define object) */
+  jerry_value_t prop_name =
+                 jerry_create_string((const jerry_char_t *) function_name);
+  jerry_release_value(jerry_set_property(enclosing_object,
+					 prop_name, function_object));
+  jerry_release_value(prop_name);
+  jerry_release_value(function_object);
+} /* add_field_to_object */
+
+{{/body}}
+{{#body}}
+/* for each interface, we load the operations into an
+    object that we can then apply to each instance; this saves us from
+    creating an object and then assigning each of the
+    operations to it every time we create a new instance; the
+    problem is that when they make Jerryscript multithreaded, we need
+    someplace to store the prototype object that isn't in a C global
+    variable -- the safest place is on the Javascript side, so we'll
+    create an object here that will hold all of the interface
+    prototypes as we create/use them */
+{{! all of the prototype objects will hoook to this global object }}
+    /* add something meaningless to the ends of the name to ensure we
+       don't write over a user name */
+static const char *q36 = "q36_interface_and_defintions_prototypes_holder_q36";
+
+/* in order to keep the garbage collector from eating our prototypes
+   holder, we need to maintain at least one pointer to the object, and the
+   easiest place to store this is inside the prototype holder itself, so
+   create a Native_Object that is nothing more than a struct that will
+   hold the jerry_value_t that points to the prototypes holder */
+typedef struct {
+    jerry_value_t self;
+} prototypes_holder_native_object;
+
+/* we want to try to load the prototypes holder and then check to make
+   sure that we got it, so we separate the "get" from the "check" (below) */
+static jerry_value_t get_prototypes_holder_helper(void)
+{
+    jerry_value_t global_object = jerry_get_global_object();
+    jerry_value_t prototypes_holder_property =
+                             jerry_create_string((const jerry_char_t *)q36);
+    jerry_value_t prototypes_holder = 
+                  jerry_get_property(global_object, prototypes_holder_property);
+    jerry_release_value(global_object);
+    jerry_release_value(prototypes_holder_property);
+
+    return prototypes_holder;
+} /* get_prototypes_holder_helper */
+
+/* helper function for the getter/setters, below */
+static jerry_value_t get_prototypes_holder(void)
+{
+    jerry_value_t prototypes_holder = get_prototypes_holder_helper();
+
+    /* check to see if we got the value; if not, go through the same
+       code again, and if it fails again, then we've got a problem we
+       can't fix */
+    if (jerry_value_has_error_flag(prototypes_holder) ||
+        jerry_value_is_undefined(prototypes_holder))
+    {
+        create_prototypes_holder();
+	prototypes_holder = get_prototypes_holder_helper();
+
+	if (jerry_value_has_error_flag(prototypes_holder) ||
+            jerry_value_is_undefined(prototypes_holder))
+    	{	    
+	    fprintf(stderr, "FATAL ERROR\n");
+	    exit(-1);
+    	}
+    }
+    return prototypes_holder;
+} /* get_prototypes_holder */
+
+{{/body}}
+void create_prototypes_holder(){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t new_prototypes_holder = jerry_create_object();
+    jerry_value_t global_object = jerry_get_global_object();
+    jerry_value_t prototype_holder_name =
+                                jerry_create_string((const jerry_char_t *)q36);
+    /* register the new object and immediately release jerry_value */
+    jerry_release_value(jerry_set_property(global_object,
+	                                   prototype_holder_name,
+					   new_prototypes_holder));
+    jerry_release_value(prototype_holder_name);
+    jerry_release_value(global_object);
+
+    /* store a self-pointer inside the object so that it can't be GC'd */
+    prototypes_holder_native_object *new_self_ptr =
+                               malloc(sizeof(prototypes_holder_native_object));
+    new_self_ptr->self = new_prototypes_holder;
+    Native_Object_set(new_self_ptr, new_prototypes_holder, NULL);
+
+    jerry_release_value(new_prototypes_holder);
+} /* create_prototypes_holder */
+
+{{/body}}
+{{! next, we'll need a "get"ter and "set"ter for each prototype }}
+jerry_value_t get_prototype(char * object_name){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t prototypes_holder = get_prototypes_holder();
+    jerry_value_t interface_property =
+                     jerry_create_string((const jerry_char_t *)object_name);
+    jerry_value_t prototype = jerry_get_property(prototypes_holder,
+                                                  interface_property);
+    jerry_release_value(prototypes_holder);
+    jerry_release_value(interface_property);
+
+    return prototype;
+} /* get_prototype */
+
+{{/body}}
+void register_prototype(char * object_name, jerry_value_t new_prototype){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t prototypes_holder = get_prototypes_holder();
+    jerry_value_t prop_name = jerry_create_string ((const jerry_char_t *) object_name);
+    /* set the prototype and release the return value without any check */
+    jerry_release_value(jerry_set_property (prototypes_holder,
+                                            prop_name, new_prototype));
+    /* clean up */
+    jerry_release_value(prototypes_holder);
+    jerry_release_value(prop_name);
+} /* register_prototype */
+
+{{/body}}
+
+{{#debug_printing}}
+{{#header}}
+/************ DEBUG VARIABLES AND FUNCTIONS (FOR BASIC C TYPES) ***********/
+/* when the indentation gets too large, it may mean that we've hit
+   some infinite recursion; this value stops us at a reasonable limit */
+#define DEBUG_RECURSION_DEPTH_TOO_BIG 40
+
+/* this is, essentially, the size of a tab */
+#define DEBUG_INDENTATION_WIDTH 3
+
+#define debug_print_int8_t(variable_name, value, indentation) \
+	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+
+#define debug_print_uint8_t(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+#define debug_print_int16_t(variable_name, value, indentation) \
+	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+
+#define debug_print_uint16_t(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+#define debug_print_int32_t(variable_name, value, indentation) \
+	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+
+#define debug_print_uint32_t(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+{{/header}}
+
+void debug_print_int64_t(char *variable_name, int64_t value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s%s :  %lli\n", indentation, "", variable_name, value);
+} /* debug_print_int64_t */
+
+{{/body}}
+void debug_print_uint64_t(char *variable_name, uint64_t value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s%s :  %llu\n", indentation, "", variable_name, value);
+} /* debug_print_uint64_t */
+
+{{/body}}
+void debug_print_float(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s%s :  %f\n", indentation, "", variable_name, value);
+} /* debug_print_float */
+
+{{/body}}
+void debug_print_double(char *variable_name, double value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s%s :  %lf\n", indentation, "", variable_name, value);
+} /* debug_print_double */
+
+{{/body}}
+void debug_print_bool(char *variable_name, bool value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s%s :  %s\n", indentation, "", variable_name, (value)?"TRUE":"FALSE");
+} /* debug_print_bool */
+{{/body}}
+void debug_print_string(char *variable_name, char * value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s%s :  \"%s\"\n", indentation, "", variable_name, value);
+} /* debug_print_string */
+{{/body}}
+{{/debug_printing}}
+{{#header}}
+
+#endif /* UTILITY_FUNCTIONS__H_ */
+{{/header}}
+{{/OBEYFORMATTING}}
