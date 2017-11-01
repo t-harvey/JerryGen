@@ -15,13 +15,16 @@ var argv = require('minimist')(process.argv.slice(2)),
     files = argv['_'],
     genPackage = argv['package'],
     stubs_on_or_off = argv['stubs'],
-    fix_type_errors = argv['fix_type_errors'];
+    fix_type_errors = argv['fix_type_errors'],
+    debug_printing = argv['debug_printing'];
 
 /* for now, just default fix_type_errors to true */
 if (fix_type_errors === undefined)
     fix_type_errors = true;
 if (stubs_on_or_off === undefined)
     stubs_on_or_off = "on";
+if (debug_printing === undefined)
+    debug_printing = "off";
     
 
 /* we wrap a big try/catch block around all of the functionality to
@@ -40,36 +43,98 @@ try
 var parsed_file = (parser.parse(reader.readFiles(files)));
 var augAST = new AugmentedAST(parsed_file, fix_type_errors, genPackage);
 
+/* we need to have a single name for the utilities file that everyone uses */
+let utilities_filename = "webidl_compiler_utilities";
+augAST.utilities_filename = utilities_filename;
 
 /* individual functions to generate each of the output files */
 
-var generate_js = function(){
-        var jsString = Generator.genJSString(augAST, genPackage);
-        var jsFileName = packagePath + "/" + genPackage + ".js";
-        console.log("Creating JS File... ("+jsFileName+")");
-        return qfs.write(jsFileName, jsString);
-}; /* generate_js */
 
 var generate_CFile = function(){
     var interfaces_object = augAST.interfaces; // excise the interfaces
     var write_return_value;
 
     augAST.repress_stubs = (stubs_on_or_off === "off");
-    for(var interface_name in interfaces_object)
+    for(let interface_name in interfaces_object)
     {
 	augAST.interfaces = {}; // not strictly necessary...
 	augAST.interfaces = {[interface_name] : interfaces_object[interface_name]};
+	let header_or_body = ["generate_header", "generate_body"];
+	let filename_extension = [".h", ".c"];
+
+	for (let index = 0; index < 2; index++)
+	{
+	    let kind_of_file = header_or_body[index];
+	    let extension = filename_extension[index];
     
-        var CFileString = Generator.genCString(augAST, genPackage);
-        var CFileFileName = packagePath + "/" + interface_name + ".c";
-        console.log("Creating C File... ("+CFileFileName+")");
-	write_return_value = qfs.write(CFileFileName, CFileString);
+            var CFileString = Generator.genCString(augAST, genPackage, kind_of_file);
+            var CFileFileName = packagePath + "/" + interface_name + extension;
+            console.log("Creating C File... ("+CFileFileName+")");
+	    write_return_value = qfs.write(CFileFileName, CFileString);
+	}
     }
     augAST.interfaces = interfaces_object; // put back the interfaces
     return write_return_value; // result of last qfs.write
 }; /* generate_CFile */
 
-var generate_include_files = function(){
+
+var generate_dictionaries = function(){
+    var dictionaries_object = augAST.dictionaries; // excise the dictionaries
+    var write_return_value;
+
+    augAST.repress_stubs = (stubs_on_or_off === "off");
+    for(var dictionary_name in dictionaries_object)
+    {
+	augAST.dictionaries = {}; // not strictly necessary...
+	augAST.dictionaries = {[dictionary_name] : dictionaries_object[dictionary_name]};
+    
+        var CFileString_header =
+	   Generator.genDictionaryString(augAST, genPackage, "generate_header");
+        var CFileFileName_header = packagePath + "/" + dictionary_name + ".h";
+        var CFileString_body =
+	   Generator.genDictionaryString(augAST, genPackage, "generate_body");
+        var CFileFileName_body = packagePath + "/" + dictionary_name + ".c";
+        console.log("Creating C header file... ("+CFileFileName_header+")");
+	write_return_value = qfs.write(CFileFileName_header, CFileString_header);
+        console.log("Creating C body file... ("+CFileFileName_body+")");
+	write_return_value = qfs.write(CFileFileName_body, CFileString_body);
+    }
+    augAST.dictionaries = dictionaries_object; // put back the dictionaries
+    return write_return_value; // result of last qfs.write
+}; /* generate_dictionaries */
+
+
+var generate_callbacks = function(){
+    var callbacks_object = augAST.callbacks; // excise the callbacks
+    var write_return_value;
+
+    for(var callback_name in callbacks_object)
+    {
+	augAST.callbacks = {}; // not strictly necessary...
+	augAST.callbacks = {[callback_name] : callbacks_object[callback_name]};
+
+	let header_or_body = ["generate_header", "generate_body"];
+	let filename_extension = [".h", ".c"];
+
+	for (let index = 0; index < 2; index++)
+	{
+	    let kind_of_file = header_or_body[index];
+	    let extension = filename_extension[index];
+    
+            var callbackString =
+		 Generator.genCallbackString(augAST, genPackage, kind_of_file);
+            var callbackFilename = packagePath+"/"+callback_name+extension;
+
+            console.log("Creating C file... ("+callbackFilename+")");
+	    write_return_value = qfs.write(callbackFilename, callbackString);
+	}
+    }
+    augAST.callbacks = callbacks_object; // put back the callbacks
+    return write_return_value; // result of last qfs.write
+}; /* generate_callbacks */
+
+
+var generate_utility_files = function(){
     var returned = [];
     if(Object.keys(augAST.dictionaries).length > 0 ||
        Object.keys(augAST.interfaces).length > 0 ||
@@ -86,14 +151,39 @@ var generate_include_files = function(){
         returned.push(qfs.write(header_bodyFilename, header_bodyString));
     }
     return Q.all(returned);
-}; /* generate_include_files */
+}; /* generate_utility_files */
 
+
+var generate_utilities = function(){
+    var write_return_value;
+    var returned = [];
+
+    let header_or_body = ["generate_header", "generate_body"];
+    let filename_extension = [".h", ".c"];
+
+    augAST.debug_printing = (debug_printing === "on");
+
+    for (let index = 0; index < 2; index++)
+    {
+	let kind_of_file = header_or_body[index];
+	let extension = filename_extension[index];
+
+	let utilitiesfileString = Generator.genUtilitiesString(augAST, genPackage, kind_of_file);
+	let utilitiesfileFileName = packagePath + "/" + utilities_filename + extension;
+
+	console.log("Creating C Utilities File: >"+utilitiesfileFileName+"<");
+	returned.push(qfs.write(utilitiesfileFileName,
+				utilitiesfileString));
+    }
+    return Q.all(returned);
+} /* generate_utilities */
 
 var generate_stubs = function(){
     var interfaces_object = augAST.interfaces; // excise the interfaces
     var write_return_value;
     var returned = [];
 
+    augAST.debug_printing = (debug_printing === "on");
     if (stubs_on_or_off == 'off')
 	return;
 
@@ -101,17 +191,26 @@ var generate_stubs = function(){
     {
 	augAST.interfaces = {}; // not strictly necessary...
 	augAST.interfaces = {[interface_name] : interfaces_object[interface_name]};
-	let stubsfileString = Generator.genStubsString(augAST, genPackage);
-	let stubsfileFileName = packagePath + "/" + interface_name + "_stubs.c";
+	let header_or_body = ["generate_header", "generate_body"];
+	let filename_extension = [".h", ".c"];
 
-	if (fileExists.sync(stubsfileFileName) &&
-	    stubs_on_or_off != 'overwrite')
-	    console.log(">"+stubsfileFileName+"< exists; nothing written.");
-	else
+	for (let index = 0; index < 2; index++)
 	{
-            console.log("Creating C Stubs File: >"+stubsfileFileName+"<");
-	    returned.push(qfs.write(stubsfileFileName,
-				    stubsfileString));
+	    let kind_of_file = header_or_body[index];
+	    let extension = filename_extension[index];
+
+	    let stubsfileString = Generator.genStubsString(augAST, genPackage, kind_of_file);
+	    let stubsfileFileName = packagePath + "/" + interface_name + "_stubs" + extension;
+
+	    if (fileExists.sync(stubsfileFileName) &&
+		stubs_on_or_off != 'overwrite')
+		console.log(">"+stubsfileFileName+"< exists; nothing written.");
+	    else
+	    {
+		console.log("Creating C Stubs File: >"+stubsfileFileName+"<");
+		returned.push(qfs.write(stubsfileFileName,
+					stubsfileString));
+	    }
 	}
     }
     augAST.interfaces = interfaces_object; // put back the interfaces
@@ -133,10 +232,13 @@ var packagePath = cwd + "/" + genPackage;
 console.log("Creating directory... (" + packagePath + ")");
 qfs.makeDirectory(packagePath);
 
+generate_utilities();
 generate_stubs(); /* stubs don't get overwritten, so if the file already
 		     exists, this is a null step */
 generate_CFile();
-generate_include_files();
+generate_dictionaries();
+generate_callbacks();
+generate_utility_files();
 
 report_done();
 

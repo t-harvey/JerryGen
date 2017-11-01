@@ -1,0 +1,328 @@
+{{^OBEYFORMATTING}}
+{{! This one .mustache file is used to create both the .h and the .c
+    *_Types files -- look for the "body" and "header" markers }}
+{{!
+    Callbacks are used differently according to context; we will pass
+    around a "callback" as a calling_context, which is a struct of
+    two jerry_value_t's, one for the function pointer, and the other
+    for the "this" pointer; the services provided for callbacks are:
+
+    1) initialize -- this really just calls all of the initializers
+    for the types used by this callback
+
+    2) jerry_get_<callback>_value -- this works just like any other
+    jerry_get_*_value and returns a calling_context
+
+    3) run_<callback>_handler -- this is the C function that will be
+    run when the Javascript user invokes his callback; unlike
+    most(all?) of the other _handler's, this function looks at the
+    "function" jerry_value_t (the first parameter to the handler) to
+    either invoke it as a Javascript function, or grab the
+    Native_Object associated with that value -- which will be a C
+    function pointer -- and run that directly
+
+    4) jerry_create_<callback>_value -- this takes a C function
+    pointer and returns a calling_context using the following
+    methodology:
+        1) create an empty object
+	2) make it invokable (with jerry_create_external_function())
+	3) assign the C-function pointer to the Native Object of our
+	   new object
+	4) build a calling_context out of the object (with NULL for
+    	   the "this" value, unless we have one...)
+    
+    
+}}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{#header}}
+{{#callbacks}}
+#ifndef {{{callbackName}}}_H_
+#define {{{callbackName}}}_H_
+{{/callbacks}}
+{{/header}}
+
+/* these are included to simplify the generator. Remove if not needed.*/
+/* #include <string> */
+/* #include <vector> */
+#include <stdio.h>
+#include <string.h>
+#include "jerryscript.h"
+
+{{#header}}
+#include "{{{utilities_filename}}}.h"
+{{#callbacks}}
+{{#externalTypes}}
+#include "{{{package}}}/{{{type}}}.h"
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+#include "{{{type_name}}}.h"
+{{/non_intrinsic_types}}
+{{/callbacks}}
+{{/header}}
+{{#body}}
+#include "{{moduleName}}_Types.h"
+{{#callbacks}}
+#include "{{{callbackName}}}.h"
+{{/callbacks}}
+{{/body}}
+
+{{#callbacks}}
+{{#header}}typedef calling_context {{{callbackName}}}_calling_context;
+typedef {{{callbackName}}}_calling_context* {{{callbackName}}}_calling_context_Array;
+
+/* this is the type signature of functions that can be assigned
+   to a {{{callbackName}}}_calling_context */
+typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
+
+{{/header}}
+{{/callbacks}}
+
+{{#callbacks}}
+{{#body}}
+static jerry_value_t
+run_{{{callbackName}}}_function_handler(
+	     const jerry_value_t func_value, /**< function object */
+	     const jerry_value_t this_value, /**< this arg */
+             const jerry_value_t *args_p, /**< function arguments */
+             const jerry_length_t args_cnt) /**< number of function arguments */
+{
+{{!
+    ********************************************************************
+    TODO: THIS CODE DOESN'T WORK IF THEY NEED jerry_get_value_..._ARRAY !!!
+    (b/c we don't create the get_..._Array function anywhere...)
+    ********************************************************************  }}
+    /* demarshal the arguments */
+    {{#arguments}}
+        {{#variadic}}
+   	     {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}}_Array {{{name}}} = jerry_get_array_of_{{{C_Type}}}(args_p, args_cnt, {{{paramIndex}}});
+   	     {{/C_and_Jerryscript_Types}}
+        {{/variadic}}
+        {{^variadic}}
+   	     {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}} = jerry_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
+             {{/C_and_Jerryscript_Types}}	
+        {{/variadic}}
+    {{/arguments}}
+
+{{#return_type}}
+{{ ! for the "return_value", the logic is as follows: 1. don't put out
+the declaration if it's a void return type or this function returns
+the "this" pointer (is that possible with a callback, in WebIDL?); 2.
+put out the declaration with an assignment from "run" routine }}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(({{{name}}}_calling_context) {func_value, this_value}{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+{{#arguments}}{{{indentation}}}{{{name}}}{{{separator}}}{{/arguments}}{{#arguments.length}};{{/arguments.length}}
+
+{{/return_type}}
+    {{! if the return value is a string (or array of strings), we want
+        to enter it into the Jerryscript environment _before_ we
+        deallocate our local strings, as it's possible that the return
+        value is just a copy of one of args }}
+    {{#return_type}}
+        {{#is_string}}
+    {{! DOES THE FOLLOWING COVER ALL OF THE PERMUTATIONS? }}
+    /* put the string into Jerryscript before we cleanup any string arguments */
+    jerry_value_t string_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
+        {{/is_string}}
+    {{/return_type}}
+    {{! FREE MALLOC'D STRINGS}}
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+	    {{^callback}}
+	        {{#is_string}}
+		{{^is_array}}
+    if ({{{name}}} != NULL) free({{{name}}});
+		{{/is_array}}
+       		{{/is_string}}
+    	    {{/callback}}
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+    {{#return_type}}
+        {{#return_is_this}}
+    /* return a reference back to this interface */
+    return this_value;
+        {{/return_is_this}}
+        {{^return_is_this}}
+            {{#voidReturnType}}
+    /* void return value */
+    return jerry_create_undefined();
+            {{/voidReturnType}}
+            {{^voidReturnType}}
+                {{^is_string}}
+    return jerry_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(return_value);
+                {{/is_string}}
+                {{#is_string}}
+     return string_value;
+                {{/is_string}}
+            {{/voidReturnType}}
+        {{/return_is_this}}
+    {{/return_type}}
+} /* run_{{{callbackName}}}_function_handler */
+
+{{/body}}
+{{/callbacks}}
+{{#callbacks}}
+{{! TODO: WE (CURRENTLY) IGNORE ARRAYS OF CALLBACKS!!! }}
+{{{callbackName}}}_calling_context
+jerry_get_{{{callbackName}}}_value(jerry_value_t value, jerry_value_t this_ptr){{#header}};
+
+{{/header}}
+{{#body}}
+{
+    jerry_value_t function_value = jerry_value_to_object(value);
+    return ({{{callbackName}}}_calling_context) {function_value, this_ptr};
+} /* jerry_get_{{{callbackName}}}_value */
+
+{{/body}}
+{{#body}}
+
+/* callbacks are simply functions, so when we want to create a
+   callback, what it means in the world of Jerryscript is that we want to
+   assign the C function to some callable thing in the Javascript
+   side; as usual, return a callback context, since that is our
+   abstraction of Jerryscript functions */
+{{/body}}
+{{{callbackName}}}_calling_context jerry_create_{{{callbackName}}}_value({{{callbackName}}}_callback x){{#header}};
+
+{{/header}}
+{{#body}}
+{
+    jerry_value_t new_function = jerry_create_external_function(
+                                       run_{{{callbackName}}}_function_handler);
+    jerry_value_t empty_this_value = jerry_create_undefined();
+
+    jerry_object_native_info_t checksum = {};
+    Native_Object_set(x, new_function, &checksum);
+
+    return ({{{callbackName}}}_calling_context){new_function, empty_this_value};
+} /* jerry_create_{{{name}}}_value */
+{{/body}}
+
+{{/callbacks}}
+{{#callbacks}}
+{{#body}}
+/* we'll use these wrapper functions to marshal the parameters for
+   the function and then call the function through the interpreter */
+
+{{/body}}
+{{#return_type}}{{{C_Type}}}{{/return_type}} run_{{{callbackName}}}_function(const {{{name}}}_calling_context {{{name}}}_context{{^arguments.length}}){{#header}};{{/header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+{{#arguments}}{{{indentation}}}{{#C_and_Jerryscript_Types}}{{{C_Type}}} {{{name}}}{{{separator}}}{{/C_and_Jerryscript_Types}}{{/arguments}}{{#arguments.length}}{{#header}};{{/header}}{{/arguments.length}}
+{{#body}}
+{
+    /* check to see if the calling_context has an underlying
+       C-function pointer attached to the Jerryscript object (hidden in
+       the Native_Object field) */
+    static jerry_object_native_info_t checksum = {};
+    jerry_error_t error_value;
+    {{{callbackName}}}_callback native_c_function;
+
+    native_c_function =
+    Native_Object_get({{{name}}}_context.function_value,
+		      &checksum, &error_value);
+    if (native_c_function != NULL)
+    {
+        /* if there's a valid C function, call it */
+        {{^voidReturnType}}return {{/voidReturnType}}native_c_function( {{#arguments}}{{{name}}}{{^finalArgument}},{{/finalArgument}}{{/arguments}} );
+    }
+    else
+    {
+        /* if this is a function called from inside Jerryscript,
+	   convert all of the passed-in parameters to jerry_value_t's and
+    	   make the call */
+{{#arguments}}{{#C_and_Jerryscript_Types}}
+        jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}({{{name}}});
+{{/C_and_Jerryscript_Types}}{{/arguments}}
+
+        jerry_value_t argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
+        jerry_value_t jerry_return_value =
+	              jerry_call_function({{{name}}}_context.function_value,
+					  {{{name}}}_context.this_value,
+					  argv, {{{arguments.length}}});
+	
+    {{#return_type}}
+    {{^voidReturnType}}
+        return ({{{C_Type}}})jerry_get_{{{C_Type}}}_value(jerry_return_value);
+    {{/voidReturnType}}
+    {{/return_type}}
+    }
+} /* run_{{{callbackName}}}_function */
+{{/body}}
+
+{{/callbacks}}
+{{#callbacks}}
+
+void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
+{{#body}}
+{
+    /* even though we don't actually store anything for callbacks,
+       we'll create a prototype object for each callback in the
+       Javascript environment to ensure that we only call this
+       initialization code once (this also ensures that we don't
+       get into an infinite loop of initialization routines calling
+       each other) */
+
+    /* first, check to see if the prototype object exists for this
+       callback; if so, just return */
+    jerry_value_t prototype = get_prototype((char *)"{{{name}}}");
+    if (!jerry_value_has_error_flag(prototype) &&
+        !jerry_value_is_undefined(prototype))
+    {
+        jerry_release_value(prototype);
+	return;
+    }
+
+    /* create the prototype object */
+    jerry_value_t {{{name}}}_prototype_object = jerry_create_object();
+
+    /* store the prototype in the global prototypes holder */
+    jerry_value_t global_object = jerry_get_global_object();
+    register_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
+
+    jerry_release_value(global_object);
+    jerry_release_value({{{name}}}_prototype_object);
+
+    /* finally, make sure that all of the types upon which the callback
+       depends have been loaded; note that if there's a cycle,
+       initializing all of the included data structures _after_ we
+       create this one should(?) keep us from running infinitely */
+{{#externalTypes}}
+    initialize_{{{type}}}_();
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+    initialize_{{{type_name}}}_();
+{{/non_intrinsic_types}}
+
+} /* initialize_{{{callbackName}}}_ */
+
+{{/body}}
+{{#debug_printing}}
+void debug_print_{{{callbackName}}} (char *variable_name,
+     				      {{{name}}}_calling_context value,
+				      unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    /* check to see if the calling_context has an underlying
+       C-function pointer attached to the Jerryscript object (hidden in
+       the Native_Object field) */
+    static jerry_object_native_info_t checksum = {};
+    jerry_error_t error_value;
+    {{{callbackName}}}_callback native_c_function;
+
+    native_c_function =
+          Native_Object_get(value.function_value,
+			    &checksum, &error_value);
+ 
+   printf("%*s%s -- CALLBACK FUNCTION (Native %s implementation)\n",
+          indentation, "", variable_name,
+          (native_c_function != NULL)?"C":"Javascript");
+} /* debug_print_{{{callbackName}}} */
+{{/body}}
+{{/debug_printing}}
+{{/callbacks}}
+
+{{#header}}
+{{#callbacks}}
+#endif /* {{{callbackName}}}_H_ */
+{{/callbacks}}
+{{/header}}
+{{/OBEYFORMATTING}}

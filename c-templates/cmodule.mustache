@@ -10,9 +10,81 @@
 #include <string.h>
 
 #include "jerryscript.h"
+{{#body}}
+#include "{{{utilities_filename}}}.h"
+{{/body}}
 #include "{{{moduleName}}}_Types.h"
-
 {{#interfaces}}
+{{#header}}
+#ifndef {{{interfaceName}}}_H_
+#define {{{interfaceName}}}_H_
+{{#externalTypes}}
+#include "{{{package}}}/{{{type}}}.h"
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+#include "{{{type_name}}}.h"
+{{/non_intrinsic_types}}
+
+{{/header}}
+
+{{#header}}
+#include "{{{interfaceName}}}_stubs.h"
+typedef struct {
+    {{#attributes}}
+        {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}};
+        {{/C_and_Jerryscript_Types}}
+    {{/attributes}}
+    Native_Object_{{{interfaceName}}} *native_object;
+} {{name}};
+{{! SET UP #DEFS TO GET AT ATTRIBUTES OF THE INTERFACE}}
+    {{#attributes}}
+    {{#C_and_Jerryscript_Types}}
+#define attribute_{{{interfaceName}}}_{{{name}}}{{#is_array}}_Array{{/is_array}} (extract_{{{interfaceName}}}_{{{name}}}{{#is_array}}_Array{{/is_array}}(this_val))
+    {{/C_and_Jerryscript_Types}}
+    {{/attributes}}
+
+{{/header}}
+{{#hasAttributes}}
+
+/* attribute GETTERS */
+{{#attributes}}
+{{#C_and_Jerryscript_Types}}
+{{^callback}}
+{{#header}}extern {{/header}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} extract_{{{interfaceName}}}_{{{name}}} (jerry_value_t this_pointer){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t attribute_pointer = jerry_get_property(this_pointer, property_pointer);
+    {{{C_Type}}} return_value = ({{{C_Type}}})jerry_get_{{{C_Type}}}_value(attribute_pointer);
+    jerry_release_value(property_pointer);
+    jerry_release_value(attribute_pointer);
+    return return_value;
+} /* extract_{{interfaceName}}_{{name}} */
+
+{{/body}} {{! EXTRACT NON-CALLBACK ATTRIBUTE}}
+{{/callback}}
+{{! if the attribute is a callback, return the calling context for it }}
+{{#callback}}
+{{#header}}extern {{/header}}{{C_Type}}_calling_context extract_{{{interfaceName}}}_{{{name}}} (jerry_value_t this_pointer){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t attribute_pointer = jerry_get_property(this_pointer, property_pointer);
+
+    jerry_release_value(property_pointer);
+
+    return ({{C_Type}}_calling_context){attribute_pointer, this_pointer};
+} /* extract_{{interfaceName}}_{{name}} */
+
+{{/body}}
+{{/callback}}
+{{/C_and_Jerryscript_Types}}
+{{/attributes}} {{! ATTRIBUTE GETTERS}}
+
+{{/hasAttributes}}
+
+{{#repress_stubs}}
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these
    Native_Objects are attached to their objects by Jerryscript, and
@@ -23,51 +95,39 @@
    Native_Object_set, we also give it a deallocator for that
    Native_Object (note that the function can be null if there isn't
    any memory to free) */
-typedef struct {
-{{#repress_stubs}}
-        /* USER CODE GOES HERE */
-{{/repress_stubs}}
-{{^repress_stubs}}
-        /* DEFINED IN THE STUBS FILE */
-{{/repress_stubs}}
-} Native_Object_{{{interfaceName}}};
-
-{{#repress_stubs}}
-static void Native_Object_{{{interfaceName}}}_deallocator(void *native_object)
+void Native_Object_{{{interfaceName}}}_deallocator(Native_Object_{{{interfaceName}}} *native_object){{#header}};{{/header}}
+{{#body}}
 {
 	/* USER CODE GOES HERE */
 } /* Native_Object_{{{interfaceName}}}_deallocator */
 
-static Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void)
+{{/body}}
+Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void){{#header}};{{/header}}
+{{#body}}
 {
     Native_Object_{{{interfaceName}}} *new_object = (Native_Object_{{{interfaceName}}} *)malloc(sizeof(Native_Object_{{{interfaceName}}}));
 
 	/* USER CODE GOES HERE */ 
     return new_object;
 } /* Native_Object_{{{interfaceName}}}_create */
+{{/body}}
 {{/repress_stubs}}
 {{^repress_stubs}}
-extern void Native_Object_{{{interfaceName}}}_deallocator(void *native_object);
-extern Native_Object_{{{interfaceName}}}* Native_Object_{{{interfaceName}}}_create(void);
+{{#header}}
+#include "{{{interfaceName}}}_stubs.h"
+
+{{/header}}
 {{/repress_stubs}}
 {{! the checksum is used by Jerryscript to ensure that the
     Native_Object is still valid; when we make the stubs, we need to
     set up the checksum here, but also give it to the stubs file }}
-{{#repress_stubs}}static{{/repress_stubs}}{{^repress_stubs}}extern{{/repress_stubs}}
+{{#body}}
+{{#repress_stubs}}static {{/repress_stubs}}{{^repress_stubs}}extern {{/repress_stubs}}
 jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/repress_stubs}}{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator};{{/repress_stubs}}
+{{/body}}
 {{/interfaces}}
 
-{{! I DON'T THINK THIS IS NECESSARY... }}
-{{#interfaces}}
-{{^NoInterfaceObject}}
-jerry_value_t
-create_{{{name}}}_interface_handler(const jerry_value_t func_value,
-		   const jerry_value_t this_val,
-                   const jerry_value_t *args_p,
-                   const jerry_length_t args_cnt);
-{{/NoInterfaceObject}}
-{{/interfaces}}
-
+{{#body}}
 /* put all of the native-code functions (indentifable by the
  *  suffix "_handler") here: */
 
@@ -79,6 +139,11 @@ static jerry_value_t
                    const jerry_value_t *args_p, /**< function arguments */
                    const jerry_length_t args_cnt) /**< number of function arguments */
 {
+{{!
+    ********************************************************************
+    TODO: THIS CODE DOESN'T WORK IF THEY NEED jerry_get_value_..._ARRAY !!!
+    (b/c we don't create the get_..._Array function anywhere...)
+    ********************************************************************  }}
     /* demarshal the arguments{{#repress_stubs}} and setup the Native_Object{{/repress_stubs}} */
 {{! TODO: the "this_val" passed in to a function parameter: should it be
     this_val, or should we gen up a value_t for the global object? }}
@@ -90,13 +155,7 @@ static jerry_value_t
         {{/variadic}}
         {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
-	     {{#callback}}
-    {{{C_Type}}}_calling_context{{#is_array}}_Array{{/is_array}} {{{name}}}{{#repress_stubs}}_context{{/repress_stubs}} = ({{{C_Type}}}_calling_context){args_p[{{{paramIndex}}}], this_val};
-{{#repress_stubs}}#define {{{name}}}(...) (run_{{{C_Type}}}_function({{{name}}}_context, __VA_ARGS__)){{/repress_stubs}}
-	     {{/callback}}
-	     {{^callback}}
-    {{{C_Type}}}{{#is_array}}_Array{{/is_array}} {{{name}}} = jerry_get_{{^is_array}}{{{C_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]);
-	     {{/callback}}
+    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}} = jerry_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_val{{/callback}});
              {{/C_and_Jerryscript_Types}}	
         {{/variadic}}
     {{/arguments}}
@@ -169,13 +228,14 @@ declaration with an assignment from the stub }}
 {{! /repress_stubs}}
 } /* {{{name}}}_handler */
 
-
     {{/operations}}
 {{/interfaces}}
 
+{{/body}}
+{{#body}}
 {{#interfaces}}
 /* external declaration in {{{moduleName}}}_Types.h */
-jerry_value_t
+static jerry_value_t
 create_{{{interfaceName}}}_interface_handler(const jerry_value_t func_value,
 		   const jerry_value_t this_val,
                    const jerry_value_t *args_p,
@@ -216,12 +276,23 @@ create_{{{interfaceName}}}_interface_handler(const jerry_value_t func_value,
     return new_{{{interfaceName}}};
 {{/NoInterfaceObject}}
 } /* create_{{{name}}}_interface_handler */
+
 {{/interfaces}}
-
-
+{{/body}}
 {{#interfaces}}
-void load_{{{interfaceName}}}_interface(void)
+void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
+{{#body}}
 {
+    /* first, make sure that this prototype doesn't already exist */
+    jerry_value_t existing_prototype = get_prototype((char *)"{{{name}}}");
+    if (!jerry_value_has_error_flag(existing_prototype) &&
+        !jerry_value_is_undefined(existing_prototype))
+    {
+        jerry_release_value(existing_prototype);
+	return;
+    }
+
+    /* create the prototype object */
     {{! for attributes: attributes cannot get a default value, which
        means that they don't need to be created now; Javascript
        automagically creates them when they're first defined, so we
@@ -265,7 +336,122 @@ void load_{{{interfaceName}}}_interface(void)
 {{/NoInterfaceObject}}
     jerry_release_value(global_object);
 
-} /* load_{{{interfaceName}}}_interface */
-{{/interfaces}}
+    /* finally, make sure that all of the types upon which this type
+       depends have been loaded; note that if there's a cycle,
+       initializing all of the included data structures after we
+       create this one should(?) keep us from running infinitely */
+{{#externalTypes}}
+    initialize_{{{type}}}_();
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+    initialize_{{{type_name}}}_();
+{{/non_intrinsic_types}}
 
+} /* initialize_{{{interfaceName}}}_ */
+
+{{/body}}
+{{! INTERFACE GETTER/SETTER: }}
+{{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t object_value = jerry_value_to_object(value);
+    {{{name}}} return_struct;
+
+    {{#attributes}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    jerry_value_t {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
+    {{#C_and_Jerryscript_Types}}
+    return_struct.{{{name}}} = ({{{C_Type}}}{{#callback}}_calling_context{{/callback}})jerry_get_{{{C_Type}}}_value({{{name}}}_value{{#callback}}, object_value{{/callback}});
+    {{/C_and_Jerryscript_Types}}
+    jerry_release_value({{{name}}}_prop_name);
+    jerry_release_value({{{name}}}_value);
+
+    {{/attributes}}
+
+    {
+	jerry_error_t error_check;
+extern jerry_object_native_info_t {{{name}}}_checksum;
+       /* TODO: add error checking here (use
+	  GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR macro?) */
+        return_struct.native_object = Native_Object_get(object_value,
+					&{{{name}}}_checksum,
+					&error_check);
+    }
+
+    jerry_release_value(object_value);
+
+    return return_struct;
+} /* jerry_get_{{{name}}}_value */
+
+{{/body}}
+jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t dummy_jerry_value;
+extern jerry_value_t create_{{{name}}}_interface_handler(const jerry_value_t,
+					   const jerry_value_t,
+					   const jerry_value_t *,
+					   const jerry_length_t);
+    jerry_value_t new_jerry_value = create_{{{name}}}_interface_handler(
+							dummy_jerry_value,
+							dummy_jerry_value,
+							&dummy_jerry_value,
+							0);
+    {{#attributes}}
+    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    {{#C_and_Jerryscript_Types}}
+    {{^callback}}
+    jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
+    jerry_release_value(jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value));
+    jerry_release_value({{{name}}}_value);
+    {{/callback}}
+    {{! TODO: if it's a callback, apply set_external_handler?}}
+    {{/C_and_Jerryscript_Types}}
+    jerry_release_value({{{name}}}_prop_name);
+    {{/attributes}}
+
+extern jerry_object_native_info_t {{{name}}}_checksum;
+    Native_Object_set(x.native_object, new_jerry_value, &{{{name}}}_checksum);
+
+    return new_jerry_value;    
+} /* jerry_create_{{{name}}} */
+{{/body}}
+
+{{#debug_printing}}
+void debug_print_{{{interfaceName}}} (char *variable_name,
+     				      {{{name}}} value,
+				      unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    /* we can get into infinite recursion, with one structure printing
+       a second, which prints the first, and so on -- a simple
+       mechnism would be to return whenever the indentation (which
+       tracks recursion depth) gets too big */
+   if (indentation > DEBUG_RECURSION_DEPTH_TOO_BIG)
+   {
+       printf("%*s%s -- RECURSION HALTED\n", indentation, "", variable_name);
+       return;
+   }
+   else
+       printf("%*s%s:\n", indentation, "", variable_name);
+{{^attributes.length}}
+   printf("%*sNO ATTRIBUTES TO PRINT\n", indentation+DEBUG_INDENTATION_WIDTH, "");
+{{/attributes.length}}
+{{#attributes}}
+    {{#C_and_Jerryscript_Types}}
+        debug_print_{{{C_Type}}}("{{{name}}}", value.{{{name}}},
+	                         indentation+DEBUG_INDENTATION_WIDTH);
+    {{/C_and_Jerryscript_Types}}
+{{/attributes}}
+
+} /* debug_print_{{{interfaceName}}} */
+{{/body}}
+{{/debug_printing}}
+
+{{#header}}
+
+#endif /* {{{interfaceName}}}_H_ */
+{{/header}}
+
+{{/interfaces}}
 {{/OBEYFORMATTING}}
