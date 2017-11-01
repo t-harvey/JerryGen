@@ -631,7 +631,7 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
     {
 	// examine the return type
 	if (!(this_ptr.isPrimitiveType(call.idlType.idlType)))
-	    list.push(call.idlType.idlType);
+	    list.push({type_name: call.idlType.idlType});
 
 	// examine the types of the arguments
 	for (let j = 0; j < call.arguments.length; j++)
@@ -639,7 +639,7 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
 	    let argument = call.arguments[j];
 
 	    if (!(this_ptr.isPrimitiveType(argument.idlType.idlType)))
-		list.push(argument.idlType.idlType);
+		list.push({type_name: argument.idlType.idlType});
 	}
     }; /* process_call */
 
@@ -661,7 +661,7 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
 	    let attribute = thing.attributes[i];
 
 	    if (!(this.isPrimitiveType(attribute.idlType.idlType)))
-		list.push(attribute.idlType.idlType);
+		list.push({type_name: attribute.idlType.idlType});
 	}
     }
     else if (thing.type == "callback")
@@ -674,25 +674,38 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
 	    let field = thing.members[i];
 
 	    if (!(this.isPrimitiveType(field.idlType.idlType)))
-		list.push(field.idlType.idlType);
+		list.push({type_name: field.idlType.idlType});
 	}
     }
     else
 	console.log("ERROR!!!");
 
     /* unique-ify the list of types */
-    let uniq_list =
-	    list.filter( function(item, pos){return list.indexOf(item)==pos;} );
+    /* the following line was my first attempt:
+    /* let uniq_list =
+	    list.filter(function(item, pos){return list.indexOf(item)==pos;});*/
+    /* ...but this fails, b/c indexOf doesn't like objects (it's the perennial
+       difference between == and ===) -- so I substituted the following, which
+       I got off of http://tinyurl.com/yabbcs8v : */
+    let uniq_list = list.filter(
+	     function(item, position)
+	     {
+		 return position === 
+		     (pos => list.findIndex(x => x.type_name === pos))
+		                                (item.type_name)
+	     }
+    );
+    /* ...we rely on findIndex instead of indexOf, wrapping it in an
+       anonymous function and wrapping that function in parens to instantly
+       call it with the parameters sent in by list.filter */
 
     /* cull explicitly external types from the list of types */
     /* NOTE: assumes that thing.externalTypes has been set up! */
     thing.non_intrinsic_types = uniq_list.filter(
-	            function(item){return this.indexOf(item)<0;},
+	            function(item){return this.indexOf(item.type_name)<0;},
                     thing.externalTypes.map(function(x) {return x.type;} ));
 
     /* the following lines are just placeholders for debugging: */
-    if (this.callbacks)
-	console.log("here.");
     let j = 0;
     j += 7;
 } /* AugmentedAST.prototype.get_non_intrinsic_type_list */
@@ -820,6 +833,7 @@ AugmentedAST.prototype.addCallback = function (d, index) {
   else
   {
     // doesn't exist. Add it as a new key.
+    d.callbackName = d.name;
     if (Object.keys(this.callbacks).length === 0)
 	d.first_in_list = true;
     this.callbacks[d.name] = d;
@@ -847,6 +861,7 @@ AugmentedAST.prototype.addCallback = function (d, index) {
       d.arguments[i].C_and_Jerryscript_Types = this.getConversionTypes(d.arguments[i].idlType);
 /*      d.arguments[i].C_and_Jerryscript_Types.is_variadic = d.arguments[i].variadic;*/
 
+      d.arguments[i].paramIndex = i;
       if (i+1 === d.arguments.length)
 	  d.arguments[i].separator = ")";
       else

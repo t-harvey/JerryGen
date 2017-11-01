@@ -3,14 +3,25 @@
     to the output file }}
 {{^OBEYFORMATTING}}
 /*# AUTOMATICALLY GENERATED ON {{timestamp}} #*/
+{{#header}}
+#ifndef {{{interfaceName}}}_STUBS_HEADER_FILE
+#define {{{interfaceName}}}_STUBS_HEADER_FILE 1
+
+{{/header}}
 #include "{{{moduleName}}}_Types.h"
-{{#unit_testing}}
+{{#debug_printing}}
 #include <stdio.h>
-{{/unit_testing}}
-static jerry_error_t error_check; /* examine this if the value of native_object
-    		  	             might be wrong after a call to
-				     Native_Object_get() */
+{{/debug_printing}}
 {{#interfaces}}
+
+{{#header}}
+{{#externalTypes}}
+#include "{{{package}}}/{{{type}}}.h"
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+#include "{{{type_name}}}.h"
+{{/non_intrinsic_types}}
+
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these
    Native_Objects are attached to their objects by Jerryscript, and
@@ -21,13 +32,37 @@ static jerry_error_t error_check; /* examine this if the value of native_object
    Native_Object_set, we also give it a deallocator for that
    Native_Object (note that the function can be null if there isn't
    any memory to free) */
-static void Native_Object_{{{interfaceName}}}_deallocator(void *native_object)
+typedef struct {
+    /* USER CODE GOES HERE */
+} Native_Object_{{{interfaceName}}};
+
+{{/header}}
+{{#body}}
+{{#debug_printing}}
+#define DEBUG_PRINTING 1
+
+{{/debug_printing}}
+{{/body}}
+{{#body}}
+#include "{{{interfaceName}}}_stubs.h"
+
+static jerry_error_t error_check; /* examine this if the value of native_object
+    		  	             might be wrong after a call to
+				     Native_Object_get() */
+
+/*********************** NATIVE-OBJECT FUNCTIONS ***********************/
+
+{{/body}}
+void Native_Object_{{{interfaceName}}}_deallocator(void *native_object){{#header}};{{/header}}
+{{#body}}
 {
 	/* USER CODE GOES HERE */
 
 } /* Native_Object_{{{interfaceName}}}_deallocator */
 
-Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void)
+{{/body}}
+Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void){{#header}};{{/header}}
+{{#body}}
 {
     Native_Object_{{{interfaceName}}} *new_object = (Native_Object_{{{interfaceName}}} *)malloc(sizeof(Native_Object_{{{interfaceName}}}));
 
@@ -36,14 +71,21 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
     return new_object;
 } /* Native_Object_{{{interfaceName}}}_create */
 
+{{/body}}
 {{! the checksum is used by Jerryscript to ensure that the
     Native_Object is still valid; note that this has a global linkage,
     since the support routines need this value }}
-jerry_object_native_info_t {{{interfaceName}}}_checksum = {Native_Object_{{{interfaceName}}}_deallocator};
+{{#header}}/* this should never be touched by the user */{{/header}}
+{{#header}}extern {{/header}}jerry_object_native_info_t {{{interfaceName}}}_checksum{{#body}} = {Native_Object_{{{interfaceName}}}_deallocator}{{/body}};
+{{#body}}
+
+/******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
+{{/body}}
 
 /* {{{interfaceName}}} */
 {{#operations}}
-{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{#C_and_Jerryscript_Types}}{{#callback}}_context{{/callback}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t this_val)
+{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{#C_and_Jerryscript_Types}}{{#callback}}_context{{/callback}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t this_val){{#header}};{{/header}}
+{{#body}}
 {
     {{#arguments}}
         {{#C_and_Jerryscript_Types}}
@@ -56,22 +98,30 @@ jerry_object_native_info_t {{{interfaceName}}}_checksum = {Native_Object_{{{inte
        WITH AN OBJECT'S Native_Object */    
     Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check);
 
-{{#unit_testing}}
+{{#debug_printing}}
+#ifdef DEBUG_PRINTING
+   printf("\nPARAMETERS TO CALL: {{{name}}}:\n");
 {{#arguments}}
-fprintf(stdout, "ARGUMENT VALUES:\n");
-    {{#arguments}}
-    fprintf(stdout, "\t
-    {{/arguments}}
+	{{! TODO: VARIADIC AND ARRAY PARAMETER PRINTING! }}
+        {{^variadic}}{{^is_array}}
+   	     {{#C_and_Jerryscript_Types}}
+    debug_print_{{{C_Type}}}("{{{name}}}", {{{name}}}{{#callback}}_context{{/callback}}, DEBUG_INDENTATION_WIDTH);
+             {{/C_and_Jerryscript_Types}}	
+        {{/is_array}}{{/variadic}}
 {{/arguments}}
+#endif /* DEBUG_PRINTING */
 
-{{/unit_testing}}
+{{/debug_printing}}
     /* USER CODE GOES HERE */
 
     {{! do we need to undo the #defines for callbacks? }}
 }; /* {{{interfaceName}}}_{{{name}}}_body */
 
-
+{{/body}}
 {{/operations}}
+{{#header}}
+
+#endif /* {{{interfaceName}}}_STUBS_HEADER_FILE */
+{{/header}}
 {{/interfaces}}
 {{/OBEYFORMATTING}}
-

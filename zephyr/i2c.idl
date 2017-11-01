@@ -6,12 +6,13 @@ interface I2C {
     I2CBus open(I2CInit init);
 };
 
+[ExternalType=(Buffer, Buffer)]
 dictionary I2CInit {
     octet bus;
     unsigned long speed;
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, ExternalType=(Buffer,Buffer) ]
 interface I2CBus {
     // has all the properties of I2CInit as read-only attributes
     void write(octet device, Buffer data);

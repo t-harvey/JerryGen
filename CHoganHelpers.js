@@ -23,6 +23,8 @@ module.exports.getContext = function(ast, moduleName){
     that: ast,
     moduleName: moduleName,
 
+    utilities_filename: ast.utilities_filename,
+
     timestamp: ""+(new Date()),
 
     dictionaries: ast.getDictionaryArray(),
@@ -40,10 +42,13 @@ module.exports.getContext = function(ast, moduleName){
     uses_strings: ast.uses_strings,
     has_callbacks: ast.has_callbacks,
     stubs_on_or_off: ast.stubs_on_or_off,
+    debug_printing: ast.debug_printing,
 
     array_types: ast.turn_object_into_array(ast.array_types),
 
     variadic_types: ast.turn_object_into_array(ast.variadic_types),
+
+    externalTypes: ast.getExternalTypesArray(),
 
     uses_any_type: ast.uses_any_type,
     any_type_list: ast.get_any_type_list(),  
