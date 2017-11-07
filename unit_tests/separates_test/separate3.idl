@@ -1,0 +1,6 @@
+[ExternalType=(separate1, separate1), ExternalType=(separate2, separate2)]
+dictionary separate3 {
+    separate1 separate1;
+    separate2 separate2;
+    octet separate3_octet;
+}; 

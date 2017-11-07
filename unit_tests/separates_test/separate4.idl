@@ -1,0 +1,10 @@
+[ExternalType=(separate3, separate3)]
+dictionary separate4 {
+    separate3 separate3;
+    octet separate4_octet;
+}; 
+
+
+interface separate_interface {
+    void show_object(unsigned long x, unsigned long y, separate4 z);
+};

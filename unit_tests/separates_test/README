@@ -1,0 +1,7 @@
+The purpose of this test is to exercise the separate-copmilation
+facilities, both of types defined in other .idl files and of types
+defined in different objects in the same .idl file.
+
+Compile each of the separate[1-4].idl files into their own directory,
+and then combine them all with separate_demo.c, the main routine for
+this test.
