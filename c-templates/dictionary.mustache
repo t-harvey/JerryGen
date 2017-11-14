@@ -206,15 +206,15 @@ void debug_print_{{{dictionaryName}}} (char *variable_name,
        printf("%*s%s -- RECURSION HALTED\n", indentation, "", variable_name);
        return;
    }
-   else
-       printf("%*s%s:\n", indentation, "", variable_name);
 
-    {{#members}}
-    {{#C_and_Jerryscript_Types}}
-    debug_print_{{{C_Type}}}("{{{name}}}", value.{{{name}}}, indentation+DEBUG_INDENTATION_WIDTH);
-    {{/C_and_Jerryscript_Types}}
+   printf("%*s%s:\n", indentation, "", variable_name);
 
-    {{/members}}
+   {{#members}}
+   {{#C_and_Jerryscript_Types}}
+   debug_print_{{{C_Type}}}("{{{name}}}", value.{{{name}}}, indentation+DEBUG_INDENTATION_WIDTH);
+   {{/C_and_Jerryscript_Types}}
+
+   {{/members}}
 } /* debug_print_{{{dictionaryName}}} */
 {{/body}}
 {{/debug_printing}}

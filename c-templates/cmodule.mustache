@@ -432,8 +432,8 @@ void debug_print_{{{interfaceName}}} (char *variable_name,
        printf("%*s%s -- RECURSION HALTED\n", indentation, "", variable_name);
        return;
    }
-   else
-       printf("%*s%s:\n", indentation, "", variable_name);
+
+   printf("%*s%s:\n", indentation, "", variable_name);
 {{^attributes.length}}
    printf("%*sNO ATTRIBUTES TO PRINT\n", indentation+DEBUG_INDENTATION_WIDTH, "");
 {{/attributes.length}}
