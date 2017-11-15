@@ -99,18 +99,18 @@ static char *{{{name}}}_strings[] = { {{#members}}{{{indentation}}}"{{{name}}}"{
 {{^onlyOneMember}}};{{/onlyOneMember}}
 
 {{/body}}
-{{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value){{#header}};{{/header}}
+{{{name}}} interpreter_get_{{{name}}}_value(Interpreter_Type value){{#header}};{{/header}}
 {{#body}}
 {
-    return ({{{name}}})enum_index(jerry_get_string_value(value), {{{name}}}_strings);
-} /* jerry_get_{{{name}}}_value */
+    return ({{{name}}})enum_index(interpreter_get_string_value(value), {{{name}}}_strings);
+} /* interpreter_get_{{{name}}}_value */
 {{/body}}
 
-jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
 {{#body}}
 {
-    return jerry_create_string ((const jerry_char_t *) "{{{name}}}");
-} /* jerry_create_{{{name}}} */
+    return interpreter_create_string ((const jerry_char_t *) "{{{name}}}");
+} /* interpreter_create_{{{name}}} */
 {{/body}}
 {{/enums}}
 

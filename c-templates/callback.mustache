@@ -4,28 +4,28 @@
 {{!
     Callbacks are used differently according to context; we will pass
     around a "callback" as a calling_context, which is a struct of
-    two jerry_value_t's, one for the function pointer, and the other
+    two Interpreter_Type's, one for the function pointer, and the other
     for the "this" pointer; the services provided for callbacks are:
 
     1) initialize -- this really just calls all of the initializers
     for the types used by this callback
 
-    2) jerry_get_<callback>_value -- this works just like any other
-    jerry_get_*_value and returns a calling_context
+    2) interpreter_get_<callback>_value -- this works just like any other
+    interpreter_get_*_value and returns a calling_context
 
     3) run_<callback>_handler -- this is the C function that will be
     run when the Javascript user invokes his callback; unlike
     most(all?) of the other _handler's, this function looks at the
-    "function" jerry_value_t (the first parameter to the handler) to
+    "function" Interpreter_Type (the first parameter to the handler) to
     either invoke it as a Javascript function, or grab the
     Native_Object associated with that value -- which will be a C
     function pointer -- and run that directly
 
-    4) jerry_create_<callback>_value -- this takes a C function
+    4) interpreter_create_<callback>_value -- this takes a C function
     pointer and returns a calling_context using the following
     methodology:
         1) create an empty object
-	2) make it invokable (with jerry_create_external_function())
+	2) make it invokable (with interpreter_create_external_function())
 	3) assign the C-function pointer to the Native Object of our
 	   new object
 	4) build a calling_context out of the object (with NULL for
@@ -79,28 +79,28 @@ typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callb
 
 {{#callbacks}}
 {{#body}}
-static jerry_value_t
+static Interpreter_Type
 run_{{{callbackName}}}_function_handler(
-	     const jerry_value_t func_value, /**< function object */
-	     const jerry_value_t this_value, /**< this arg */
-             const jerry_value_t *args_p, /**< function arguments */
+	     const Interpreter_Type func_value, /**< function object */
+	     const Interpreter_Type this_value, /**< this arg */
+             const Interpreter_Type *args_p, /**< function arguments */
              const jerry_length_t args_cnt) /**< number of function arguments */
 {
 {{!
     ********************************************************************
-    TODO: THIS CODE DOESN'T WORK IF THEY NEED jerry_get_value_..._ARRAY !!!
+    TODO: THIS CODE DOESN'T WORK IF THEY NEED interpreter_get_value_..._ARRAY !!!
     (b/c we don't create the get_..._Array function anywhere...)
     ********************************************************************  }}
     /* demarshal the arguments */
     {{#arguments}}
         {{#variadic}}
    	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}_Array {{{name}}} = jerry_get_array_of_{{{C_Type}}}(args_p, args_cnt, {{{paramIndex}}});
+    {{{C_Type}}}_Array {{{name}}} = interpreter_get_array_of_{{{C_Type}}}(args_p, args_cnt, {{{paramIndex}}});
    	     {{/C_and_Jerryscript_Types}}
         {{/variadic}}
         {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}} = jerry_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
+    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}} = interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
              {{/C_and_Jerryscript_Types}}	
         {{/variadic}}
     {{/arguments}}
@@ -122,7 +122,7 @@ put out the declaration with an assignment from "run" routine }}
         {{#is_string}}
     {{! DOES THE FOLLOWING COVER ALL OF THE PERMUTATIONS? }}
     /* put the string into Jerryscript before we cleanup any string arguments */
-    jerry_value_t string_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
+    Interpreter_Type string_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
         {{/is_string}}
     {{/return_type}}
     {{! FREE MALLOC'D STRINGS}}
@@ -149,7 +149,7 @@ put out the declaration with an assignment from "run" routine }}
             {{/voidReturnType}}
             {{^voidReturnType}}
                 {{^is_string}}
-    return jerry_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(return_value);
+    return interpreter_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(return_value);
                 {{/is_string}}
                 {{#is_string}}
      return string_value;
@@ -164,14 +164,14 @@ put out the declaration with an assignment from "run" routine }}
 {{#callbacks}}
 {{! TODO: WE (CURRENTLY) IGNORE ARRAYS OF CALLBACKS!!! }}
 {{{callbackName}}}_calling_context
-jerry_get_{{{callbackName}}}_value(jerry_value_t value, jerry_value_t this_ptr){{#header}};
+interpreter_get_{{{callbackName}}}_value(Interpreter_Type value, Interpreter_Type this_ptr){{#header}};
 
 {{/header}}
 {{#body}}
 {
-    jerry_value_t function_value = jerry_value_to_object(value);
+    Interpreter_Type function_value = jerry_value_to_object(value);
     return ({{{callbackName}}}_calling_context) {function_value, this_ptr};
-} /* jerry_get_{{{callbackName}}}_value */
+} /* interpreter_get_{{{callbackName}}}_value */
 
 {{/body}}
 {{#body}}
@@ -182,20 +182,20 @@ jerry_get_{{{callbackName}}}_value(jerry_value_t value, jerry_value_t this_ptr){
    side; as usual, return a callback context, since that is our
    abstraction of Jerryscript functions */
 {{/body}}
-{{{callbackName}}}_calling_context jerry_create_{{{callbackName}}}_value({{{callbackName}}}_callback x){{#header}};
+{{{callbackName}}}_calling_context interpreter_create_{{{callbackName}}}_value({{{callbackName}}}_callback x){{#header}};
 
 {{/header}}
 {{#body}}
 {
-    jerry_value_t new_function = jerry_create_external_function(
+    Interpreter_Type new_function = interpreter_create_external_function(
                                        run_{{{callbackName}}}_function_handler);
-    jerry_value_t empty_this_value = jerry_create_undefined();
+    Interpreter_Type empty_this_value = jerry_create_undefined();
 
     jerry_object_native_info_t checksum = {};
     Native_Object_set(x, new_function, &checksum);
 
     return ({{{callbackName}}}_calling_context){new_function, empty_this_value};
-} /* jerry_create_{{{name}}}_value */
+} /* interpreter_create_{{{name}}}_value */
 {{/body}}
 
 {{/callbacks}}
@@ -227,21 +227,21 @@ jerry_get_{{{callbackName}}}_value(jerry_value_t value, jerry_value_t this_ptr){
     else
     {
         /* if this is a function called from inside Jerryscript,
-	   convert all of the passed-in parameters to jerry_value_t's and
+	   convert all of the passed-in parameters to Interpreter_Type's and
     	   make the call */
 {{#arguments}}{{#C_and_Jerryscript_Types}}
-        jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}({{{name}}});
+        Interpreter_Type {{{name}}}_value = interpreter_create_{{{Jerryscript_Type}}}({{{name}}});
 {{/C_and_Jerryscript_Types}}{{/arguments}}
 
-        jerry_value_t argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
-        jerry_value_t jerry_return_value =
+        Interpreter_Type argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
+        Interpreter_Type jerry_return_value =
 	              jerry_call_function({{{name}}}_context.function_value,
 					  {{{name}}}_context.this_value,
 					  argv, {{{arguments.length}}});
 	
     {{#return_type}}
     {{^voidReturnType}}
-        return ({{{C_Type}}})jerry_get_{{{C_Type}}}_value(jerry_return_value);
+        return ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(jerry_return_value);
     {{/voidReturnType}}
     {{/return_type}}
     }
@@ -263,7 +263,7 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
 
     /* first, check to see if the prototype object exists for this
        callback; if so, just return */
-    jerry_value_t prototype = get_prototype((char *)"{{{name}}}");
+    Interpreter_Type prototype = get_prototype((char *)"{{{name}}}");
     if (!jerry_value_has_error_flag(prototype) &&
         !jerry_value_is_undefined(prototype))
     {
@@ -272,10 +272,10 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
     }
 
     /* create the prototype object */
-    jerry_value_t {{{name}}}_prototype_object = jerry_create_object();
+    Interpreter_Type {{{name}}}_prototype_object = jerry_create_object();
 
     /* store the prototype in the global prototypes holder */
-    jerry_value_t global_object = jerry_get_global_object();
+    Interpreter_Type global_object = jerry_get_global_object();
     register_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
 
     jerry_release_value(global_object);

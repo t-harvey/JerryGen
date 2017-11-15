@@ -51,12 +51,12 @@ typedef struct {
 {{#attributes}}
 {{#C_and_Jerryscript_Types}}
 {{^callback}}
-{{#header}}extern {{/header}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} extract_{{{interfaceName}}}_{{{name}}} (jerry_value_t this_pointer){{#header}};{{/header}}
+{{#header}}extern {{/header}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} extract_{{{interfaceName}}}_{{{name}}} (Interpreter_Type this_pointer){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_value_t property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
-    jerry_value_t attribute_pointer = jerry_get_property(this_pointer, property_pointer);
-    {{{C_Type}}} return_value = ({{{C_Type}}})jerry_get_{{{C_Type}}}_value(attribute_pointer);
+    Interpreter_Type property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type attribute_pointer = jerry_get_property(this_pointer, property_pointer);
+    {{{C_Type}}} return_value = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(attribute_pointer);
     jerry_release_value(property_pointer);
     jerry_release_value(attribute_pointer);
     return return_value;
@@ -66,11 +66,11 @@ typedef struct {
 {{/callback}}
 {{! if the attribute is a callback, return the calling context for it }}
 {{#callback}}
-{{#header}}extern {{/header}}{{C_Type}}_calling_context extract_{{{interfaceName}}}_{{{name}}} (jerry_value_t this_pointer){{#header}};{{/header}}
+{{#header}}extern {{/header}}{{C_Type}}_calling_context extract_{{{interfaceName}}}_{{{name}}} (Interpreter_Type this_pointer){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_value_t property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
-    jerry_value_t attribute_pointer = jerry_get_property(this_pointer, property_pointer);
+    Interpreter_Type property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type attribute_pointer = jerry_get_property(this_pointer, property_pointer);
 
     jerry_release_value(property_pointer);
 
@@ -133,15 +133,15 @@ jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/rep
 
 {{#interfaces}}
     {{#operations}}
-static jerry_value_t
-{{{name}}}_handler(const jerry_value_t func_value, /**< function object */
-		   const jerry_value_t this_val, /**< this arg */
-                   const jerry_value_t *args_p, /**< function arguments */
+static Interpreter_Type
+{{{name}}}_handler(const Interpreter_Type func_value, /**< function object */
+		   const Interpreter_Type this_val, /**< this arg */
+                   const Interpreter_Type *args_p, /**< function arguments */
                    const jerry_length_t args_cnt) /**< number of function arguments */
 {
 {{!
     ********************************************************************
-    TODO: THIS CODE DOESN'T WORK IF THEY NEED jerry_get_value_..._ARRAY !!!
+    TODO: THIS CODE DOESN'T WORK IF THEY NEED interpreter_get_value_..._ARRAY !!!
     (b/c we don't create the get_..._Array function anywhere...)
     ********************************************************************  }}
     /* demarshal the arguments{{#repress_stubs}} and setup the Native_Object{{/repress_stubs}} */
@@ -150,12 +150,12 @@ static jerry_value_t
     {{#arguments}}
         {{#variadic}}
    	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}_Array {{{name}}} = jerry_get_array_of_{{{C_Type}}}(args_p, args_cnt, {{{paramIndex}}});
+    {{{C_Type}}}_Array {{{name}}} = interpreter_get_array_of_{{{C_Type}}}(args_p, args_cnt, {{{paramIndex}}});
    	     {{/C_and_Jerryscript_Types}}
         {{/variadic}}
         {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}} = jerry_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_val{{/callback}});
+    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}} = interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_val{{/callback}});
              {{/C_and_Jerryscript_Types}}	
         {{/variadic}}
     {{/arguments}}
@@ -168,7 +168,7 @@ static jerry_value_t
 {{/repress_stubs}}
 {{^repress_stubs}}
 {{#C_and_Jerryscript_Types}}
-extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{/return_is_this}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}jerry_value_t);
+extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{/return_is_this}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type);
 {{/C_and_Jerryscript_Types}}
 {{/repress_stubs}}
 {{! for the "return_value", the logic is as follows: 1) don't put out
@@ -189,7 +189,7 @@ declaration with an assignment from the stub }}
         {{#is_string}}
     {{! DOES THE FOLLOWING COVER ALL OF THE PERMUTATIONS? }}
     /* put the string into Jerryscript before we cleanup any string arguments */
-    jerry_value_t string_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
+    Interpreter_Type string_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
         {{/is_string}}
     {{/C_and_Jerryscript_Types}}
     {{! FREE MALLOC'D STRINGS}}
@@ -235,36 +235,36 @@ declaration with an assignment from the stub }}
 {{#body}}
 {{#interfaces}}
 /* external declaration in {{{moduleName}}}_Types.h */
-static jerry_value_t
-create_{{{interfaceName}}}_interface_handler(const jerry_value_t func_value,
-		   const jerry_value_t this_val,
-                   const jerry_value_t *args_p,
+static Interpreter_Type
+create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
+		   const Interpreter_Type this_val,
+                   const Interpreter_Type *args_p,
                    const jerry_length_t args_cnt)
 {
 {{! If the object has been specified as no-interface, then the user's
     not allowed to create a new one of these; for now, return the
     (single) global object instead of an error }}
 {{#NoInterfaceObject}}
-    jerry_value_t object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
-    jerry_value_t global_object = jerry_get_global_object();
-    jerry_value_t object = jerry_get_property(global_object, object_name);
+    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type global_object = jerry_get_global_object();
+    Interpreter_Type object = jerry_get_property(global_object, object_name);
     jerry_release_value(object_name);
     jerry_release_value(global_object);
     return object;
 {{/NoInterfaceObject}}
 {{^NoInterfaceObject}}
-    jerry_value_t new_{{{interfaceName}}} = jerry_create_object();
+    Interpreter_Type new_{{{interfaceName}}} = jerry_create_object();
 
     {{#attributes}}
     if ((((signed int)args_cnt)-1) >= {{{attribute_index}}})
     {
-        jerry_value_t {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+        Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
         jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, args_p[{{{attribute_index}}}]));
         jerry_release_value({{{name}}}_prop_name);
     }
 
     {{/attributes}}
-    jerry_value_t prototype = get_prototype((char *)"{{{interfaceName}}}");
+    Interpreter_Type prototype = get_prototype((char *)"{{{interfaceName}}}");
     jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
 					    prototype));
     jerry_release_value(prototype);
@@ -284,7 +284,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {{#body}}
 {
     /* first, make sure that this prototype doesn't already exist */
-    jerry_value_t existing_prototype = get_prototype((char *)"{{{name}}}");
+    Interpreter_Type existing_prototype = get_prototype((char *)"{{{name}}}");
     if (!jerry_value_has_error_flag(existing_prototype) &&
         !jerry_value_is_undefined(existing_prototype))
     {
@@ -300,10 +300,10 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
        anything in the object version of the interface, either, but it
        looks nice... }}
     {{! IS THE ABOVE STILL TRUE?  WHAT IF IT'S A NOINTERFACEOBJECT? }}
-    jerry_value_t global_object = jerry_get_global_object();
+    Interpreter_Type global_object = jerry_get_global_object();
 
     /* add all of the interface prototypes */
-    jerry_value_t {{{name}}}_prototype_object = jerry_create_object();
+    Interpreter_Type {{{name}}}_prototype_object = jerry_create_object();
     {{#operations}}
     add_field_to_object({{{interfaceName}}}_prototype_object,
                         "{{{name}}}", &{{{name}}}_handler);
@@ -317,7 +317,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}}_create();
     Native_Object_set(native_object, {{{name}}}_prototype_object, &{{{interfaceName}}}_checksum);
 
-    jerry_value_t object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
     jerry_release_value(jerry_set_property(global_object,
 					   object_name,
 					   {{{name}}}_prototype_object));
@@ -351,17 +351,17 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 
 {{/body}}
 {{! INTERFACE GETTER/SETTER: }}
-{{{name}}} jerry_get_{{{name}}}_value(jerry_value_t value){{#header}};{{/header}}
+{{{name}}} interpreter_get_{{{name}}}_value(Interpreter_Type value){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_value_t object_value = jerry_value_to_object(value);
+    Interpreter_Type object_value = jerry_value_to_object(value);
     {{{name}}} return_struct;
 
     {{#attributes}}
-    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
-    jerry_value_t {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
+    Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
     {{#C_and_Jerryscript_Types}}
-    return_struct.{{{name}}} = ({{{C_Type}}}{{#callback}}_calling_context{{/callback}})jerry_get_{{{C_Type}}}_value({{{name}}}_value{{#callback}}, object_value{{/callback}});
+    return_struct.{{{name}}} = ({{{C_Type}}}{{#callback}}_calling_context{{/callback}})interpreter_get_{{{C_Type}}}_value({{{name}}}_value{{#callback}}, object_value{{/callback}});
     {{/C_and_Jerryscript_Types}}
     jerry_release_value({{{name}}}_prop_name);
     jerry_release_value({{{name}}}_value);
@@ -381,27 +381,27 @@ extern jerry_object_native_info_t {{{name}}}_checksum;
     jerry_release_value(object_value);
 
     return return_struct;
-} /* jerry_get_{{{name}}}_value */
+} /* interpreter_get_{{{name}}}_value */
 
 {{/body}}
-jerry_value_t jerry_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_value_t dummy_jerry_value;
-extern jerry_value_t create_{{{name}}}_interface_handler(const jerry_value_t,
-					   const jerry_value_t,
-					   const jerry_value_t *,
+    Interpreter_Type dummy_jerry_value;
+extern Interpreter_Type create_{{{name}}}_interface_handler(const Interpreter_Type,
+					   const Interpreter_Type,
+					   const Interpreter_Type *,
 					   const jerry_length_t);
-    jerry_value_t new_jerry_value = create_{{{name}}}_interface_handler(
+    Interpreter_Type new_jerry_value = create_{{{name}}}_interface_handler(
 							dummy_jerry_value,
 							dummy_jerry_value,
 							&dummy_jerry_value,
 							0);
     {{#attributes}}
-    jerry_value_t {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
     {{#C_and_Jerryscript_Types}}
     {{^callback}}
-    jerry_value_t {{{name}}}_value = jerry_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
+    Interpreter_Type {{{name}}}_value = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
     jerry_release_value(jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value));
     jerry_release_value({{{name}}}_value);
     {{/callback}}
@@ -414,7 +414,7 @@ extern jerry_object_native_info_t {{{name}}}_checksum;
     Native_Object_set(x.native_object, new_jerry_value, &{{{name}}}_checksum);
 
     return new_jerry_value;    
-} /* jerry_create_{{{name}}} */
+} /* interpreter_create_{{{name}}} */
 {{/body}}
 
 {{#debug_printing}}
