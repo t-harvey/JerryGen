@@ -1,5 +1,5 @@
 	{{^OBEYFORMATTING}}
-{{! This one .mustache file is used to create both the .h and the .c
+{{! This one .mustache file is used to create both the .c and the .h
     *_Types files -- look for the "body" and "header" markers }}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{#header}}
@@ -12,15 +12,17 @@
 #include <stdint.h>
 
 {{#header}}
-typedef char * string;
-
-{{/header}}
-{{#header}}
 #include "jerryscript.h"
 {{/header}}
 {{#body}}
 #include "{{{utilities_filename}}}.h"
 {{/body}}
+
+{{#header}}
+typedef char * string;
+typedef jerry_value_t Interpreter_Type;
+
+{{/header}}
 
 {{#header}}
 /* calls to functions residing in the Javascript environment require
@@ -31,25 +33,38 @@ typedef char * string;
    to wrap the generic call that uses this context into an easily
    used C function */
 typedef struct {
-    jerry_value_t function_value; /* Jerryscript's function pointer */
-    jerry_value_t this_value;     /* i.e., "this" pointer */
+    Interpreter_Type function_value; /* Jerryscript's function pointer */
+    Interpreter_Type this_value;     /* i.e., "this" pointer */
 } calling_context;
 
 {{/header}}
 {{#header}}
 
 /***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
-#define jerry_get_int8_t_value (int8_t)jerry_get_number_value
-#define jerry_get_uint8_t_value (uint8_t)jerry_get_number_value
-#define jerry_get_int16_t_value (int16_t)jerry_get_number_value
-#define jerry_get_uint16_t_value (uint16_t)jerry_get_number_value
-#define jerry_get_int32_t_value (int32_t)jerry_get_number_value
-#define jerry_get_uint32_t_value (uint32_t)jerry_get_number_value
-#define jerry_get_int64_t_value (int64_t)jerry_get_number_value
-#define jerry_get_uint64_t_value (uint64_t)jerry_get_number_value
-#define jerry_get_float_value (float)jerry_get_number_value
-#define jerry_get_double_value (double)jerry_get_number_value
-#define jerry_get_bool_value (bool)jerry_get_boolean_value
+
+/* we don't check the type of each thing while outputting code -> we
+   assume that there'll be a "_create/get_thing" function for every
+   type, so for the atomic types, we'll need a name mapping */
+#define interpreter_get_int8_t_value (int8_t)jerry_get_number_value
+#define interpreter_get_uint8_t_value (uint8_t)jerry_get_number_value
+#define interpreter_get_int16_t_value (int16_t)jerry_get_number_value
+#define interpreter_get_uint16_t_value (uint16_t)jerry_get_number_value
+#define interpreter_get_int32_t_value (int32_t)jerry_get_number_value
+#define interpreter_get_uint32_t_value (uint32_t)jerry_get_number_value
+#define interpreter_get_int64_t_value (int64_t)jerry_get_number_value
+#define interpreter_get_uint64_t_value (uint64_t)jerry_get_number_value
+#define interpreter_get_float_value (float)jerry_get_number_value
+#define interpreter_get_double_value (double)jerry_get_number_value
+#define interpreter_get_bool_value (bool)jerry_get_boolean_value
+
+/* I don't know how many of these are automatically generated -- TODO */
+#define interpreter_create_array     jerry_create_array
+#define interpreter_create_boolean   jerry_create_boolean
+#define interpreter_create_number    jerry_create_number
+#define interpreter_create_null      jerry_create_null
+#define interpreter_create_string    jerry_create_string
+#define interpreter_create_undefined jerry_create_undefined
+
 
 #ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
 #define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
@@ -63,14 +78,14 @@ typedef struct {
 
 {{/header}}
 
-void Native_Object_set(void *thing, jerry_value_t object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
+void Native_Object_set(void *thing, Interpreter_Type object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
 {{#body}}
 {
     jerry_set_object_native_pointer(object, thing, checksum);
 } /* Native_Object_set */
 
 {{/body}}
-void *Native_Object_get(jerry_value_t object,
+void *Native_Object_get(Interpreter_Type object,
                         jerry_object_native_info_t *checksum,
 			jerry_error_t *error_value){{#header}};{{/header}}
 {{#body}}
@@ -107,7 +122,7 @@ void *Native_Object_get(jerry_value_t object,
 {{/body}}
 
 #include <stdlib.h>
-char *jerry_get_string_value(jerry_value_t string_value){{#header}};{{/header}}
+char *interpreter_get_string_value(Interpreter_Type string_value){{#header}};{{/header}}
 {{#body}}
 {
     int string_length = jerry_get_string_length(string_value);
@@ -146,13 +161,13 @@ int enum_index(char *target, char **array){{#header}};{{/header}}
 /* if the handler is NULL, then we'll assume it's a dictionary field
    rather than an interface operation, and we'll just make its default
    value undefined */
-void add_field_to_object(jerry_value_t enclosing_object,
+void add_field_to_object(Interpreter_Type enclosing_object,
 			    const char *function_name,
        			    jerry_external_handler_t handler){{#header}};{{/header}}
 {{#body}}
 {
   /* Create a JS function object and wrap into a jerry value */
-  jerry_value_t function_object;
+  Interpreter_Type function_object;
   if (handler)
       function_object = jerry_create_external_function(handler);
   else
@@ -160,7 +175,7 @@ void add_field_to_object(jerry_value_t enclosing_object,
 
   /* Set the native function as a property of the enclosing object
      (either the global object, or a user-define object) */
-  jerry_value_t prop_name =
+  Interpreter_Type prop_name =
                  jerry_create_string((const jerry_char_t *) function_name);
   jerry_release_value(jerry_set_property(enclosing_object,
 					 prop_name, function_object));
@@ -188,19 +203,19 @@ static const char *q36 = "q36_interface_and_defintions_prototypes_holder_q36";
    holder, we need to maintain at least one pointer to the object, and the
    easiest place to store this is inside the prototype holder itself, so
    create a Native_Object that is nothing more than a struct that will
-   hold the jerry_value_t that points to the prototypes holder */
+   hold the Interpreter_Type that points to the prototypes holder */
 typedef struct {
-    jerry_value_t self;
+    Interpreter_Type self;
 } prototypes_holder_native_object;
 
 /* we want to try to load the prototypes holder and then check to make
    sure that we got it, so we separate the "get" from the "check" (below) */
-static jerry_value_t get_prototypes_holder_helper(void)
+static Interpreter_Type get_prototypes_holder_helper(void)
 {
-    jerry_value_t global_object = jerry_get_global_object();
-    jerry_value_t prototypes_holder_property =
+    Interpreter_Type global_object = jerry_get_global_object();
+    Interpreter_Type prototypes_holder_property =
                              jerry_create_string((const jerry_char_t *)q36);
-    jerry_value_t prototypes_holder = 
+    Interpreter_Type prototypes_holder = 
                   jerry_get_property(global_object, prototypes_holder_property);
     jerry_release_value(global_object);
     jerry_release_value(prototypes_holder_property);
@@ -209,9 +224,9 @@ static jerry_value_t get_prototypes_holder_helper(void)
 } /* get_prototypes_holder_helper */
 
 /* helper function for the getter/setters, below */
-static jerry_value_t get_prototypes_holder(void)
+static Interpreter_Type get_prototypes_holder(void)
 {
-    jerry_value_t prototypes_holder = get_prototypes_holder_helper();
+    Interpreter_Type prototypes_holder = get_prototypes_holder_helper();
 
     /* check to see if we got the value; if not, go through the same
        code again, and if it fails again, then we've got a problem we
@@ -236,9 +251,9 @@ static jerry_value_t get_prototypes_holder(void)
 void create_prototypes_holder(){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_value_t new_prototypes_holder = jerry_create_object();
-    jerry_value_t global_object = jerry_get_global_object();
-    jerry_value_t prototype_holder_name =
+    Interpreter_Type new_prototypes_holder = jerry_create_object();
+    Interpreter_Type global_object = jerry_get_global_object();
+    Interpreter_Type prototype_holder_name =
                                 jerry_create_string((const jerry_char_t *)q36);
     /* register the new object and immediately release jerry_value */
     jerry_release_value(jerry_set_property(global_object,
@@ -258,13 +273,13 @@ void create_prototypes_holder(){{#header}};{{/header}}
 
 {{/body}}
 {{! next, we'll need a "get"ter and "set"ter for each prototype }}
-jerry_value_t get_prototype(char * object_name){{#header}};{{/header}}
+Interpreter_Type get_prototype(char * object_name){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_value_t prototypes_holder = get_prototypes_holder();
-    jerry_value_t interface_property =
+    Interpreter_Type prototypes_holder = get_prototypes_holder();
+    Interpreter_Type interface_property =
                      jerry_create_string((const jerry_char_t *)object_name);
-    jerry_value_t prototype = jerry_get_property(prototypes_holder,
+    Interpreter_Type prototype = jerry_get_property(prototypes_holder,
                                                   interface_property);
     jerry_release_value(prototypes_holder);
     jerry_release_value(interface_property);
@@ -273,11 +288,11 @@ jerry_value_t get_prototype(char * object_name){{#header}};{{/header}}
 } /* get_prototype */
 
 {{/body}}
-void register_prototype(char * object_name, jerry_value_t new_prototype){{#header}};{{/header}}
+void register_prototype(char * object_name, Interpreter_Type new_prototype){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_value_t prototypes_holder = get_prototypes_holder();
-    jerry_value_t prop_name = jerry_create_string ((const jerry_char_t *) object_name);
+    Interpreter_Type prototypes_holder = get_prototypes_holder();
+    Interpreter_Type prop_name = jerry_create_string ((const jerry_char_t *) object_name);
     /* set the prototype and release the return value without any check */
     jerry_release_value(jerry_set_property (prototypes_holder,
                                             prop_name, new_prototype));

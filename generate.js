@@ -16,7 +16,8 @@ var argv = require('minimist')(process.argv.slice(2)),
     genPackage = argv['package'],
     stubs_on_or_off = argv['stubs'],
     fix_type_errors = argv['fix_type_errors'],
-    debug_printing = argv['debug_printing'];
+    debug_printing = argv['debug_printing'],
+    output_utility_files = argv['output_utility_files'];
 
 /* for now, just default fix_type_errors to true */
 if (fix_type_errors === undefined)
@@ -25,6 +26,8 @@ if (stubs_on_or_off === undefined)
     stubs_on_or_off = "on";
 if (debug_printing === undefined)
     debug_printing = "off";
+if (output_utility_files === undefined)
+    output_utility_files = true;
     
 
 /* we wrap a big try/catch block around all of the functionality to
@@ -238,7 +241,8 @@ generate_stubs(); /* stubs don't get overwritten, so if the file already
 generate_CFile();
 generate_dictionaries();
 generate_callbacks();
-generate_utility_files();
+if (output_utility_files)
+    generate_utility_files();
 
 report_done();
 

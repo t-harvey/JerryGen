@@ -46,7 +46,6 @@ register_js_function (const char *name_p, /**< name of the function */
 } /* register_js_function */
 
 
-
 static jerry_value_t evaluate_script(jerry_char_t jerry_script[])
 {
     size_t jerry_script_size = strlen ((const char *) jerry_script);
@@ -58,8 +57,6 @@ static jerry_value_t evaluate_script(jerry_char_t jerry_script[])
     }
     return eval_ret;
 } /* evaluate_script */
-
-
 
 
 int main()
