@@ -27,8 +27,7 @@ if (stubs_on_or_off === undefined)
 if (debug_printing === undefined)
     debug_printing = "off";
 if (output_utility_files === undefined)
-    output_utility_files = true;
-    
+    output_utility_files = false;
 
 /* we wrap a big try/catch block around all of the functionality to
    make sure the user has given us all of the correct parameters (the
@@ -181,6 +180,7 @@ var generate_utilities = function(){
     return Q.all(returned);
 } /* generate_utilities */
 
+
 var generate_stubs = function(){
     var interfaces_object = augAST.interfaces; // excise the interfaces
     var write_return_value;
@@ -223,7 +223,7 @@ var generate_stubs = function(){
 
 var report_done = function(){
         console.log("Done.");
-};
+}; /* report_done */
 
 
 // NOTE: THIS COMMENT WAS IN THE ORIGINAL CODE; IT SEEMS LIKE A GOOD IDEA(?)

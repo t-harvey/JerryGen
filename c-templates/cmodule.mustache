@@ -361,6 +361,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
     Interpreter_Type {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
     {{#C_and_Jerryscript_Types}}
+    {{! TODO: COMPARE THIS ASSIGNMENT TO c-templates.dictionary.mustache!!! }}
     return_struct.{{{name}}} = ({{{C_Type}}}{{#callback}}_calling_context{{/callback}})interpreter_get_{{{C_Type}}}_value({{{name}}}_value{{#callback}}, object_value{{/callback}});
     {{/C_and_Jerryscript_Types}}
     jerry_release_value({{{name}}}_prop_name);
