@@ -29,7 +29,6 @@ module.exports.genJSString = function(ast, moduleName){
 };
 
 
-
 /*
 Interface Code generation
  */
@@ -73,8 +72,12 @@ module.exports.genCallbackString = function(ast, moduleName, header_or_body)
 	context.body = true;
 
     return hogan.compile(getCTemplate('callback')).render(context);
-};
+}; /* genCallbackString */
 
+
+/*
+Interface Code generation
+ */
 
 module.exports.genInterfaceString = function(ast, interfaceName, moduleName){
   if(!ast.interfaces[interfaceName]){
@@ -83,9 +86,12 @@ module.exports.genInterfaceString = function(ast, interfaceName, moduleName){
 
   var context = CInterfaceHoganHelpers.getContext(ast, moduleName, interfaceName);
   return hogan.compile(getCTemplate("interface")).render(context);
+}; /* genInterfaceString */
 
-};
 
+/*
+Dictionary Code generation
+ */
 
 module.exports.genDictionaryTypesString = function(ast, moduleName, header_or_body)
 {
@@ -98,11 +104,22 @@ module.exports.genDictionaryTypesString = function(ast, moduleName, header_or_bo
     return hogan.compile(getCTemplate("types")).render(context);
 }; /* genDictionaryTypesString */
 
+
+
+/*
+Makefile Code generation
+ */
+
 module.exports.genMakefileString = function(ast, moduleName){
   var context = MakefileHoganHelpers.getContext(ast, moduleName);
   return hogan.compile(getCTemplate("Makefile")).render(context);
-};
+}; /* genMakefileString */
 
+
+
+/*
+Stubs Code generation
+ */
 
 module.exports.genStubsString = function(ast, moduleName, header_or_body){
   var context = StubsHoganHelpers.getContext(ast, moduleName);
@@ -113,8 +130,12 @@ module.exports.genStubsString = function(ast, moduleName, header_or_body){
 	context.body = true;
 
   return hogan.compile(getCTemplate("stubs")).render(context);
-};
+}; /* genStubsString */
 
+
+/*
+Utilities Code generation
+ */
 
 module.exports.genUtilitiesString = function(ast, moduleName, header_or_body){
   var context = StubsHoganHelpers.getContext(ast, moduleName);
@@ -125,6 +146,5 @@ module.exports.genUtilitiesString = function(ast, moduleName, header_or_body){
 	context.body = true;
 
   return hogan.compile(getCTemplate("utilities")).render(context);
-};
-
+}; /* genUtilitiesString */
 

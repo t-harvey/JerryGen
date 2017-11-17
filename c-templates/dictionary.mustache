@@ -68,8 +68,7 @@ typedef struct {
     Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
     Interpreter_Type {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
     {{#C_and_Jerryscript_Types}}
-/*    return_struct.{{{name}}} = ({{{C_Type}}}{{#is_array}}{{#is_string}}*{{/is_string}}{{^is_string}}_Array{{/is_string}}{{/is_array}})interpreter_get_{{#is_array}}{{{C_Type}}}{{/is_array}}{{^is_array}}{{{C_Type}}}{{/is_array}}{{#is_array}}_Array{{/is_array}}_value({{{name}}}_value);*/
-    return_struct.{{{name}}} = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}})interpreter_get_{{#is_array}}{{{C_Type}}}{{/is_array}}{{^is_array}}{{{C_Type}}}{{/is_array}}{{#is_array}}_Array{{/is_array}}_value({{{name}}}_value);
+    return_struct.{{{name}}} = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{#is_string}} *{{/is_string}})interpreter_get_{{#is_array}}{{{C_Type}}}{{/is_array}}{{^is_array}}{{{C_Type}}}{{/is_array}}{{#is_array}}_Array{{/is_array}}_value({{{name}}}_value);
     {{/C_and_Jerryscript_Types}}
     jerry_release_value({{{name}}}_prop_name);
     jerry_release_value({{{name}}}_value);
