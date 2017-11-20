@@ -8,42 +8,19 @@ var parser = require('webidl2'),
     AugmentedAST = require('./AugmentedAST'),
     Generator = require('./Generator'),
     Q = require('q'),
-    cwd = process.cwd();
+    cwd = process.cwd(),
+    parameters = require("./parameters.js");
+
+try {
 
 /* parse command-line arguments */
-var argv = require('minimist')(process.argv.slice(2)),
-    files = argv['_'],
-    genPackage = argv['package'],
-    stubs_on_or_off = argv['stubs'],
-    fix_type_errors = argv['fix_type_errors'],
-    debug_printing = argv['debug_printing'],
-    output_utility_files = argv['output_utility_files'];
+parameters.validate();
 
-/* for now, just default fix_type_errors to true */
-if (fix_type_errors === undefined)
-    fix_type_errors = true;
-if (stubs_on_or_off === undefined)
-    stubs_on_or_off = "on";
-if (debug_printing === undefined)
-    debug_printing = "off";
-if (output_utility_files === undefined)
-    output_utility_files = false;
-
-/* we wrap a big try/catch block around all of the functionality to
-   make sure the user has given us all of the correct parameters (the
-   catch is at the very bottom of this script) */
-try
-{
-    if (genPackage === undefined && files.length === 0)
-	throw new Error(0);
-    if (genPackage === undefined)
-	throw new Error(1);
-    else if (files.length === 0)
-	throw new Error(2);
+global_print_usage_message = parameters.print_usage_message;
 
 // create an ast and filter it for subsequent processing w/ Hogan/Mustache
-var parsed_file = (parser.parse(reader.readFiles(files)));
-var augAST = new AugmentedAST(parsed_file, fix_type_errors, genPackage);
+var parsed_file = (parser.parse(reader.readFiles(parameters.files)));
+var augAST = new AugmentedAST(parsed_file, parameters.fix_type_errors, parameters.package);
 
 /* we need to have a single name for the utilities file that everyone uses */
 let utilities_filename = "webidl_compiler_utilities";
@@ -56,7 +33,7 @@ var generate_CFile = function(){
     var interfaces_object = augAST.interfaces; // excise the interfaces
     var write_return_value;
 
-    augAST.repress_stubs = (stubs_on_or_off === "off");
+    augAST.repress_stubs = (parameters.stubs === "off");
     for(let interface_name in interfaces_object)
     {
 	augAST.interfaces = {}; // not strictly necessary...
@@ -69,7 +46,8 @@ var generate_CFile = function(){
 	    let kind_of_file = header_or_body[index];
 	    let extension = filename_extension[index];
     
-            var CFileString = Generator.genCString(augAST, genPackage, kind_of_file);
+            var CFileString = Generator.genCString(augAST, parameters.package,
+						   kind_of_file);
             var CFileFileName = packagePath + "/" + interface_name + extension;
             console.log("Creating C File... ("+CFileFileName+")");
 	    write_return_value = qfs.write(CFileFileName, CFileString);
@@ -84,17 +62,19 @@ var generate_dictionaries = function(){
     var dictionaries_object = augAST.dictionaries; // excise the dictionaries
     var write_return_value;
 
-    augAST.repress_stubs = (stubs_on_or_off === "off");
+    augAST.repress_stubs = (parameters.stubs === "off");
     for(var dictionary_name in dictionaries_object)
     {
 	augAST.dictionaries = {}; // not strictly necessary...
 	augAST.dictionaries = {[dictionary_name] : dictionaries_object[dictionary_name]};
     
-        var CFileString_header =
-	   Generator.genDictionaryString(augAST, genPackage, "generate_header");
+        var CFileString_header = Generator.genDictionaryString(augAST,
+							    parameters.package,
+							    "generate_header");
         var CFileFileName_header = packagePath + "/" + dictionary_name + ".h";
-        var CFileString_body =
-	   Generator.genDictionaryString(augAST, genPackage, "generate_body");
+        var CFileString_body =  Generator.genDictionaryString(augAST,
+							    parameters.package,
+							    "generate_body");
         var CFileFileName_body = packagePath + "/" + dictionary_name + ".c";
         console.log("Creating C header file... ("+CFileFileName_header+")");
 	write_return_value = qfs.write(CFileFileName_header, CFileString_header);
@@ -124,7 +104,8 @@ var generate_callbacks = function(){
 	    let extension = filename_extension[index];
     
             var callbackString =
-		 Generator.genCallbackString(augAST, genPackage, kind_of_file);
+		 Generator.genCallbackString(augAST, parameters.package,
+					     kind_of_file);
             var callbackFilename = packagePath+"/"+callback_name+extension;
 
             console.log("Creating C file... ("+callbackFilename+")");
@@ -144,10 +125,16 @@ var generate_utility_files = function(){
        Object.keys(augAST.enums).length > 0)
     {
         // we'll need to generate the types
-        var headerFilename = packagePath + "/" + genPackage + "_Types.h";
-        var header_bodyFilename = packagePath + "/" + genPackage + "_Types.c";
-        var headerString = Generator.genDictionaryTypesString(augAST, genPackage, "generate_header");
-        var header_bodyString = Generator.genDictionaryTypesString(augAST, genPackage, "generate_body");
+        var headerFilename = packagePath + "/" + 
+	                                       parameters.package + "_Types.h";
+        var header_bodyFilename = packagePath + "/" +
+	                                       parameters.package + "_Types.c";
+        var headerString = Generator.genDictionaryTypesString(augAST,
+							    parameters.package,
+							    "generate_header");
+        var header_bodyString = Generator.genDictionaryTypesString(augAST,
+							    package,
+						            "generate_body");
         console.log("Creating header file... (" + headerFilename + ")");
         returned.push(qfs.write(headerFilename, headerString));
         returned.push(qfs.write(header_bodyFilename, header_bodyString));
@@ -163,14 +150,16 @@ var generate_utilities = function(){
     let header_or_body = ["generate_header", "generate_body"];
     let filename_extension = [".h", ".c"];
 
-    augAST.debug_printing = (debug_printing === "on");
+    augAST.debug_printing = (parameters.debug_printing === "on");
 
     for (let index = 0; index < 2; index++)
     {
 	let kind_of_file = header_or_body[index];
 	let extension = filename_extension[index];
 
-	let utilitiesfileString = Generator.genUtilitiesString(augAST, genPackage, kind_of_file);
+	let utilitiesfileString = Generator.genUtilitiesString(augAST,
+							    parameters.package,
+							    kind_of_file);
 	let utilitiesfileFileName = packagePath + "/" + utilities_filename + extension;
 
 	console.log("Creating C Utilities File: >"+utilitiesfileFileName+"<");
@@ -186,8 +175,8 @@ var generate_stubs = function(){
     var write_return_value;
     var returned = [];
 
-    augAST.debug_printing = (debug_printing === "on");
-    if (stubs_on_or_off == 'off')
+    augAST.debug_printing = (parameters.debug_printing === "on");
+    if (parameters.stubs == 'off')
 	return;
 
     for(var interface_name in interfaces_object)
@@ -202,11 +191,13 @@ var generate_stubs = function(){
 	    let kind_of_file = header_or_body[index];
 	    let extension = filename_extension[index];
 
-	    let stubsfileString = Generator.genStubsString(augAST, genPackage, kind_of_file);
+	    let stubsfileString = Generator.genStubsString(augAST,
+							   package,
+							   kind_of_file);
 	    let stubsfileFileName = packagePath + "/" + interface_name + "_stubs" + extension;
 
 	    if (fileExists.sync(stubsfileFileName) &&
-		stubs_on_or_off != 'overwrite')
+		parameters.stubs != 'overwrite')
 		console.log(">"+stubsfileFileName+"< exists; nothing written.");
 	    else
 	    {
@@ -230,8 +221,8 @@ var report_done = function(){
 // todo, use cross-platform paths (using '/' is bad...)
 
 
-// create a module folder named with the value in the variable genPackage
-var packagePath = cwd + "/" + genPackage;
+// create a module folder named with the value in the variable "package"
+var packagePath = cwd + "/" + parameters.package;
 console.log("Creating directory... (" + packagePath + ")");
 qfs.makeDirectory(packagePath);
 
@@ -241,7 +232,7 @@ generate_stubs(); /* stubs don't get overwritten, so if the file already
 generate_CFile();
 generate_dictionaries();
 generate_callbacks();
-if (output_utility_files)
+if (parameters.output_utility_files)
     generate_utility_files();
 
 report_done();
@@ -256,19 +247,29 @@ catch(error_code)
     {
 	console.log("Error: >" + error_code + "<");
     }
-    else if (error_code.message == '0')
+    else if (error_code.message ==
+	     parameters.error_codes.neither_package_nor_files_given)
     {
-       /* getting the running script name code comes from:
-	  http://tinyurl.com/o52j5ek */
-       var path = require('path');
-       var scriptName = path.basename(__filename);
-
-       console.log("Usage: " + scriptName + " --package=<name> <.idl file(s)>");
+        console.log("Error: you must supply a package name and .idl file(s).");
+        parameters.print_usage_message();
     }
-    else if (error_code.message === '1')
+    else if (error_code.message ==
+	     parameters.error_codes.no_package_name_given)
+    {
 	console.log("You must give a name with the --package=<name> command-line argument.  This will become the name of the directory into which the files are written, and the include file will be called <name>_Types.h.");
-    else if (error_code.message === '2')
+        parameters.print_usage_message();
+    }
+    else if (error_code.message ==
+	     parameters.error_codes.no_filenames_given)
+    {
 	console.log("You must give one or more .idl files to compile.");
+        parameters.print_usage_message();
+    }
+    else if (error_code.message ==
+	     parameters.error_codes.incorrect_parameter_value)
+    {
+        parameters.print_usage_message();
+    }
     else
     {
 	if (error_code.message === undefined)
