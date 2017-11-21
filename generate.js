@@ -16,8 +16,6 @@ try {
 /* parse command-line arguments */
 parameters.validate();
 
-global_print_usage_message = parameters.print_usage_message;
-
 // create an ast and filter it for subsequent processing w/ Hogan/Mustache
 var parsed_file = (parser.parse(reader.readFiles(parameters.files)));
 var augAST = new AugmentedAST(parsed_file, parameters.fix_type_errors, parameters.package);
@@ -133,7 +131,7 @@ var generate_utility_files = function(){
 							    parameters.package,
 							    "generate_header");
         var header_bodyString = Generator.genDictionaryTypesString(augAST,
-							    package,
+							    parameters.package,
 						            "generate_body");
         console.log("Creating header file... (" + headerFilename + ")");
         returned.push(qfs.write(headerFilename, headerString));
@@ -192,7 +190,7 @@ var generate_stubs = function(){
 	    let extension = filename_extension[index];
 
 	    let stubsfileString = Generator.genStubsString(augAST,
-							   package,
+							   parameters.package,
 							   kind_of_file);
 	    let stubsfileFileName = packagePath + "/" + interface_name + "_stubs" + extension;
 
