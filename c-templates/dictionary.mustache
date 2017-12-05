@@ -25,7 +25,6 @@
 {{/non_intrinsic_types}}
 {{/header}}
 {{#body}}
-#include "{{moduleName}}_Types.h"
 #include "{{{utilities_filename}}}.h"
 {{#dictionaries}}
 #include "{{{dictionaryName}}}.h"
@@ -82,6 +81,9 @@ typedef struct {
 } /* interpreter_get_{{{name}}}_value */
 
 {{/body}}
+
+/* like all the interpreter_create_* functions, this one takes a C
+   variable and creates its Jerryscript/Javascript equivalent */
 Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
 {{#body}}
 {
@@ -187,6 +189,15 @@ void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
 {{/non_intrinsic_types}}
 
 } /* initialize_{{{dictionaryName}}}_ */
+
+/* we need to register the initialize_{{{dictionaryName}}}_ function so
+   that it gets run automatically... */
+__attribute__((constructor))
+static void register_initialize_{{{dictionaryName}}}(void)
+{
+    /* ...supplied by webidl_utilities... */
+    register_initialization_function(initialize_{{{dictionaryName}}}_);
+} /* register_initialize_{{{dictionaryName}}} */
 
 {{/body}}
 {{#debug_printing}}

@@ -1,0 +1,61 @@
+{{^OBEYFORMATTING}}
+{{! This one .mustache file is used to create both the .h and the .c
+    *_Types files -- look for the "body" and "header" markers }}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{#header}}
+#ifndef {{#enums}}{{{name}}}{{/enums}}_ENUM_H_
+#define {{#enums}}{{{name}}}{{/enums}}_ENUM_H_
+{{/header}}
+
+#include <stdio.h>
+#include <string.h>
+#include "{{{utilities_filename}}}.h"
+{{#body}}
+{{#enums}}
+#include "{{{name}}}.h"
+{{/enums}}
+
+{{/body}}
+{{#header}}
+#include "jerryscript.h"
+{{#enums}}
+typedef enum { {{#members}}{{{indentation}}}{{{name}}}{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} }{{/onlyOneMember}}{{/members}}
+{{^onlyOneMember}}} {{/onlyOneMember}}{{{name}}};
+{{/enums}}
+{{/header}}
+
+
+{{#enums}}
+{{! we first need strings that match the enumeration values }}
+{{#body}}
+static char *{{{name}}}_strings[] = { {{#members}}{{{indentation}}}"{{{name}}}"{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} };{{/onlyOneMember}}{{/members}}
+{{^onlyOneMember}}};{{/onlyOneMember}}
+
+{{/body}}
+{{{name}}} interpreter_get_{{{name}}}_value(Interpreter_Type value){{#header}};{{/header}}
+{{#body}}
+{
+    return ({{{name}}})enum_index(interpreter_get_string_value(value), {{{name}}}_strings);
+} /* interpreter_get_{{{name}}}_value */
+{{/body}}
+
+Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+{{#body}}
+{
+    return interpreter_create_string ((const jerry_char_t *) "{{{name}}}");
+} /* interpreter_create_{{{name}}} */
+{{/body}}
+
+{{! the following greatly(!) simplifies the code elsewhere!!! }}
+/* this can be ignored; it simplifies the definition of interfaces
+   that include this type... */
+{{#header}}
+#define initialize_{{{name}}}_()
+{{/header}}
+
+{{/enums}}
+{{#header}}
+
+#endif /* {{#enums}}{{{name}}}{{/enums}}_ENUM_H_ */
+{{/header}}
+{{/OBEYFORMATTING}}

@@ -1,6 +1,6 @@
 {{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .h and the .c
-    *_Types files -- look for the "body" and "header" markers }}
+    files -- look for the "body" and "header" markers }}
 {{!
     Callbacks are used differently according to context; we will pass
     around a "callback" as a calling_context, which is a struct of
@@ -60,7 +60,6 @@
 {{/callbacks}}
 {{/header}}
 {{#body}}
-#include "{{moduleName}}_Types.h"
 {{#callbacks}}
 #include "{{{callbackName}}}.h"
 {{/callbacks}}
@@ -174,11 +173,13 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value, Interpreter_Typ
 } /* interpreter_get_{{{callbackName}}}_value */
 
 {{/body}}
-{{#body}}
 
+/* like all the interpreter_create_* functions, this one takes a C
+   variable and creates its Jerryscript/Javascript equivalent */
+{{#body}}
 /* callbacks are simply functions, so when we want to create a
    callback, what it means in the world of Jerryscript is that we want to
-   assign the C function to some callable thing in the Javascript
+   assign the C function to some callable thing on the Javascript
    side; as usual, return a callback context, since that is our
    abstraction of Jerryscript functions */
 {{/body}}
@@ -187,7 +188,7 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value, Interpreter_Typ
 {{/header}}
 {{#body}}
 {
-    Interpreter_Type new_function = interpreter_create_external_function(
+    Interpreter_Type new_function = jerry_create_external_function(
                                        run_{{{callbackName}}}_function_handler);
     Interpreter_Type empty_this_value = jerry_create_undefined();
 
@@ -284,7 +285,8 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
     /* finally, make sure that all of the types upon which the callback
        depends have been loaded; note that if there's a cycle,
        initializing all of the included data structures _after_ we
-       create this one should(?) keep us from running infinitely */
+       create this one should(?) keep us from running infinitely
+       (this list could be empty: ) */
 {{#externalTypes}}
     initialize_{{{type}}}_();
 {{/externalTypes}}
@@ -293,6 +295,18 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
 {{/non_intrinsic_types}}
 
 } /* initialize_{{{callbackName}}}_ */
+
+/* we need to register the initialize_{{{callbackName}}}_ function so
+   that it gets run automatically... */
+__attribute__((constructor))
+static void register_initialize_{{{callbackName}}}(void)
+{
+    /* ...supplied by webidl_utilities... */
+    register_initialization_function(initialize_{{{callbackName}}}_);
+{{#is_module}}
+    register_require_function("{{{callbackName}}}", interpreter_get_{{{callbackName}}}_value);
+{{/is_module}}
+} /* register_initialize_{{{callbackName}}} */
 
 {{/body}}
 {{#debug_printing}}

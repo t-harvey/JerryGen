@@ -6,9 +6,11 @@
 {{#header}}
 #ifndef {{{interfaceName}}}_STUBS_HEADER_FILE
 #define {{{interfaceName}}}_STUBS_HEADER_FILE 1
-
+#include "{{{utilities_filename}}}.h"
 {{/header}}
-#include "{{{moduleName}}}_Types.h"
+{{#body}}
+#include "{{{interfaceName}}}_stubs.h"
+{{/body}}
 {{#debug_printing}}
 #include <stdio.h>
 {{/debug_printing}}
