@@ -1,6 +1,7 @@
 {
   "name": "generator",
   "version": "1.0.0",
+  "private": true,
   "description": "Webidl->C translator",
   "main": "pprpcgen_sequential.js",
   "scripts": {

@@ -1,4 +1,4 @@
-	{{^OBEYFORMATTING}}
+{{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .c and the .h
     *_Types files -- look for the "body" and "header" markers }}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
@@ -22,9 +22,6 @@
 typedef char * string;
 typedef jerry_value_t Interpreter_Type;
 
-{{/header}}
-
-{{#header}}
 /* calls to functions residing in the Javascript environment require
    extra context; from the C-programmer's point of view, callbacks
    can be thought of as _being_ this context -- for example, when
@@ -34,12 +31,149 @@ typedef jerry_value_t Interpreter_Type;
    used C function */
 typedef struct {
     Interpreter_Type function_value; /* Jerryscript's function pointer */
-    Interpreter_Type this_value;     /* i.e., "this" pointer */
+    Interpreter_Type this_value;     /* "this" pointer */
 } calling_context;
 
 {{/header}}
-{{#header}}
+/* each WebIDL construct (dictionary, callback, interface, or enum)
+   has a registrator function that sticks its initialization routine
+   into a table of function pointers (this is before main starts --
+   the registrator functions are attributed with
+   __attribute(constructor)), and this is the function that runs all
+   of those functions; it must be called after Jerryscript is
+   initialized */
+/* all of the initialization functions have a void(*)(void) signature,
+   and they are stored in the following table: */
+{{#header}}typedef void (*webidl_construct_initializer)(void);{{/header}}
+{{#body}}
+/* TODO: reason about whether all of the global, static variables in
+   this file are amenable to running in a multi-threaded environment */
+static int function_count = 0;
+static webidl_construct_initializer *initializer_list = NULL;
 
+{{/body}}
+void register_initialization_function(webidl_construct_initializer initializer){{#header}};{{/header}}
+{{#body}}
+{
+    static int list_size = 8;
+
+    /* this conditional just memory management for the table that
+       holds all these values -- only the last line of this routine is
+       important */
+    if (initializer_list == NULL) /* first call; get some memory */
+        initializer_list = malloc(sizeof(webidl_construct_initializer) *
+	 		          list_size);
+    else if (function_count == list_size) /* need to grow the list */
+    {
+        list_size *= 2;
+	initializer_list = realloc(initializer_list,
+		          (sizeof(webidl_construct_initializer) * list_size));
+	/* TODO: check for NULL return value */
+    }
+    initializer_list[function_count++] = initializer;
+} /* register_initialization_function */
+{{/body}}
+{{#header}}
+typedef Interpreter_Type (*Module_Creation_Function)(void);
+{{/header}}
+{{#body}}
+
+/* WebIDL constructs that have the "Return_from_require" external
+   attribute set cannot be created by "new", but, rather, are the values
+   returned from a call to "require" (we define that function, below); we
+   store a mapping of the name given to "require" and the function that
+   creates the construct, and then our "require" function will look up
+   the function and dispatch it */
+
+/* the constructs that are returned from a "require" are stored in
+   this table; they map a module name with its create function */
+typedef struct {
+    char *function_name;
+    Module_Creation_Function creator;
+} Require_Table_Entry;
+
+static int require_table_entry_count = 0;
+static Require_Table_Entry *mapping_for_require;
+
+{{/body}}
+void register_require_function(string module_name,
+                               Module_Creation_Function constructor_function){{#header}};{{/header}}
+{{#body}}
+{
+    static int table_capacity = 8;
+
+    /* this conditional just memory management for the table that
+       holds all these values -- only the last line of this routine is
+       important */
+    if (mapping_for_require == NULL) /* first call; get some memory */
+        mapping_for_require = malloc(sizeof(Module_Creation_Function) *
+	 		             table_capacity);
+    else if (require_table_entry_count == table_capacity) /* need to grow the list */
+    {
+        table_capacity *= 2;
+	mapping_for_require = realloc(mapping_for_require,
+		                (sizeof(Require_Table_Entry) * table_capacity));
+	/* TODO: check for NULL return value */
+    }
+    /* TODO: check to see if all of the module names are unique */
+    mapping_for_require[require_table_entry_count++] =
+                     (Require_Table_Entry){module_name, constructor_function};
+} /* register_require_function */
+
+{{/body}}
+{{#body}}
+/* this function provides "require" to mimic the behavior of
+   node.js's "require" */
+static Interpreter_Type my_require(const Interpreter_Type func_value,
+             			   const Interpreter_Type this_value,
+             			   const Interpreter_Type *args_p,
+				   const jerry_length_t args_cnt)
+{
+    /* get the argument passed in */
+    string module_name = interpreter_get_string_value(args_p[0]);
+
+    /* look it up in the table */
+    int target_index;
+    for(target_index=0; target_index<require_table_entry_count; target_index++)
+    	if (!strcmp(mapping_for_require[target_index].function_name,
+	            module_name))
+	    break;
+
+    /* can't find the module? exit gracefully */
+    if (target_index == require_table_entry_count)
+    {
+        return jerry_create_error (JERRY_ERROR_TYPE,
+                             	(const jerry_char_t *) "Can't find the module");
+    }
+
+    /* call the function */
+    return mapping_for_require[target_index].creator();
+} /* my_require */
+
+{{/body}}
+void initialize_all_webidl_constructs(void){{#header}};{{/header}}
+{{#body}}
+{
+    /* run all of the WebIDL constructs that have registered their respective
+       initialization routines into the "initializer_list" table */
+     for(int i = 0; i < function_count; i++)
+        initializer_list[i]();
+
+    /* create "require" in the global namespace */
+    jerry_value_t require_function = jerry_create_external_function(my_require);
+    jerry_value_t require_name =
+                         jerry_create_string((const jerry_char_t *) "require");
+    jerry_value_t global_object = jerry_get_global_object();
+    jerry_release_value(jerry_set_property(global_object,
+					   require_name, require_function));
+    jerry_release_value(global_object);
+    jerry_release_value(require_name);
+    jerry_release_value(require_function);
+
+} /* initialize_all_webidl_constructs */
+
+{{/body}}
+{{#header}}
 /***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
 
 /* we don't check the type of each thing while outputting code -> we

@@ -1,6 +1,8 @@
 # ignore all testing of the calculator
 calc*
-i2c
+i2c*
 buffer
 temp
 .DS_Store
+*~
+my_tests

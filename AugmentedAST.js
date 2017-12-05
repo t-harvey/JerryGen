@@ -1,632 +1,363 @@
-/* from https://javascriptweblog.wordpress.com/2011/08/08/fixing-the-javascript-typeof-operator/ -- this function is a more reliable "typeof" */
-var toType = function(obj) {
-  return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase()
-};
+"use strict"
 
-var did_I_ever_see_a_string = false;
+/* the routines in this file walk the ast that was built from a WebIDL
+ * file and prepare it for processing through a Mustache compiler */
+
 var did_I_ever_see_the_any_type = false;
 
-var WebIDL_to_Jerryscript_TypeMap = {
-    "boolean" : "boolean",
-    "byte" : "number",
-    "octet" : "number",
-    "short" : "number",
-    "unsigned short" : "number",
-    "long" : "number",
-    "unsigned long" : "number",
-    "long long" : "number",
-    "unsigned long long" : "number",
-    "float" : "number",
-    "unrestricted float" : "number",
-    "double" : "number",
-    "unrestricted double" : "number",
-    "DOMString" : "string",
-    "ByteString" : "string",
-    "USVString" : "string",
-    "this" : "this"
-    /*    "object" : "*"/
-    /*    "Interface types" : */
-    /*    "Dictionary types" : */
-    /*    "Enumeration types" : */
-    /*    "Callback function types" : */
-    /*    "Nullable types — T?" : */
-    /*    "Sequences — sequence<T>" : */
-    /*    "Promise types — Promise<T>" : */
-    /*    "Union types" : */
-    /*    "Error" : */
-    /*    "DOMException" : */
-}; /* WebIDL_to_Jerryscript_TypeMap */
+/* CONSTRUCTOR */
+/* processes the given AST for errors, and produces an augmented
+   version of the ast with easy access to the defined dictionaries,
+   interfaces, types, and other definitions in the idl */
+function AugmentedAST(ast, fix_type_errors, moduleName)
+{
+    this.ast = ast;
+    this.moduleName = moduleName;
+    this.isAugmented = false;
+    this.fix_type_errors = fix_type_errors;
 
-var WebIDL_to_C_TypeMap = {
-    /*"any" : "any", <-- gets replaced inside of the constructor */
-    "boolean" : "bool",
-    "byte" : "int8_t",
-    "octet" : "uint8_t",
-    "short" : "int16_t",
-    "unsigned short" : "uint16_t",
-    "long" : "int32_t",
-    "unsigned long" : "uint32_t",
-    "long long" : "int64_t",
-    "unsigned long long" : "uint64_t",
-    "float" : "float",
-    "unrestricted float" : "float",
-    "double" : "double",
-    "unrestricted double" : "double",
-    "DOMString" : "string",
-    "ByteString" : "string",
-    "USVString" : "string",
-    "string" : "string",
-    "this" : "jerry_value_t"
-    /*    "object" : "*"/
-    /*    "Interface types" : */
-    /*    "Dictionary types" : */
-    /*    "Enumeration types" : */
-    /*    "Callback function types" : */
-    /*    "Nullable types — T?" : */
-    /*    "Sequences — sequence<T>" : */
-    /*    "Promise types — Promise<T>" : */
-    /*    "Union types" : */
-    /*    "Error" : */
-    /*    "DOMException" : */
-}; /* WebIDL_to_C_TypeMap */
+    this.dictionaries = Object.create(null);
+    this.callbacks = Object.create(null);
+    this.interfaces = Object.create(null);
+    this.typedefs = Object.create(null);
+    this.exceptions = Object.create(null);
+    this.enums = Object.create(null);
+    this.allExternalTypes = Object.create(null);
+    this.array_types = Object.create(null);
+    this.variadic_types = Object.create(null);
 
-/*
- * uses the WebIDL_to_C_TypeMap to map primitive types to their
- * equivalent C types; returns undefined if it's not in the array
- */
-function get_C_type(source) {
-    return WebIDL_to_C_TypeMap[source];
-}; /* get_C_type */
+    /* the "any" type will end up being a union of all of the builtin
+       types and any types defined by the webidl; we'll name the C
+       union with the name of the module */
+    //TODO: currently stubbed out...
+    /*WebIDL_to_C_TypeMap["any"] = this.moduleName+"_types_union";*/
 
+    /* we use this queue to keep track of members, etc. that we need
+       to check after everything is processed */
+    this.typeCheckQueue = [];
 
-/**
- * Processes the given AST for errors, and produces an augmented version of the ast with easy access to the defined
- * dictionaries, interfaces, types, and other definitions in the idl.
- * @param ast
- * @constructor
- */
-function AugmentedAST(ast, fix_type_errors, moduleName) {
-  "use strict";
+    // we use this to squash the array
+    this.removedIndices = [];
 
-  this.ast = ast;
-  this.moduleName = moduleName;
-  this.isAugmented = false;
-  this.fix_type_errors = fix_type_errors;
-
-  this.dictionaries = Object.create(null);
-  this.callbacks = Object.create(null);
-  this.interfaces = Object.create(null);
-  this.typedefs = Object.create(null);
-  this.exceptions = Object.create(null);
-  this.enums = Object.create(null);
-  this.allExternalTypes = Object.create(null);
-  this.array_types = Object.create(null);
-  this.variadic_types = Object.create(null);
-
-  // the "any" type will end up being a union of all of the builtin
-  // types and any types defined by the webidl; we'll name the C union
-  // with the name of the module
-  WebIDL_to_C_TypeMap["any"] = this.moduleName+"_types_union";
-
-  // we use this queue to keep track of members, etc. that we need to check.
-  this.typeCheckQueue = [];
-
-  // we use this to squash the array
-  this.removedIndices = [];
-
-  // passing in an ast to the constructor starts augmenting it
-  if (this.ast) {
-    this.augment();
-  }
-    if (did_I_ever_see_a_string === true || Object.keys(this.enums).length > 0)
-	this.uses_strings = true;
+    if (this.ast)
+	this.augment();
+    else /* this can only happen during development; even a blank .idl
+	    file produces a non-empty tree... */
+	throw "HEY DEVELOPER!!!  FORGET SOMETHING?!?"
 
     if (did_I_ever_see_the_any_type === true)
     {
-	this.uses_strings = true;
+	throw "ERROR: 'any' type is not supported.";
 	this.uses_any_type = true;
-	this.any_type_list = this.generateAnyTypeList();
+	/*this.any_type_list = this.generateAnyTypeList();*/
     }
-
 } /* constructor */
 
 
-/**
- * An array of supported WebIDL primitive types (static)
- * @type {string[]}
- */
-AugmentedAST.prototype.primitiveTypes = ['any', 'boolean', 'byte', 'octet', 'short', 'unsigned short', 'long',
-                                         'unsigned long', 'long long', 'unsigned long long', 'float',
-                                         'unrestricted float', 'double', 'unrestricted double', 'DOMString', 'void', 'string', 'this' ];
+/* an array of supported WebIDL primitive types */
+AugmentedAST.prototype.primitiveTypes = ['any', 'boolean', 'byte', 'octet',
+					 'short', 'unsigned short', 'long',
+                                         'unsigned long', 'long long',
+					 'unsigned long long', 'float',
+                                         'unrestricted float', 'double',
+					 'unrestricted double', 'DOMString',
+					 'void', 'string', 'this' ];
 
-/**
- * Uses the augmented data to produce an array of types, including primitive, dictionary, interface, typedef, exception
- * and enum types that have been defined in the idl.
- * @returns {Array}
- */
-AugmentedAST.prototype.generateAllowedTypesArray = function () {
-  "use strict";
-  return this.primitiveTypes.concat(Object.keys(this.dictionaries),
-                                    Object.keys(this.callbacks),
-                                    Object.keys(this.interfaces),
-                                    Object.keys(this.typedefs),
-                                    Object.keys(this.exceptions),
-                                    Object.keys(this.enums));
-};
-
-/**
- * Uses the augmented data to produce an array of C types from the full
- * set of primitive types and types defined in the idl file -- this is
- * used for the "any" type
- * @returns {Array}
- */
-AugmentedAST.prototype.generateAnyTypeList = function () {
-    "use strict";
-    let return_array = {};
-    let suffix = "_var";
-
-    /* the mustache parser wants an array of objects to iterate through, so
-        we'll split up each of the kinds of things into their own object,
-        each of which will just be a list */
-    return_array["objects"] = [];
-    return_array["callbacks"] = [];
-    return_array["enums"] = [];
-
-    /* dictionaries and interfaces are both objects, but we only
-       add an interface to the list if it has attributes (b/c only
-       then will it have a C struct defined for it) */
-    let object_lists = [this.dictionaries, this.interfaces];
-    let DICTIONARIES = 0;
-    let first_in_list = true;
-    for(let i = 0; i<2; i++)
-    {
-        for(let [key, value] of Object.entries(object_lists[i]))
-        {
-	    if (i == DICTIONARIES || value.hasAttributes)
-            {
-                let entry = {type: value.name, type_name: value.name+suffix};
-                if (first_in_list)
-                {
-                    entry.first_in_list = true;
-                    first_in_list = false;
-                }
-	       return_array["objects"].push(entry);
-            }
-        }
-    }
-
-    for(let [key, value] of Object.entries(this.callbacks))
-    {
-        let entry = {type: value.name+"_calling_context",
-		     type_name: value.name+suffix};
-	return_array["callbacks"].push(entry);
-    }
-    for(let [key, value] of Object.entries(this.enums))
-    {
-        let entry = {type: value.name, type_name: value.name+suffix};
-	return_array["enums"].push(entry);
-    }
-
-    return return_array;
-}; /* generateAnyTypeList */
-
-
-/* we need to walk all of the ast to figure out what kind of array types
-   (remember that variadic parameters are also arrays) we'll need --
-   these will turn into <type>_Array types in the C code */
-/* SIDE EFFECT: sets "variadic" to true on the last arguments'
-   C_and_Jerryscript_Types (if that argument is variadic :-) -- also
-   sets "array" to true on arguments' C_and_Jerryscript_Type */
-AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
+/* uses the augmented data to produce an array of types, including
+   primitive, dictionary, interface, typedef, exception and enum types
+   that have been defined/used in the idl */
+AugmentedAST.prototype.generateAllowedTypesArray = function ()
 {
-    let types = {};
+    return this.primitiveTypes.concat(Object.keys(this.dictionaries),
+                                      Object.keys(this.callbacks),
+                                      Object.keys(this.interfaces),
+                                      Object.keys(this.typedefs),
+                                      Object.keys(this.exceptions),
+                                      Object.keys(this.enums));
+}; /* AugmentedAST.generateAllowedTypesArray */
 
-    let create_array_object =
-	    function(type) {return {"type": "array", "C_and_Jerryscript_Types": type};};
-
-    /* SIDE_EFFECT: sets the ".array" field in the C_and_Jerryscript_Types
-       object */
-    /* the "member" parameter is either a operation argument or the
-       operation return type -- the key is that it will have a
-       C_and_Jerryscript_Type field */
-    let add_type_to_list =
-	    function(member, list)
-            {
-		/* Object.assign copies memory rather than the reference */
-		let type = Object.assign({}, member.C_and_Jerryscript_Types);
-		list[type.C_Type] = create_array_object(type);
-		member.C_and_Jerryscript_Types.is_array = true;
-            }; /* add_type_to_list */
-    /* callbacks and operations have the same data structure, so we've
-       abstracted the shared functionality into this routine */
-    /* SIDE_EFFECT: sets the ".variadic" field in the C_and_Jerryscript_Types
-       object */
-    let add_arguments_that_are_arrays_to_list =
-	    function(arguments_list)
-            {
-		for (let argument of arguments_list)
-		{
-		    if(argument.idlType.array > 0)
-			add_type_to_list(argument, types);
-
-		    /* variadic arguments are just arrays of arguments of
-		       that type -- this is the only place in WebIDL that
-		       you can get an array of arrays -- if that's the case
-		       for an argument, the array type will have been
-		       entered into the list (above), and we just need
-		       to enter the array-of-arrays type here... (and if it's
-		       not the case, then we need to add the array type here) */
-		    if (argument.variadic)
-		    {
-			if (argument.idlType.array > 0)
-			{
-			    /* Object.assign copies memory rather than
-			       the reference */
-			    let type = Object.assign({}, argument.C_and_Jerryscript_Types);
-			    type.C_Type = type.C_Type+"_Array";
-			    type.is_string = false; /* kludge, but we know
-						       it's true */
-			    /* IS IT CORRECT TO SET THE JERRYSCRIPT TYPE?!? */
-			    type.Jerryscript_Type =
-				               type.C_Type;
-
-			    add_type_to_list({"C_and_Jerryscript_Types":type}, types);
-			}
-			add_type_to_list(argument, variadics);
-
-			/*argument.C_and_Jerryscript_Types.is_variadic = true;*/
-		    }
-		}
-	    }; /* add_arguments_that_are_arrays_to_list */
-
-    for(let dictionary in this.dictionaries)
-    {
-	let next = this.dictionaries[dictionary];
-
-	for (let member of next.members)
-	    if (member.idlType.array > 0)
-		add_type_to_list(member, types);
-    }
-
-    for(var interface in this.interfaces)
-    {
-	let operations = this.interfaces[interface].operations;
-
-	for (let operation of operations)
-	{
-	    /* single check of the return type of the operation */
-	    if (operation.idlType.array > 0)
-		add_type_to_list(operation, types);
-
-	    add_arguments_that_are_arrays_to_list(operation.arguments,
-						 this.getConversionTypes);
-	}
-    }
-
-    for(let next in this.callbacks)
-    {
-	let callback = this.callbacks[next];
-
-	/* single check of the return type of the callback */
-	if (callback.idlType.array > 0)
-	    add_type_to_list(operation, types);
-
-	add_arguments_that_are_arrays_to_list(callback.arguments,
-					     this.getConversionTypes);
-    }
-
-    return types;
-}; /* get_the_list_of_array_types */
-
-
-/* dictionaries have the following fields:
-   type: "dictionary"
-   name: <string>
-   partial: <bool>
-   members: [ <objects> ]
-   inheritance: <pointer> ??? -- always seems to be null
-   extAttrs [ ] -- always seems to be empty
-
-   ...but the only fields we use are: name and members
-
-   ...member objects have the following fields:
-   type: <string>
-   name: <string>
-   required: <bool>
-   idlType: <idlType>
-   extAtrs: [ ] -- always seems to be empty
-   schemaType: [ { $ref: <string> } ]
-   C_and_Jerryscript_Types: created by getConversionTypes
-   finalMember: <bool>
-
-   ...and here, only name and C_and_Jerryscript_Types get used
-*/
-AugmentedAST.prototype.convert_list_of_array_types_to_dictionaries = function(array_types)
+/* checks whether the given type is properly defined in the IDL */
+/* (when this is called, we've parsed the AST and written down all of
+   the types we've seen, and this function checks to see if the type
+   passed in is a type we've seen -- it's sort of like a (really)
+   primitive symbol table) */
+AugmentedAST.prototype.isAllowedType = function (t)
 {
-    for (let runner in array_types)
-    {
-	let next = array_types[runner];
-	next.is_string = false; /* kludge; but we know it's true */
-	let name = next.C_and_Jerryscript_Types.C_Type + "_Array";
-	let members = [];
-	let items_type = this.getConversionTypes(runner);
-	items_type.is_array = true;
+    var tname = this.getTypeName(t);
 
-	members.push({"type": "field",
-		      "name": "length",
-		      "required": true,
-		      "idlType" : { "sequence": false,
-				    "generic" : null,
-				    "nullable" : false,
-				    "array" : false,
-				    "union" : false,
-				    "idlType" : "long",
-				  },
-		      "C_and_Jerryscript_Types": { "Jerryscript_Type": "unsigned long", "C_Type": "uint32_t"}
-		    });
-	members.push({"type": "field",
-		      "name": "items",
-		      "idlType" : { "sequence": false,
-				    "generic" : null,
-				    "nullable" : false,
-				    "array" : 1,
-				    "union" : false,
-				    "idlType" : runner,
-				   },
-		      "required": true,
-		      "C_and_Jerryscript_Types": items_type
-		    });
-
-	this.dictionaries[name] = {
-	    "type" : "dictionary",
-	    "name" : name,
-	    "members" : members,
-	    "is_array_object": true,
-	    "C_and_Jerryscript_Types": next.C_and_Jerryscript_Types
-	};
-    }
-} /* convert_list_of_array_types_to_dictionaries */
-
-/**
- * Checks whether the given type is properly defined in the IDL.
- * @param t
- * @returns boolean
- */
-AugmentedAST.prototype.isAllowedType = function (t) {
-  var tname = this.getTypeName(t);
-  return this.isPrimitiveType(tname) ||
-         this.isDictionaryType(tname) ||
-         this.isInterfaceType(tname) ||
-         this.isCallbackType(tname) ||
-         this.isExceptionType(tname) ||
-         this.isEnumType(tname) ||
-         this.isExternalType(tname) ||
-         this.isTypedefType(tname);
+    return this.isPrimitiveType (tname) ||
+           this.isDictionaryType(tname) ||
+           this.isInterfaceType (tname) ||
+           this.isCallbackType  (tname) ||
+           this.isExceptionType (tname) ||
+           this.isEnumType      (tname) ||
+           this.isExternalType  (tname) ||
+           this.isTypedefType   (tname);
 };
 
-/**
- * Returns true if the given type is primitive
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isPrimitiveType = function (t) {
-  return this.primitiveTypes.indexOf(this.getTypeName(t)) > -1;
-};
+/* returns true if the given type is primitive */
+AugmentedAST.prototype.isPrimitiveType = function (t)
+{
+    return this.primitiveTypes.indexOf(this.getTypeName(t)) > -1;
+}; /* AugmentedAST.isPrimitiveType */
 
-/**
- * Returns true if the given type has been defined as a dictionary in the IDL
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isDictionaryType = function (t) {
-  return this.dictionaries[this.getTypeName(t)] != undefined;
-};
+/* returns true if the given type has been defined as a dictionary in the IDL */
+AugmentedAST.prototype.isDictionaryType = function (t)
+{
+    return this.dictionaries[this.getTypeName(t)] != undefined;
+}; /* AugmentedAST.isDictionaryType */
 
-/**
- * Returns true if the given type has been defined as an interface in the IDL
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isInterfaceType = function (t) {
-  return this.interfaces[this.getTypeName(t)] != undefined;
-};
+/* returns true if the given type has been defined as an interface in the IDL */
+AugmentedAST.prototype.isInterfaceType = function (t)
+{
+    return this.interfaces[this.getTypeName(t)] != undefined;
+}; /* AugmentedAST.isInterfaceType */
 
-/**
- * Returns true if the given type has been defined as a callback in the IDL
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isCallbackType = function (t) {
-  return this.callbacks[this.getTypeName(t)] != undefined;
+/* returns true if the given type has been defined as a callback in the IDL */
+AugmentedAST.prototype.isCallbackType = function (t)
+{
+    return this.callbacks[this.getTypeName(t)] != undefined;
 }; /* AugmentedAST.isCallbackType */
 
-/**
- * Returns true if the given type has been defined as a typedef in the IDL
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isTypedefType = function (t) {
-  return this.typedefs[this.getTypeName(t)] != undefined;
-};
+/* returns true if the given type has been defined as a typedef in the IDL */
+AugmentedAST.prototype.isTypedefType = function (t)
+{
+    return this.typedefs[this.getTypeName(t)] != undefined;
+}; /* AugmentedAST.isTypedefType */
 
-/**
- * Returns true if the given type has been defined as an exception in the IDL
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isExceptionType = function (t) {
-  return this.exceptions[this.getTypeName(t)] != undefined;
-};
+/* returns true if the given type has been defined as an exception in the IDL */
+AugmentedAST.prototype.isExceptionType = function (t)
+{
+    return this.exceptions[this.getTypeName(t)] != undefined;
+}; /* AugmentedAST.isExceptionType */
 
-/**
- * Returns true if the given type has been defined as an enum in the IDL
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isEnumType = function (t) {
-  return this.enums[this.getTypeName(t)] != undefined;
-};
+/* returns true if the given type has been defined as an enum in the IDL */
+AugmentedAST.prototype.isEnumType = function (t)
+{
+    return this.enums[this.getTypeName(t)] != undefined;
+}; /* AugmentedAST.isEnumType */
 
-/**
- * Returns true if the given type has been defined as an external type
- * in the IDL
- * @param t
- * @returns {boolean}
- */
-AugmentedAST.prototype.isExternalType = function (t) {
-  return this.allExternalTypes[this.getTypeName(t)] != undefined;
-};
+/* returns true if the given type has been defined as an external type
+   in the IDL */
+AugmentedAST.prototype.isExternalType = function (t)
+{
+    return this.allExternalTypes[this.getTypeName(t)] != undefined;
+}; /* AugmentedAST.isExternalType */
 
-/**
- * Adds the given type to a queue of types that need to be checked.
- * The queue is checked after all definitions have been processed first.
- * @param t
- */
-AugmentedAST.prototype.addToTypeCheckQueue = function (t) {
-  "use strict";
-//  console.log("        addToTypeCheckQueue: t = " + t);
-  if (Array.isArray(t)) {
-    // concat
-    this.typeCheckQueue = this.typeCheckQueue.concat(t);
-  } else {
-    // push
-    this.typeCheckQueue.push(t);
-  }
-}; /* addToTypeCheckQueue */
+/* adds the given type to a queue of types that need to be checked;
+   the queue is checked after all definitions have been processed */
+AugmentedAST.prototype.addToTypeCheckQueue = function (t)
+{
+    if (Array.isArray(t))
+	// concat
+	this.typeCheckQueue = this.typeCheckQueue.concat(t);
+    else
+	// push
+	this.typeCheckQueue.push(t);
+}; /* AugmentedAST.addToTypeCheckQueue */
 
-/**
- * Checks the given type is well defined.
- * In the process, adds more types to check depending on the type.
- * @param t
- * @returns {boolean}
- */
-var counter = 0; /* useful for debugging */
-AugmentedAST.prototype.checkType = function (t) {
-    "use strict";
-    //counter++;
-    //console.log("            inside checkType("+counter+"): t = " + t);
-    //if (counter === 6)
-    //    console.log("counter = 6.");
-    if (t === "string")
-	did_I_ever_see_a_string = true;
-    else if (t === "any")
+/* checks that the given type is well defined; in the process, adds more
+   types to check depending on the type */
+AugmentedAST.prototype.checkType = function (t)
+{
+    if (t === "any")
 	did_I_ever_see_the_any_type = true;
 
-  // t could be an operation, attribute, constant member.
-  if (t.type === 'operation') {
-    // check return type
-//      console.log("            OPERATION idlType");
-    this.addToTypeCheckQueue(t.idlType);
-    // check argument types
-//      console.log("            OPERATION t.arguments");
-    this.addToTypeCheckQueue(t.arguments);
-  } else if (t.type === 'attribute') {
-//      console.log("found an attribute: >" + t + "<");
-    this.addToTypeCheckQueue(t.idlType);
-  } else if (t.type === 'const') {
-    // TODO Support constants
-  } else if (t.type === 'string') {
-      did_I_ever_see_a_string = true;
-  } else if (t.idlType) {
-      this.addToTypeCheckQueue(t.idlType);
-  } else if ((typeof t === 'string' || t instanceof String) && (this.isAllowedType(t))) {
-    // it could also be a string representing a type (base case)
-  } else {
-    throw "Unsupported type: " + t;
-  }
+    // t could be an operation, attribute, constant member.
+    if (t.type === 'operation')
+    {
+	// check return type
+	this.addToTypeCheckQueue(t.idlType);
+	// check argument types
+	this.addToTypeCheckQueue(t.arguments);
+    }
+    else if (t.type === 'attribute')
+    {
+	this.addToTypeCheckQueue(t.idlType);
+    }
+    else if (t.type === 'const')
+    {
+	// TODO Support constants
+    }
+    else if (t.idlType)
+    {
+	this.addToTypeCheckQueue(t.idlType);
+    }
+    /* Javascript supports two "types" of "strings" (literal strings and
+       those created with new (i.e., "var x = new String"), so that's why
+       this check is written this way... */
+    else if ((typeof t === 'string' || t instanceof String) &&
+	     (this.isAllowedType(t)))
+    {
+	// it could also be a string representing a type (base case)
+    }
+    else
+    {
+	throw "Unsupported type: " + t;
+    }
+    
+    /* fall through means this was a legal type */
+    return true;
+}; /* AugmentedAST.checkType */
 
-  return true;
-}; /* checkType */
 
+/* return a struct with the C and Jerryscript types for the WebIDL type
+   passed in */
+AugmentedAST.prototype.getConversionTypes = function(idlType)
+{
+    let WebIDL_to_Jerryscript_TypeMap = {
+	"boolean" : "boolean",
+	"byte" : "number",
+	"octet" : "number",
+	"short" : "number",
+	"unsigned short" : "number",
+	"long" : "number",
+	"unsigned long" : "number",
+	"long long" : "number",
+	"unsigned long long" : "number",
+	"float" : "number",
+	"unrestricted float" : "number",
+	"double" : "number",
+	"unrestricted double" : "number",
+	"DOMString" : "string",
+	"ByteString" : "string",
+	"USVString" : "string",
+	"this" : "this"
+    }; /* WebIDL_to_Jerryscript_TypeMap */
 
-/* return a struct with the C and Jerryscript types for the WebIDL type passed in */
-AugmentedAST.prototype.getConversionTypes = function(idlType) {
-    var return_types = {};
-//    if (this.idlTypeToOtherType(idlType, WebIDL_to_Jerryscript_TypeMap) == "string")
-//	console.log(idlType);
-//    console.log(idlType);
-    return_types.Jerryscript_Type = this.idlTypeToOtherType(idlType, WebIDL_to_Jerryscript_TypeMap);
-    return_types.C_Type = this.idlTypeToOtherType(idlType, WebIDL_to_C_TypeMap);
+    let WebIDL_to_C_TypeMap = {
+	"boolean" : "bool",
+	"byte" : "int8_t",
+	"octet" : "uint8_t",
+	"short" : "int16_t",
+	"unsigned short" : "uint16_t",
+	"long" : "int32_t",
+	"unsigned long" : "uint32_t",
+	"long long" : "int64_t",
+	"unsigned long long" : "uint64_t",
+	"float" : "float",
+	"unrestricted float" : "float",
+	"double" : "double",
+	"unrestricted double" : "double",
+	"DOMString" : "string",
+	"ByteString" : "string",
+	"USVString" : "string",
+	"string" : "string",
+	"this" : "jerry_value_t"
+    }; /* WebIDL_to_C_TypeMap */
 
-    if (return_types.Jerryscript_Type === "string")
-	return_types.is_string = true;
-    else if (return_types.Jerryscript_Type === "this")
+    let return_types = {};
+
+    return_types.Jerryscript_Type =
+	                this.idlTypeToOtherType(idlType,
+						WebIDL_to_Jerryscript_TypeMap);
+    return_types.C_Type = this.idlTypeToOtherType(idlType,
+						  WebIDL_to_C_TypeMap);
+
+    /* the "this" pointer can only occur (in the WebIDL) as the return
+       type of a function; mark it here for easy identification */
+    if (return_types.Jerryscript_Type === "this")
 	return_types.return_is_this = true;
 
-    /* (both the C and Jerryscript types will equal the Jerryscript type,
-       so it doesn't matter which one we check for) */
-//    console.log("LOOKING FOR " + return_types.C_Type + " === callback?");
+    /* strings are messy in C, so mark them for special handling later */
+    if (return_types.Jerryscript_Type === "string")
+	return_types.is_string = true;
+
+    /* (for callbacks, both the C and Jerryscript types will be the same,
+       so it doesn't matter which one we look at) */
     if (this.isCallbackType(return_types.C_Type))
     {
 	return_types.callback = true;
 	return_types.callback_return_type = this.callbacks[this.getTypeName(return_types.C_Type)].return_type;
     }
 
-    if (idlType.array > 0)
-	return_types.is_array = true;
-//    if (return_types.C_Type === "PrintCallback1")
-//    console.log("************************************************  CHECK = " + return_types.callback);
+    /* TODO: handle arrays */
+    // if (idlType.array > 0)
+    //	   return_types.is_array = true;
+
     return return_types;
 }; /* AugmentedAST.getConversionTypes */
 
 
 /* look through "thing"'s external attributes and see if any are specifying
    references to types defined in other places */
+/* SIDE EFFECT: adds the externalTypes array to "thing" */
 AugmentedAST.prototype.set_external_types = function(thing)
 {
-  thing.externalTypes = new Array();
+    thing.externalTypes = new Array();
 
-  for (let extAttr of thing.extAttrs)
-  {
-      if (extAttr.name != undefined &&
-	  extAttr.name == "ExternalType")
-      {
-          if (extAttr.rhs == undefined ||
-              extAttr.rhs.value == undefined ||
-              extAttr.rhs.value.length != 2)
-          {
-              throw new Error("External type declarations take two comma-separated, parentheses-delimited parameters representing: 1) the package name and 2) the interface name.");
-          }
-          else
-          {
-	      /* for the local list attached to the "thing" object and
-	       * the global list attached to the "this" object, if
-	       * it's not a duplicate, add it */
-	      var type_name = extAttr.rhs.value[1];
-	      var type_struct = { package: extAttr.rhs.value[0],
-				  type:    type_name };
-
-	      thing.externalTypes.push(type_struct);
-
-	      if (this.allExternalTypes[type_name] == undefined)
-		  this.allExternalTypes[type_name] = type_struct;
-	      else if (this.allExternalTypes[type_name].package !=
-		       type_struct.package)
-              {
-		  /* TODO: tell the user what we saw! */
-		  throw new Error("External type declarations must agree in package/type name.");
-              }
-          }
-      }
-  }
+    for (let extAttr of thing.extAttrs)
+    {
+	if (extAttr.name != undefined &&
+	    extAttr.name == "ExternalType")
+	{
+            if (extAttr.rhs == undefined ||
+		extAttr.rhs.value == undefined ||
+		extAttr.rhs.value.length != 2)
+            {
+		throw new Error("External type declarations take two comma-separated, parentheses-delimited parameters representing: 1) the package name and 2) the interface name.");
+            }
+            else
+            {
+		/* for the local list attached to the "thing" object and
+		 * the global list attached to the "this" object, if
+		 * it's not a duplicate, add it */
+		var type_name = extAttr.rhs.value[1];
+		var type_struct = { package: extAttr.rhs.value[0],
+				    type:    type_name };
+		
+		thing.externalTypes.push(type_struct);
+		
+		/* either we haven't seen this attribute before, or we need
+		   to check that it is the same package/type combination
+		   as previously seen... */
+		if (this.allExternalTypes[type_name] == undefined)
+		    this.allExternalTypes[type_name] = type_struct;
+		else if (this.allExternalTypes[type_name].package !=
+			 type_struct.package)
+		{
+		    /* TODO: tell the user what we saw for each! */
+		    throw new Error("External type declarations must agree in package/type name.");
+		}
+            }
+	}
+    }
 } /* AugmentedAST.set_external_types */
+
+
+/* look through "thing"'s external attributes and see if the user has
+   specified that this thing is to be created by "require" rather than "new" */
+/* SIDE EFFECT: sets "is_module" flag for "thing" */
+AugmentedAST.prototype.set_is_module = function(thing)
+{
+    thing.is_module = false;
+
+    for (let extAttr of thing.extAttrs)
+    {
+	if (extAttr.name != undefined &&
+	    extAttr.name == "Return_from_require")
+	    thing.is_module = true;
+    }
+} /* AugmentedAST.set_is_module */
 
 
 
 /* for the C file for each dictionary, callback, and interface, we'll
    need to include all of the other types' .h files, so build a list
-   of the includes that this thing's .c file will need to include */
-/* we assume that anything not in the intrinsics list is a
-   non-intrinsic, but then we'll divide the list between
-   non-intrinsics that are defined in this .idl file vs. those that
-   have an explicit ExternalType attribute; we assume that the
-   ExternalTypes has already been built for this thing, so as a final
-   step of this routine, we'll remove everything in the ExternalTypes
-   list from the intrinsics type list */
-/* WHAT ABOUT THE "ANY" TYPE?!? */ /* probably have to gather all
-                                      types at the end? */
-AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
+   of the includes that this thing's .c/.h files will need to include */
+/* we assume that any Primitive type is a non-intrinsic, but then
+   we'll divide the list between non-intrinsics that are defined in
+   this .idl file and those that have an explicit ExternalType
+   attribute; we assume that the ExternalTypes has already been built
+   for this thing, so as a final step of this function, we'll remove
+   everything in the ExternalTypes list from the intrinsics type
+   list */
+/* SIDE EFFECT: sets the non_intrinsics_types list on "thing" */
+/* TODO: WHAT ABOUT THE "ANY" TYPE?!? */ /* probably have to gather all
+                                            types at the end? */
+AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 {
+    /* look at the return type and the arguments to the call */
     let process_call = function(this_ptr, list, call)
     {
 	// examine the return type
@@ -645,9 +376,10 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
 
     let list = [];
 
-    /* for interfaces, we have to look at each operation's return type
-       and parameter types, and at attributes; then, we have to remove
-       any names defined use the external attribute "ExternalType" */
+    /* for interfaces, we have to look at each attribute's type and at
+       each operation's return type and parameter types; then, we have
+       to remove any names defined using the external attribute
+       "ExternalType" */
     if (thing.type == "interface")
     {
 	for (let i = 0; i < thing.operations.length; i++)
@@ -655,7 +387,7 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
 	    let operation = thing.operations[i];
 	    process_call(this, list, operation);
 	}
-	// examine the attributes (just struct fields, so they're easy)
+	/* examine the attributes (just struct fields, so they're easy) */
 	for (let i = 0; i < thing.attributes.length; i++)
 	{
 	    let attribute = thing.attributes[i];
@@ -666,6 +398,7 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
     }
     else if (thing.type == "callback")
 	process_call(this, list, thing);
+
     /* dictionaries are easy: look at each field's type */
     else if (thing.type == "dictionary")
     {
@@ -678,6 +411,9 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
 	}
     }
     else
+	/* TODO: throw an actual exception; not really all that important
+	   right now, as this can only happen (?) during development; once
+	   we're parsing WebIDL files, this clause won't ever get hit */
 	console.log("ERROR!!!");
 
     /* unique-ify the list of types */
@@ -705,10 +441,7 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
 	            function(item){return this.indexOf(item.type_name)<0;},
                     thing.externalTypes.map(function(x) {return x.type;} ));
 
-    /* the following lines are just placeholders for debugging: */
-    let j = 0;
-    j += 7;
-} /* AugmentedAST.prototype.get_non_intrinsic_type_list */
+} /* AugmentedAST.prototype.get_non_intrinsic_types_list */
 
 
 /**
@@ -717,54 +450,65 @@ AugmentedAST.prototype.get_non_intrinsic_type_list = function(thing)
  * @param index The index this dictionary is in the original ast
  * @returns {boolean} True if added successfully, false otherwise.
  */
-AugmentedAST.prototype.addDictionary = function (d, index) {
-  "use strict";
-  //A dictionary looks like this:
-  //{ type: 'dictionary', name: 'Di', partial: false, members: [ [Object],[Object] ], inheritance: null, extAttrs: [] }
+AugmentedAST.prototype.addDictionary = function (d, index)
+{
 
-  this.set_external_types(d);
+/*
+  In the AST, a dictionary looks like this:
+    { type: 'dictionary', 
+      name: 'Di', 
+      partial: false, 
+      members: [ [Object],[Object] ], 
+      inheritance: null, 
+      extAttrs: [] }
+ */
 
-  // does the dictionary already exist?
-  var existingDict = this.dictionaries[d.name];
-  if (existingDict) {
-    // exists. Augment if partial, otherwise throw
-    if (d.partial) {
-      existingDict.members = existingDict.members.concat(d.members);
-      // add the new members to the check queue
-//      console.log("addDictionary:");
-//      console.log("    existingDict, d.members");
-      this.addToTypeCheckQueue(d.members);
-      // get rid of duplicate
-      this.ast[index] = null;
-      this.removedIndices.push(index);
-    } else {
-      throw "The dictionary already exists: " + d.name;
+    this.set_external_types(d);
+    this.set_is_module(d);
+
+    // does the dictionary already exist?
+    var existingDict = this.dictionaries[d.name];
+    if (existingDict)
+    {
+	// exists. Augment if partial, otherwise throw
+	if (d.partial)
+	{
+	    existingDict.members = existingDict.members.concat(d.members);
+	    // add the new members to the check queue
+	    //      console.log("addDictionary:");
+	    //      console.log("    existingDict, d.members");
+	    this.addToTypeCheckQueue(d.members);
+	    // get rid of duplicate
+	    this.ast[index] = null;
+	    this.removedIndices.push(index);
+	}
+	else 
+	    throw "The dictionary already exists: " + d.name;
     }
-  } else {
-    // doesn't exist. Add it as a new key.
-    this.dictionaries[d.name] = d;
-      d.dictionaryName = d.name;
-    // augment and add members
-    for(var i = 0 ; i < d.members.length; i++){
-      d.members[i].schemaType = this.idlTypeToSchema(d.members[i].idlType);
-      d.members[i].C_and_Jerryscript_Types = this.getConversionTypes(d.members[i].idlType);
-      if (i+1 == d.members.length)
-	  d.members[i].finalMember = true;
+    else // doesn't exist. Add it as a new key. 
+    {
+	this.dictionaries[d.name] = d;
+	d.dictionaryName = d.name;
+	// augment and add members
+	for(var i = 0 ; i < d.members.length; i++){
+	    d.members[i].C_and_Jerryscript_Types = this.getConversionTypes(d.members[i].idlType);
+	    if (i+1 == d.members.length)
+		d.members[i].finalMember = true;
+	}
+	//    console.log("    NOT existingDict, d.members");
+	this.addToTypeCheckQueue(d.members);
     }
-//    console.log("    NOT existingDict, d.members");
-    this.addToTypeCheckQueue(d.members);
-  }
-
-  // add an index to the dictionary members so it's easy to assign
-  // to them when the user does a new
-  for(var i = 0 ; i < d.members.length; i++)
-      d.members[i].member_index = i;
-
- // get a list of types that will need to be included in the .c file for this
- // dictionary
- this.get_non_intrinsic_type_list(d);
-
-  return true;
+    
+    // add an index to the dictionary members so it's easy to assign
+    // to them when the user does a new
+    for(var i = 0 ; i < d.members.length; i++)
+	d.members[i].member_index = i;
+    
+    // get a list of types that will need to be included in the .c file for this
+    // dictionary
+    this.get_non_intrinsic_types_list(d);
+    
+    return true;
 }; /* addDictionary */
 
 
@@ -775,7 +519,6 @@ AugmentedAST.prototype.addDictionary = function (d, index) {
  * @returns {boolean} True if added successfully, false otherwise.
  */
 AugmentedAST.prototype.addEnum = function (d, index) {
-  "use strict";
   //A enumeration declaration looks like this:
   //{ type: 'enum', name: 'name', values: [ [string], [string], ... ], extAttrs: [] }
 
@@ -819,7 +562,6 @@ AugmentedAST.prototype.addEnum = function (d, index) {
  * @returns {boolean} True if added successfully, false otherwise.
  */
 AugmentedAST.prototype.addCallback = function (d, index) {
-  "use strict";
   //A callback looks like this:
   //{ type: 'callback', name: '<name>', idlType,
   //  arguments: [ { optional: bool, variadic: bool,
@@ -857,7 +599,6 @@ AugmentedAST.prototype.addCallback = function (d, index) {
     // arguments with type info
     for(var i = 0 ; i < d.arguments.length; i++)
     {
-      d.arguments[i].schemaType = this.idlTypeToSchema(d.arguments[i].idlType);
       d.arguments[i].C_and_Jerryscript_Types = this.getConversionTypes(d.arguments[i].idlType);
 /*      d.arguments[i].C_and_Jerryscript_Types.is_variadic = d.arguments[i].variadic;*/
 
@@ -878,8 +619,9 @@ AugmentedAST.prototype.addCallback = function (d, index) {
     this.addToTypeCheckQueue(d.arguments);
 
     this.set_external_types(d);
+    this.set_is_module(d);
 
-    this.get_non_intrinsic_type_list(d);
+    this.get_non_intrinsic_types_list(d);
   }
 
   return true;
@@ -913,8 +655,6 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
     if (interfaceMember.type === 'operation')
     {
 	// we add schema type info to the operation first
-	interfaceMember.schemaType =
-	                        this.idlTypeToSchema(interfaceMember.idlType);
 	interfaceMember.C_and_Jerryscript_Types =
 	                     this.getConversionTypes(interfaceMember.idlType);
 
@@ -931,8 +671,6 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
 
 	for(i = 0; i < interfaceMember.arguments.length; i++)
 	{
-	    interfaceMember.arguments[i].schemaType =
-		   this.idlTypeToSchema(interfaceMember.arguments[i].idlType);
 	    interfaceMember.arguments[i].C_and_Jerryscript_Types =
 		 this.getConversionTypes(interfaceMember.arguments[i].idlType);
 	    interfaceMember.arguments[i].paramIndex = i;
@@ -1039,7 +777,6 @@ AugmentedAST.prototype.addToExistingInterface = function (partialInterface, inde
  * @returns {boolean} Returns true if added successfully, false otherwise.
  */
 AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_errors) {
-  "use strict";
   //An interface looks like this:
   //{type:'interface', name:'In', partial:false, members:[ [Object],[Object] ], inheritance:null, extAttrs:[] }
 
@@ -1071,6 +808,7 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
   /* look through the external attributes and see if any are specifying
      references to types defined in other places */
   this.set_external_types(theInterface);
+  this.set_is_module(theInterface);
 
   // does the interface already exist?
   var existingI = this.interfaces[theInterface.name];
@@ -1087,7 +825,7 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
 
   // get a list of types that will need to be included in the .c file for this
   // interface
-  this.get_non_intrinsic_type_list(theInterface);
+  this.get_non_intrinsic_types_list(theInterface);
 
   return true;
 }; /* addInterface */
@@ -1098,7 +836,6 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
  */
 AugmentedAST.prototype.processTypeCheckQueue = function ()
 {
-    "use strict";
     while (this.typeCheckQueue.length !== 0)
     {
 	if (!this.checkType(this.typeCheckQueue.pop()))
@@ -1107,15 +844,6 @@ AugmentedAST.prototype.processTypeCheckQueue = function ()
 
     return true;
 }; /* processTypeCheckQueue */
-
-
-/**
- * marks the ast as having any callback types
- */
-AugmentedAST.prototype.check_for_callback_types = function()
-{
-    this.has_callbacks = (Object.keys(this.callbacks).length > 0);
-}; /* check_for_callback_types */
 
 
 /**
@@ -1198,14 +926,14 @@ AugmentedAST.prototype.sort_types = function()
     }
     for (let next in this.interfaces)
     {
-	var interface = this.interfaces[next];
-	let this_index = names.indexOf(interface.name);
+	var next_interface = this.interfaces[next];
+	let this_index = names.indexOf(next_interface.name);
 
 	/* operations' arguments list */
-	for (let operation of interface.operations)
+	for (let operation of next_interface.operations)
 	    edges = edges.concat(operation.arguments.map(add_edge(this_index)).filter(remove_undefines));
 	/* attributes */
-	edges = edges.concat(interface.attributes.map(add_edge(this_index)).filter(remove_undefines));	    
+	edges = edges.concat(next_interface.attributes.map(add_edge(this_index)).filter(remove_undefines));	    
     }
 
     /* sort the edges */
@@ -1237,9 +965,9 @@ AugmentedAST.prototype.sort_types = function()
  */
 AugmentedAST.prototype.mark_operations_with_callback_parameters = function()
 {
-    for (var interface in this.interfaces)
+    for (var next_interface in this.interfaces)
     {
-	let operations_array = this.interfaces[interface].operations;
+	let operations_array = this.interfaces[next_interface].operations;
 	let operations_length = operations_array.length;
 	for (let i = 0; i<operations_length; i++)
 	{
@@ -1280,7 +1008,6 @@ AugmentedAST.prototype.mark_operations_with_callback_parameters = function()
  * @returns {AugmentedAST}
  */
 AugmentedAST.prototype.augment = function (ast) {
-  "use strict";
   // passing in an ast sets this.ast and starts augmenting
   if (ast) {
     this.ast = ast;
@@ -1330,19 +1057,18 @@ AugmentedAST.prototype.augment = function (ast) {
     this.processTypeCheckQueue();
     this.mark_operations_with_callback_parameters();
 
-    // callbacks require a special data structure, which we only need to
-    // put out if there are any callbacks in the ast
-    this.check_for_callback_types();
-
-    /* everytime we put out a type into the .h file, we need to also put
+    /* every time we put out a type into the .h file, we need to also put
        out the "<type>_Array" type if anything in the file needs an array
        of those things; so this list holds the list of types that will
        require an associated "_Array" type and associated extractor/creator
        functions */
+
+    /* TODO: variadic types*/
     /* variadic types are themselves arrays, although they require slightly
        different extractor functions -- we'll build up the list of variadic
        types, during execution of this function... */
-    this.array_types = this.get_the_list_of_array_types(this.variadic_types);
+  /*this.array_types = this.get_the_list_of_array_types(this.variadic_types); */
+
     /* ...we'll take the arrays list and create dictionary entries for
        them -- this will put them into the sorting algorithm so we get
        them all put out in the correct order */
@@ -1391,75 +1117,58 @@ AugmentedAST.prototype.getCTypeName = function (obj)
     return this.getConversionTypes(obj).C_Type;
 } /* getCTypeName */
 
-AugmentedAST.prototype.idlTypeToSchema = function(idlType){
-  if(typeof idlType == 'string'){
-    return {"$ref": idlType};
-  }
-
-  if(typeof idlType == 'object'){
-    if(idlType.sequence && idlType.idlType){
-      // todo union types, etc.
-      var sequenceDepth = idlType.sequence;
-      var sequenceItemType = this.idlTypeToSchema(idlType.idlType);
-      return this.idlSequenceToSchema(sequenceDepth, sequenceItemType);
-    } else if(idlType.array > 0){
-      return {"binary": true};
-    } else if(idlType.idlType){
-      return this.idlTypeToSchema(idlType.idlType);
-    }
-  }
-
-  // if we haven't returned yet, there's a case we haven't handled...
-  throw new Error("Couldn't handle idl type :" + JSON.stringify(idlType) );
-
-}; /* AugmentedAST.idlTypeToSchema */
-
-
 
 /* this maps the idlType through the type_mapper and returns a string of
    the mapped type -- the type_mapper's "didn't find it" return value should
    be "undefined" */
 AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper){
-  if(typeof idlType == 'string'){
-      var this_type = type_mapper[idlType];
+    if(typeof idlType == 'string')
+    {
+	var this_type = type_mapper[idlType];
 
-      if (this_type === undefined)
-	  this_type = idlType;
+	if (this_type === undefined)
+	    this_type = idlType;
 
-      return this_type;
-  }
-
-  if(typeof idlType == 'object'){
-    if(idlType.sequence && idlType.idlType){
-	throw new Error("CAN'T HANDLE SEQUENCES OF TYPES");
-      // todo union types, etc.
-      var sequenceDepth = idlType.sequence;
-      var sequenceItemType = this.idlTypeToOtherType(idlType.idlType, type_mapper);
-      return this.idlSequenceToSchema(sequenceDepth, sequenceItemType);
-    } else if(idlType.idlType){
-	/* recur */
-	return this.idlTypeToOtherType(idlType.idlType, type_mapper);
+	return this_type;
     }
-  }
 
-  // if we haven't returned yet, there's a case we haven't handled...
-  throw new Error("Couldn't handle idl type...");
+    if(typeof idlType == 'object')
+    {
+	if(idlType.sequence && idlType.idlType){
+	    throw new Error("CAN'T HANDLE SEQUENCES OF TYPES");
+	    // TODO: union types, etc.
+	    var sequenceDepth = idlType.sequence;
+	    var sequenceItemType = this.idlTypeToOtherType(idlType.idlType, type_mapper);
+	    return this.idlSequenceToSchema(sequenceDepth, sequenceItemType);
+	}
+	else if(idlType.idlType)
+	{
+	    /* recur */
+	    return this.idlTypeToOtherType(idlType.idlType, type_mapper);
+	}
+    }
+
+    // if we haven't returned yet, there's a case we haven't handled...
+    throw new Error("Couldn't handle idl type...");
 
 }; /* AugmentedAST.idlTypeToOtherType */
 
 
-AugmentedAST.prototype.idlSequenceToSchema = function(depth, itemType){
-  //pre: itemType needs to be a schema...
-  if(depth > 0){
-    return {
-      "type": "array",
-      "items": this.idlSequenceToSchema(depth-1, itemType)
-    };
-  } else {
-    return itemType;
-  }
-};
-
+AugmentedAST.prototype.idlSequenceToSchema = function(depth, itemType)
+{
+    //pre: itemType needs to be a schema...
+    if(depth > 0)
+    {
+	return {
+	    "type": "array",
+	    "items": this.idlSequenceToSchema(depth-1, itemType)
+	};
+    }
+    else
+    {
+	return itemType;
+    }
+}; /* AugmentedAST.idlSequenceToSchema */
 
 
 AugmentedAST.prototype.getInterfaceArray = function(){
@@ -1469,12 +1178,14 @@ AugmentedAST.prototype.getInterfaceArray = function(){
   }
 
   return out;
-};
+}; /* AugmentedAST.getInterfaceArray */
+
 
 /* change the type of the externalTypes so that the Hogan compiler
    can iterate through it */
 /* also, it's not an error to declare an ExternalType in the .idl file
-   and then call the generator with both .idl files -- in this case, we
+   and then call the generator with both .idl files (i.e., the type is not
+   really "external", b/c it is included at compile time -- in this case, we
    shouldn't put out include directives, b/c all of those types will be
    included */
 AugmentedAST.prototype.getExternalTypesArray = function()
@@ -1489,7 +1200,6 @@ AugmentedAST.prototype.getExternalTypesArray = function()
 	    out.push(this.allExternalTypes[key]);
     return out;
 } /* getExternalTypesArray */
-
 
 
 AugmentedAST.prototype.turn_object_into_array = function(x)
@@ -1541,25 +1251,258 @@ AugmentedAST.prototype.get_C_type_list = function(){
       return undefined;
 }; /* get_C_type_list */
 
-AugmentedAST.prototype.getTestCodeArray = function(){
-    var out = [];
-    if ("test_code" in this)
-	out.push(this.test_code);
-    return out;
-}; /* getTestCodeArray */
+module.exports = AugmentedAST;
 
 
-// we need to know if the ast has any interfaces so we can tell Hogan to put
-// out the "register_function" function
-AugmentedAST.prototype.get_hasOperations = function () {
-    var out = [];
-    for (var interface_runner in this.interfaces) {
-	if (this.interfaces[interface_runner].operations.length > 0) {
-	    out.push(true);
-	    break;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*********************************************************************/
+/* IGNORE FUNCTIONS BELOW THIS LINE!
+/*********************************************************************/
+
+/* dictionaries have the following fields:
+   type: "dictionary"
+   name: <string>
+   partial: <bool>
+   members: [ <objects> ]
+   inheritance: <pointer> ??? -- always seems to be null
+   extAttrs [ ] -- always seems to be empty
+
+   ...but the only fields we use are: name and members
+
+   ...from the "members" array: member objects have the following fields:
+   type: <string>
+   name: <string>
+   required: <bool>
+   idlType: <idlType>
+   extAtrs: [ ] -- always seems to be empty
+   C_and_Jerryscript_Types: created by getConversionTypes
+   finalMember: <bool>
+
+   ...and here, only name and C_and_Jerryscript_Types get used
+*/
+AugmentedAST.prototype.convert_list_of_array_types_to_dictionaries = function(array_types)
+{
+    for (let runner in array_types)
+    {
+	let next = array_types[runner];
+	next.is_string = false; /* kludge; but we know it's true */
+	let name = next.C_and_Jerryscript_Types.C_Type + "_Array";
+	let members = [];
+	let items_type = this.getConversionTypes(runner);
+	items_type.is_array = true;
+
+	members.push({"type": "field",
+		      "name": "length",
+		      "required": true,
+		      "idlType" : { "sequence": false,
+				    "generic" : null,
+				    "nullable" : false,
+				    "array" : false,
+				    "union" : false,
+				    "idlType" : "long",
+				  },
+		      "C_and_Jerryscript_Types": { "Jerryscript_Type": "unsigned long", "C_Type": "uint32_t"}
+		    });
+	members.push({"type": "field",
+		      "name": "items",
+		      "idlType" : { "sequence": false,
+				    "generic" : null,
+				    "nullable" : false,
+				    "array" : 1,
+				    "union" : false,
+				    "idlType" : runner,
+				   },
+		      "required": true,
+		      "C_and_Jerryscript_Types": items_type
+		    });
+
+	this.dictionaries[name] = {
+	    "type" : "dictionary",
+	    "name" : name,
+	    "members" : members,
+	    "is_array_object": true,
+	    "C_and_Jerryscript_Types": next.C_and_Jerryscript_Types
+	};
+    }
+} /* convert_list_of_array_types_to_dictionaries */
+
+
+/* TODO: useful only when we support the any type */
+/* uses the augmented data to produce an array of C types from the
+   full set of primitive types and types defined in the idl file --
+   this is used for the "any" type */
+AugmentedAST.prototype.generateAnyTypeList = function ()
+{
+    let return_array = {};
+    let suffix = "_var";
+
+    /* the mustache parser wants an array of objects to iterate through, so
+       we'll split up each of the kinds of things into their own object,
+       each of which will just be a list */
+    return_array["objects"] = [];
+    return_array["callbacks"] = [];
+    return_array["enums"] = [];
+
+    /* dictionaries and interfaces are both objects, but we only
+       add an interface to the list if it has attributes (b/c only
+       then will it have a C struct defined for it) */
+    let object_lists = [this.dictionaries, this.interfaces];
+    let DICTIONARIES = 0;
+    let first_in_list = true;
+    for(let i = 0; i<2; i++)
+    {
+        for(let [key, value] of Object.entries(object_lists[i]))
+        {
+	    if (i == DICTIONARIES || value.hasAttributes)
+            {
+                let entry = {type: value.name, type_name: value.name+suffix};
+                if (first_in_list)
+                {
+                    entry.first_in_list = true;
+                    first_in_list = false;
+                }
+		return_array["objects"].push(entry);
+            }
+        }
+    }
+
+    for(let [key, value] of Object.entries(this.callbacks))
+    {
+        let entry = {type: value.name+"_calling_context",
+		     type_name: value.name+suffix};
+	return_array["callbacks"].push(entry);
+    }
+    for(let [key, value] of Object.entries(this.enums))
+    {
+        let entry = {type: value.name, type_name: value.name+suffix};
+	return_array["enums"].push(entry);
+    }
+
+    return return_array;
+}; /* generateAnyTypeList */
+
+/* TODO: we really don't handle variadic types correctly yet, so this
+   function is probably useless */
+/* we need to walk all of the ast to figure out what kind of array types
+   (remember that variadic parameters are also arrays) we'll need --
+   these will turn into <type>_Array types in the C code */
+/* SIDE EFFECT: sets "variadic" to true on the last arguments'
+   C_and_Jerryscript_Types (if that argument is variadic :-) -- also
+   sets "array" to true on arguments' C_and_Jerryscript_Type */
+AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
+{
+    let types = {};
+
+    let create_array_object =
+	    function(type) {return {"type": "array", "C_and_Jerryscript_Types": type};};
+
+    /* SIDE_EFFECT: sets the ".array" field in the C_and_Jerryscript_Types
+       object */
+    /* the "member" parameter is either a operation argument or the
+       operation return type -- the key is that it will have a
+       C_and_Jerryscript_Type field */
+    let add_type_to_list =
+	    function(member, list)
+            {
+		/* Object.assign copies memory rather than the reference */
+		let type = Object.assign({}, member.C_and_Jerryscript_Types);
+		list[type.C_Type] = create_array_object(type);
+		member.C_and_Jerryscript_Types.is_array = true;
+            }; /* add_type_to_list */
+    /* callbacks and operations have the same data structure, so we've
+       abstracted the shared functionality into this routine */
+    /* SIDE_EFFECT: sets the ".variadic" field in the C_and_Jerryscript_Types
+       object */
+    let add_arguments_that_are_arrays_to_list =
+	    function(arguments_list)
+            {
+		for (let argument of arguments_list)
+		{
+		    if(argument.idlType.array > 0)
+			add_type_to_list(argument, types);
+
+		    /* variadic arguments are just arrays of arguments of
+		       that type -- this is the only place in WebIDL that
+		       you can get an array of arrays -- if that's the case
+		       for an argument, the array type will have been
+		       entered into the list (above), and we just need
+		       to enter the array-of-arrays type here... (and if it's
+		       not the case, then we need to add the array type here) */
+		    if (argument.variadic)
+		    {
+			if (argument.idlType.array > 0)
+			{
+			    /* Object.assign copies memory rather than
+			       the reference */
+			    let type = Object.assign({}, argument.C_and_Jerryscript_Types);
+			    type.C_Type = type.C_Type+"_Array";
+			    type.is_string = false; /* kludge, but we know
+						       it's true */
+			    /* IS IT CORRECT TO SET THE JERRYSCRIPT TYPE?!? */
+			    type.Jerryscript_Type =
+				               type.C_Type;
+
+			    add_type_to_list({"C_and_Jerryscript_Types":type}, types);
+			}
+			add_type_to_list(argument, variadics);
+
+			/*argument.C_and_Jerryscript_Types.is_variadic = true;*/
+		    }
+		}
+	    }; /* add_arguments_that_are_arrays_to_list */
+
+    for(let dictionary in this.dictionaries)
+    {
+	let next = this.dictionaries[dictionary];
+
+	for (let member of next.members)
+	    if (member.idlType.array > 0)
+		add_type_to_list(member, types);
+    }
+
+    for(var next_interface in this.interfaces)
+    {
+	let operations = this.interfaces[next_interface].operations;
+
+	for (let operation of operations)
+	{
+	    /* single check of the return type of the operation */
+	    if (operation.idlType.array > 0)
+		add_type_to_list(operation, types);
+
+	    add_arguments_that_are_arrays_to_list(operation.arguments,
+						 this.getConversionTypes);
 	}
     }
-    return out;
-}; /* AugmentedAST.get_hasOperations */
 
-module.exports = AugmentedAST;
+    for(let next in this.callbacks)
+    {
+	let callback = this.callbacks[next];
+
+	/* single check of the return type of the callback */
+	if (callback.idlType.array > 0)
+	    add_type_to_list(operation, types);
+
+	add_arguments_that_are_arrays_to_list(callback.arguments,
+					     this.getConversionTypes);
+    }
+
+    return types;
+}; /* get_the_list_of_array_types */
+
+/*********************************************************************/
+/* End of -- IGNORE FUNCTIONS BELOW THIS LINE! -- section
+/*********************************************************************/
