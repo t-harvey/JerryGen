@@ -36,7 +36,7 @@
 typedef struct {
 	{{#members}}
     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array_object}}{{#is_array}}*{{/is_array}}{{/is_array_object}}{{^is_array_object}}{{#is_array}}_Array{{/is_array}}{{/is_array_object}} {{{name}}};
+    {{{C_Type}}}{{#is_array_object}}{{#is_array}} *{{/is_array}}{{/is_array_object}}{{^is_array_object}}{{#is_array}}_Array{{/is_array}}{{/is_array_object}} {{{name}}};
     {{/C_and_Jerryscript_Types}}
 	{{/members}}
 } {{name}};
@@ -67,7 +67,7 @@ typedef struct {
     Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
     Interpreter_Type {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
     {{#C_and_Jerryscript_Types}}
-    return_struct.{{{name}}} = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{#is_string}} *{{/is_string}})interpreter_get_{{#is_array}}{{{C_Type}}}{{/is_array}}{{^is_array}}{{{C_Type}}}{{/is_array}}{{#is_array}}_Array{{/is_array}}_value({{{name}}}_value);
+    return_struct.{{{name}}} = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}})interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value({{{name}}}_value);
     {{/C_and_Jerryscript_Types}}
     jerry_release_value({{{name}}}_prop_name);
     jerry_release_value({{{name}}}_value);
@@ -103,7 +103,7 @@ Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/heade
     {{#members}}
     Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
     {{#C_and_Jerryscript_Types}}
-    Interpreter_Type {{{name}}}_value = interpreter_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(x.{{{name}}});
+    Interpreter_Type {{{name}}}_value = interpreter_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
     {{/C_and_Jerryscript_Types}}
     jerry_release_value(jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value));
     jerry_release_value({{{name}}}_value);

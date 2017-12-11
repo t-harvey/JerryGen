@@ -57,7 +57,7 @@ void register_initialization_function(webidl_construct_initializer initializer){
 {
     static int list_size = 8;
 
-    /* this conditional just memory management for the table that
+    /* this conditional is just memory management for the table that
        holds all these values -- only the last line of this routine is
        important */
     if (initializer_list == NULL) /* first call; get some memory */
@@ -102,7 +102,7 @@ void register_require_function(string module_name,
 {
     static int table_capacity = 8;
 
-    /* this conditional just memory management for the table that
+    /* this conditional is just memory management for the table that
        holds all these values -- only the last line of this routine is
        important */
     if (mapping_for_require == NULL) /* first call; get some memory */
@@ -129,6 +129,7 @@ static Interpreter_Type my_require(const Interpreter_Type func_value,
              			   const Interpreter_Type *args_p,
 				   const jerry_length_t args_cnt)
 {
+{{! TODO: error-check parameter! }}
     /* get the argument passed in */
     string module_name = interpreter_get_string_value(args_p[0]);
 
@@ -142,6 +143,7 @@ static Interpreter_Type my_require(const Interpreter_Type func_value,
     /* can't find the module? exit gracefully */
     if (target_index == require_table_entry_count)
     {
+{{! TODO: add the name of the module to the error message }}
         return jerry_create_error (JERRY_ERROR_TYPE,
                              	(const jerry_char_t *) "Can't find the module");
     }

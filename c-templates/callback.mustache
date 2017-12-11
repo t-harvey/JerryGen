@@ -11,7 +11,9 @@
     for the types used by this callback
 
     2) interpreter_get_<callback>_value -- this works just like any other
-    interpreter_get_*_value and returns a calling_context
+    interpreter_get_*_value and returns a function-pointer-thing,
+    meaning that it can't be invoked except through the
+    function-pointer-thing-run'er, called run_<callback>_handler
 
     3) run_<callback>_handler -- this is the C function that will be
     run when the Javascript user invokes his callback; unlike
@@ -21,7 +23,7 @@
     Native_Object associated with that value -- which will be a C
     function pointer -- and run that directly
 
-    4) interpreter_create_<callback>_value -- this takes a C function
+    4) interpreter_create_<callback> -- this takes a C function
     pointer and returns a calling_context using the following
     methodology:
         1) create an empty object
@@ -66,16 +68,14 @@
 {{/body}}
 
 {{#callbacks}}
-{{#header}}typedef calling_context {{{callbackName}}}_calling_context;
-typedef {{{callbackName}}}_calling_context* {{{callbackName}}}_calling_context_Array;
-
+{{#header}}
+typedef Interpreter_Type {{{callbackName}}};
 /* this is the type signature of functions that can be assigned
-   to a {{{callbackName}}}_calling_context */
-typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
+   to a {{{callbackName}}} */
+typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
 
 {{/header}}
 {{/callbacks}}
-
 {{#callbacks}}
 {{#body}}
 static Interpreter_Type
@@ -99,7 +99,7 @@ run_{{{callbackName}}}_function_handler(
         {{/variadic}}
         {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}} {{{name}}} = interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
+    {{{C_Type}}}{{#is_array}}_Array{{/is_array}} {{{name}}} = interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
              {{/C_and_Jerryscript_Types}}	
         {{/variadic}}
     {{/arguments}}
@@ -109,7 +109,7 @@ run_{{{callbackName}}}_function_handler(
 the declaration if it's a void return type or this function returns
 the "this" pointer (is that possible with a callback, in WebIDL?); 2.
 put out the declaration with an assignment from "run" routine }}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(({{{name}}}_calling_context) {func_value, this_value}{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(func_value, this_value{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
 {{#arguments}}{{{indentation}}}{{{name}}}{{{separator}}}{{/arguments}}{{#arguments.length}};{{/arguments.length}}
 
 {{/return_type}}
@@ -162,19 +162,19 @@ put out the declaration with an assignment from "run" routine }}
 {{/callbacks}}
 {{#callbacks}}
 {{! TODO: WE (CURRENTLY) IGNORE ARRAYS OF CALLBACKS!!! }}
-{{{callbackName}}}_calling_context
-interpreter_get_{{{callbackName}}}_value(Interpreter_Type value, Interpreter_Type this_ptr){{#header}};
-
-{{/header}}
+{{{callbackName}}}
+interpreter_get_{{{callbackName}}}_value(Interpreter_Type value){{#header}};{{/header}}
 {{#body}}
 {
-    Interpreter_Type function_value = jerry_value_to_object(value);
-    return ({{{callbackName}}}_calling_context) {function_value, this_ptr};
+    /* we don't actually do anything for "get", as we treat all
+       functions as residing on the Javascript side (so callbacks have
+       to be invoked through the "run" routine, below) */
+    return jerry_value_to_object(value);
 } /* interpreter_get_{{{callbackName}}}_value */
 
 {{/body}}
 
-/* like all the interpreter_create_* functions, this one takes a C
+/* like all of the interpreter_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
 {{#body}}
 /* callbacks are simply functions, so when we want to create a
@@ -183,20 +183,28 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value, Interpreter_Typ
    side; as usual, return a callback context, since that is our
    abstraction of Jerryscript functions */
 {{/body}}
-{{{callbackName}}}_calling_context interpreter_create_{{{callbackName}}}_value({{{callbackName}}}_callback x){{#header}};
+{{{callbackName}}} interpreter_convert_C_functon_to_{{{callbackName}}}({{{callbackName}}}_callback callback_function){{#header}};
 
 {{/header}}
 {{#body}}
 {
     Interpreter_Type new_function = jerry_create_external_function(
                                        run_{{{callbackName}}}_function_handler);
-    Interpreter_Type empty_this_value = jerry_create_undefined();
 
     jerry_object_native_info_t checksum = {};
-    Native_Object_set(x, new_function, &checksum);
+    Native_Object_set(callback_function, new_function, &checksum);
 
-    return ({{{callbackName}}}_calling_context){new_function, empty_this_value};
-} /* interpreter_create_{{{name}}}_value */
+    return new_function;
+} /* interpreter_convert_C_function_to_{{{name}}} */
+
+{{/body}}
+/* the create function for callbacks is just the identity, since we
+   pass them around as Interpreter_Type's */
+{{{callbackName}}} interpreter_create_{{{name}}}({{{callbackName}}} callback_function){{#header}};{{/header}}
+{{#body}}
+{
+     return callback_function;
+} /* interpreter_create_{{{name}}} */
 {{/body}}
 
 {{/callbacks}}
@@ -204,22 +212,28 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value, Interpreter_Typ
 {{#body}}
 /* we'll use these wrapper functions to marshal the parameters for
    the function and then call the function through the interpreter */
-
+{{! this function may look extraneous, but imagine the following
+    scenario: we're passed in a stucture with a callback value; it
+    could be a function defined in the Javascript world and just
+    represented by a jerry_value_t, or it could be a function defined
+    as a C function and carried around in the Native_Object of an
+    otherwise empty Javascript object; we have no way to tell the
+    difference, so this routine figures it out and does the
+    appropriate thing }}
 {{/body}}
-{{#return_type}}{{{C_Type}}}{{/return_type}} run_{{{callbackName}}}_function(const {{{name}}}_calling_context {{{name}}}_context{{^arguments.length}}){{#header}};{{/header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+{{#return_type}}{{{C_Type}}}{{/return_type}} run_{{{callbackName}}}_function(const {{{callbackName}}} {{{callbackName}}}_function, Interpreter_Type this_ptr{{^arguments.length}}){{#header}};{{/header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
 {{#arguments}}{{{indentation}}}{{#C_and_Jerryscript_Types}}{{{C_Type}}} {{{name}}}{{{separator}}}{{/C_and_Jerryscript_Types}}{{/arguments}}{{#arguments.length}}{{#header}};{{/header}}{{/arguments.length}}
 {{#body}}
 {
-    /* check to see if the calling_context has an underlying
-       C-function pointer attached to the Jerryscript object (hidden in
-       the Native_Object field) */
+    /* check to see if the Jerryscript value has an underlying C-function
+       pointer attached to it (hidden in the Native_Object field) */
     static jerry_object_native_info_t checksum = {};
     jerry_error_t error_value;
     {{{callbackName}}}_callback native_c_function;
 
     native_c_function =
-    Native_Object_get({{{name}}}_context.function_value,
-		      &checksum, &error_value);
+        ({{{callbackName}}}_callback)Native_Object_get({{{callbackName}}}_function,
+					      &checksum, &error_value);
     if (native_c_function != NULL)
     {
         /* if there's a valid C function, call it */
@@ -236,8 +250,8 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value, Interpreter_Typ
 
         Interpreter_Type argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
         Interpreter_Type jerry_return_value =
-	              jerry_call_function({{{name}}}_context.function_value,
-					  {{{name}}}_context.this_value,
+	              jerry_call_function({{{callbackName}}}_function,
+					  this_ptr,
 					  argv, {{{arguments.length}}});
 	
     {{#return_type}}
@@ -303,15 +317,12 @@ static void register_initialize_{{{callbackName}}}(void)
 {
     /* ...supplied by webidl_utilities... */
     register_initialization_function(initialize_{{{callbackName}}}_);
-{{#is_module}}
-    register_require_function("{{{callbackName}}}", interpreter_get_{{{callbackName}}}_value);
-{{/is_module}}
 } /* register_initialize_{{{callbackName}}} */
 
 {{/body}}
 {{#debug_printing}}
 void debug_print_{{{callbackName}}} (char *variable_name,
-     				      {{{name}}}_calling_context value,
+     				      {{{name}}} value,
 				      unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
@@ -323,7 +334,7 @@ void debug_print_{{{callbackName}}} (char *variable_name,
     {{{callbackName}}}_callback native_c_function;
 
     native_c_function =
-          Native_Object_get(value.function_value,
+          Native_Object_get(value,
 			    &checksum, &error_value);
  
    printf("%*s%s -- CALLBACK FUNCTION (Native %s implementation)\n",

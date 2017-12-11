@@ -2,6 +2,7 @@
     existent so that all of the (vertical) whitespace gets translated
     to the output file }}
 {{^OBEYFORMATTING}}
+{{#interfaces}}
 /*# AUTOMATICALLY GENERATED ON {{timestamp}} #*/
 {{#header}}
 #ifndef {{{interfaceName}}}_STUBS_HEADER_FILE
@@ -14,7 +15,6 @@
 {{#debug_printing}}
 #include <stdio.h>
 {{/debug_printing}}
-{{#interfaces}}
 
 {{#header}}
 {{#externalTypes}}
@@ -43,6 +43,9 @@ typedef struct {
 {{#debug_printing}}
 #define DEBUG_PRINTING 1
 
+{{/debug_printing}}
+{{^debug_printing}}
+#undef DEBUG_PRINTING
 {{/debug_printing}}
 {{/body}}
 {{#body}}
@@ -85,8 +88,24 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {{/body}}
 
 /* {{{interfaceName}}} */
+{{#is_module}}
+/* this gets us the definition of the {{{interfaceName}}} type */
+#include "{{{interfaceName}}}.h"
+{{{interfaceName}}} require_{{{interfaceName}}}_body(void){{#header}};{{/header}}
+{{#body}}
+{
+    {{{interfaceName}}} return_value;
+
+    /* set up "return_value" */
+    /* USER CODE GOES HERE */
+
+    return return_value;
+} /* require_{{{interfaceName}}}_body */
+
+{{/body}}
+{{/is_module}}
 {{#operations}}
-{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#callback}}_calling_context{{/callback}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{#C_and_Jerryscript_Types}}{{#callback}}_context{{/callback}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type this_val){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{#C_and_Jerryscript_Types}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type this_val){{#header}};{{/header}}
 {{#body}}
 {
     {{#arguments}}
@@ -107,7 +126,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 	{{! TODO: VARIADIC AND ARRAY PARAMETER PRINTING! }}
         {{^variadic}}{{^is_array}}
    	     {{#C_and_Jerryscript_Types}}
-    debug_print_{{{C_Type}}}("{{{name}}}", {{{name}}}{{#callback}}_context{{/callback}}, DEBUG_INDENTATION_WIDTH);
+    debug_print_{{{C_Type}}}("{{{name}}}", {{{name}}}, DEBUG_INDENTATION_WIDTH);
              {{/C_and_Jerryscript_Types}}	
         {{/is_array}}{{/variadic}}
 {{/arguments}}
@@ -116,7 +135,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {{/debug_printing}}
     /* USER CODE GOES HERE */
 
-    {{! do we need to undo the #defines for callbacks? }}
+    {{! TODO: do we need to undo the #defines for callbacks? }}
 }; /* {{{interfaceName}}}_{{{name}}}_body */
 
 {{/body}}
