@@ -305,7 +305,7 @@ AugmentedAST.prototype.set_external_types = function(thing)
 		 * the global list attached to the "this" object, if
 		 * it's not a duplicate, add it */
 		var type_name = extAttr.rhs.value[1];
-		let is_callback = (extrAttr.name === "ExternalCallback");
+		let is_callback = (extAttr.name === "ExternalCallback");
 		var type_struct = { package: extAttr.rhs.value[0],
 				    type:    type_name,
 				    is_callback: is_callback};
