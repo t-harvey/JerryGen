@@ -289,7 +289,9 @@ AugmentedAST.prototype.set_external_types = function(thing)
     for (let extAttr of thing.extAttrs)
     {
 	if (extAttr.name != undefined &&
-	    extAttr.name == "ExternalType")
+	    (extAttr.name == "ExternalCallback" ||
+	     extAttr.name == "ExternalInterface" ||
+	     extAttr.name == "ExternalDictionary"))
 	{
             if (extAttr.rhs == undefined ||
 		extAttr.rhs.value == undefined ||
@@ -303,8 +305,10 @@ AugmentedAST.prototype.set_external_types = function(thing)
 		 * the global list attached to the "this" object, if
 		 * it's not a duplicate, add it */
 		var type_name = extAttr.rhs.value[1];
+		let is_callback = (extrAttr.name === "ExternalCallback");
 		var type_struct = { package: extAttr.rhs.value[0],
-				    type:    type_name };
+				    type:    type_name,
+				    is_callback: is_callback};
 		
 		thing.externalTypes.push(type_struct);
 		
@@ -361,16 +365,19 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     let process_call = function(this_ptr, list, call)
     {
 	// examine the return type
-	if (!(this_ptr.isPrimitiveType(call.idlType.idlType)))
-	    list.push({type_name: call.idlType.idlType});
+	let return_type = this_ptr.get_idlType_string(call.idlType);
+
+	if (!(this_ptr.isPrimitiveType(return_type)))
+	    list.push({type_name: return_type});
 
 	// examine the types of the arguments
 	for (let j = 0; j < call.arguments.length; j++)
 	{
 	    let argument = call.arguments[j];
+	    let argument_type = this_ptr.get_idlType_string(argument.idlType);
 
-	    if (!(this_ptr.isPrimitiveType(argument.idlType.idlType)))
-		list.push({type_name: argument.idlType.idlType});
+	    if (!(this_ptr.isPrimitiveType(argument_type)))
+		list.push({type_name: argument_type});
 	}
     }; /* process_call */
 
@@ -464,7 +471,6 @@ AugmentedAST.prototype.addDictionary = function (d, index)
  */
 
     this.set_external_types(d);
-    this.set_is_module(d);
 
     // does the dictionary already exist?
     var existingDict = this.dictionaries[d.name];
@@ -619,7 +625,6 @@ AugmentedAST.prototype.addCallback = function (d, index) {
     this.addToTypeCheckQueue(d.arguments);
 
     this.set_external_types(d);
-    this.set_is_module(d);
 
     this.get_non_intrinsic_types_list(d);
   }
@@ -783,6 +788,9 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
   // zephyr's idl contains operations with no preceding type, which is
   // incorrect WebIDL -- should we complain and exit, or convert the
   // operation to returning a void (plus tell user that's what we did)?
+    // TODO: this doesn't work for "Promise", as that adds an extra layer
+    // of .ildType -- so we should come up with some kind of function to
+    // walk the idlType fields until we hit something we can latch onto...
   for (let operation_count in theInterface.members)
   { let operation = theInterface.members[operation_count];
       if (operation.name == null)
@@ -960,11 +968,13 @@ AugmentedAST.prototype.sort_types = function()
 }; /* sort_types */
  
 /**
- * marks every operation that has a callback as a parameter, so that
- * we can output the extra "this" parameter to those stubs
+ * marks every type that is a callback with a flag, b/c "interpreter_get_*"
+ * needs an extra "this" parameter when used for callbacks
  */
-AugmentedAST.prototype.mark_operations_with_callback_parameters = function()
+AugmentedAST.prototype.find_and_mark_callbacks = function()
 {
+    for (var next_interface in this.interfaces)
+    for (var next_interface in this.interfaces)
     for (var next_interface in this.interfaces)
     {
 	let operations_array = this.interfaces[next_interface].operations;
@@ -999,7 +1009,7 @@ AugmentedAST.prototype.mark_operations_with_callback_parameters = function()
 	    }
 	}
     }
-} /* mark_operations_with_callback_parameters */
+} /* AugmentedAST.find_and_mark_callbacks */
 
 
 /**
@@ -1055,7 +1065,6 @@ AugmentedAST.prototype.augment = function (ast) {
     // while walking the ast, we built up a list of all of the type names
     // that we saw; now, we'll walk the list to make sure they're all valid
     this.processTypeCheckQueue();
-    this.mark_operations_with_callback_parameters();
 
     /* every time we put out a type into the .h file, we need to also put
        out the "<type>_Array" type if anything in the file needs an array
@@ -1069,6 +1078,7 @@ AugmentedAST.prototype.augment = function (ast) {
        types, during execution of this function... */
   /*this.array_types = this.get_the_list_of_array_types(this.variadic_types); */
 
+    /* TODO: arrays */
     /* ...we'll take the arrays list and create dictionary entries for
        them -- this will put them into the sorting algorithm so we get
        them all put out in the correct order */
@@ -1079,6 +1089,9 @@ AugmentedAST.prototype.augment = function (ast) {
        in the .h file before A */
     /* this function builds a list of types called sorted_types_list */
     this.sort_types();
+
+    /* annotate all callback types */ 
+    this.find_and_mark_callbacks();
 
   this.isAugmented = true;
   this.ast.augmenter = this; // we keep the info we collected in the process.
@@ -1152,6 +1165,21 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper){
     throw new Error("Couldn't handle idl type...");
 
 }; /* AugmentedAST.idlTypeToOtherType */
+
+
+/* this is a simple-minded version of idlTypeToOtherType, used just to get
+   at the idlType's string */
+AugmentedAST.prototype.get_idlType_string = function(idlType)
+{
+    if (idlType === undefined)
+	console.log("NOT DEFINED");
+    if (typeof idlType === "string")
+	return idlType;
+    else if (idlType.idlType === undefined)
+	throw new Error("Can't find idlType...");
+    else
+	return this.get_idlType_string(idlType.idlType);
+} /* AugmentedAST.get_idlType_string */
 
 
 AugmentedAST.prototype.idlSequenceToSchema = function(depth, itemType)

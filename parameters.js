@@ -44,6 +44,19 @@ for (var i of Object.keys(acceptable_inputs))
     else if (command_line_parms[i] === "false")
 	command_line_parms[i] = false;
 
+/* when the flag is true/false, but the expected value is "on"/"off",
+   convert to the string version */
+/* CAUTION: ASSUMES "on" === true AND "off" === false !!! */
+for (var i of Object.keys(acceptable_inputs))
+    if (typeof command_line_parms[i] === "boolean" &&
+	typeof acceptable_inputs[i][0] === "string")
+    {
+	if (command_line_parms[i] === true)
+	    command_line_parms[i] = "on";
+	else
+	    command_line_parms[i] = "off";
+    }
+
 let error_codes = {
 	neither_package_nor_files_given: 0,
 	no_package_name_given: 1,
