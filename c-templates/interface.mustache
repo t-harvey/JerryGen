@@ -39,10 +39,14 @@ typedef struct {
     {{/attributes}}
     struct Native_Object_{{{interfaceName}}} *native_object;
 } {{name}};
+
 /* we need to have the {{{interfaceName}}} struct defined for
    {{{interfaceName}}}_stubs.h, so first we define it, and then we include
    the {{{interfaceName}}}_stubs.h file */
 #include "{{{interfaceName}}}_stubs.h"
+{{#attributes.length}}
+
+{{/attributes.length}}
 {{! SET UP #DEFS TO GET AT ATTRIBUTES OF THE INTERFACE}}
     {{#attributes}}
     {{#C_and_Jerryscript_Types}}
@@ -51,10 +55,35 @@ typedef struct {
     {{/attributes}}
 
 {{/header}}
+/* all WebIDL constructs have a constructor function, so that C code
+   can build any of these constructs */
+{{{interfaceName}}} {{{interfaceName}}}_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    {{{interfaceName}}} new_{{{interfaceName}}};
+
+    {{#attributes}}
+    {{! the "get_default_value" function takes the string and either
+    	returns the default value for the C_Type if its an intrinsic
+        type or "<C_Type>_constructor()" (for WebIDL constructs) }}
+    {{#C_and_Jerryscript_Types}}
+    new_{{{interfaceName}}}.{{{name}}} = {{{default_value}}};
+
+    {{/C_and_Jerryscript_Types}}
+    {{/attributes}}
+    /* set up the native object */
+    new_{{{interfaceName}}}.native_object = (struct Native_Object_{{{interfaceName}}} *)Native_Object_{{{interfaceName}}}_create();
+
+    return new_{{{interfaceName}}};
+} /* {{{interfaceName}}}_constructor */
+
+{{/body}}
 {{/repress_stubs}}
 {{#hasAttributes}}
 
+{{#attributes.length}}
 /* attribute GETTERS */
+{{/attributes.length}}
 {{#attributes}}
 {{#C_and_Jerryscript_Types}}
 {{#header}}extern {{/header}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} extract_{{{interfaceName}}}_{{{name}}} (Interpreter_Type this_pointer){{#header}};{{/header}}
@@ -216,8 +245,7 @@ declaration with an assignment from the stub }}
 
 
 {{/body}}
-{{! modules can't be "new"'d, so we don't need to put out this routine }}
-{{^is_module}}
+
 {{#body}}
 static Interpreter_Type
 create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
@@ -248,6 +276,17 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
         jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, args_p[{{{attribute_index}}}]));
         jerry_release_value({{{name}}}_prop_name);
     }
+    {{#C_and_Jerryscript_Types}}
+      {{#is_interface}}
+    else
+    {
+        Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, create_empty_{{{C_Type}}}()));
+        jerry_release_value({{{name}}}_prop_name);
+
+    }
+      {{/is_interface}}
+    {{/C_and_Jerryscript_Types}}
 
     {{/attributes}}
     Interpreter_Type prototype = get_prototype((char *)"{{{interfaceName}}}");
@@ -264,6 +303,22 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
 } /* create_{{{name}}}_interface_handler */
 
 {{/body}}
+/* we need this when we want to create a structure with the
+   interface's operations, but we don't (yet?) have an values for the
+   attributes */
+Interpreter_Type create_empty_{{{interfaceName}}}(){{#header}};{{/header}}
+{{#body}}
+{
+    Interpreter_Type dummy_jerry_value;
+    Interpreter_Type empty_{{{interfaceName}}} =
+                    create_{{{interfaceName}}}_interface_handler(dummy_jerry_value,
+							dummy_jerry_value,
+							&dummy_jerry_value,
+							0);
+    return empty_{{{interfaceName}}};
+} /* create_empty_{{{interfaceName}}} */
+{{/body}}
+
 void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {{#body}}
 {
@@ -313,10 +368,12 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 
 {{^NoInterfaceObject}}
 {{! this sets up the ability to "new" the object, if it's not been specified
-    as NoInterface }}
+    as NoInterface or Return_from_require }}
+{{^is_module}}
     add_field_to_object(global_object, "{{{name}}}",
                         &create_{{{name}}}_interface_handler);
 
+{{/is_module}}
 {{/NoInterfaceObject}}
     jerry_release_value(global_object);
 
@@ -333,7 +390,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 
 } /* initialize_{{{interfaceName}}}_ */
 {{/body}}
-{{/is_module}}
+
 {{! if it's a type returned by a module, then the procedure is
     (mostly) the same as when we're setting up the template object:
     the difference is that for regular interfaces, we create the
@@ -354,35 +411,37 @@ static Interpreter_Type {{{name}}}_require_function_(void)
 {{/non_intrinsic_types}}
 
 {{! TODO: handle repress_stubs }}
-    /* next, let the user set up the type */
-    Interpreter_Type new_object = jerry_create_object();
-                      interpreter_create_{{{name}}}(require_{{{name}}}_body());
 
-    /* finally, map the operations onto new_object and return it */
-    {{#operations}}
-    add_field_to_object(new_object, "{{{name}}}", &{{{name}}}_handler);
-    {{/operations}}
-    return new_object;
+    /* let the user set up the object and then map the operations onto it */
+    Interpreter_Type new_{{{interfaceName}}} =
+                     interpreter_create_{{{name}}}(require_{{{name}}}_body());
+
+    Interpreter_Type prototype = get_prototype((char *)"{{{interfaceName}}}");
+    jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
+					    prototype));
+    jerry_release_value(prototype);
+   
+    return new_{{{interfaceName}}};
 } /* {{{name}}}_require_function_ */
 {{/body}}
 {{/is_module}}
 
 {{#body}}
-{{! TODO: clean this up! (make it two separate functions) }}
 /* we need to register the initialize_{{{interfaceName}}}_ function so
    that it gets run automatically... */
 __attribute__((constructor))
-static void register_{{^is_module}}initialize{{/is_module}}{{#is_module}}require{{/is_module}}_{{{interfaceName}}}(void)
+static void register_initialize_{{{interfaceName}}}(void)
 {
     /* ...supplied by webidl_utilities... */
-{{^is_module}}
     register_initialization_function(initialize_{{{interfaceName}}}_);
-{{/is_module}}
-{{#is_module}}
-    register_require_function("{{{name}}}", {{{name}}}_require_function_);
-{{/is_module}}
-} /* register_{{^is_module}}initialize{{/is_module}}{{#is_module}}require{{/is_module}}_{{{interfaceName}}} */
 
+{{#is_module}}
+    /* ...supplied by webidl_utilities... */
+    register_require_function("{{{name}}}",
+    {{{name}}}_require_function_);
+
+{{/is_module}}
+} /* register_initialize_{{{interfaceName}}} */
 {{/body}}
 {{! INTERFACE GETTER/SETTER: }}
 {{{name}}} interpreter_get_{{{name}}}_value(Interpreter_Type value){{#header}};{{/header}}
@@ -424,13 +483,9 @@ extern jerry_object_native_info_t {{{name}}}_checksum;
 Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
 {{#body}}
 {
-    /* create an empty {{{name}}}... */
-    Interpreter_Type dummy_jerry_value;
-    Interpreter_Type new_{{{name}}} = {{^is_module}}create_{{{name}}}_interface_handler(
-							dummy_jerry_value,
-							dummy_jerry_value,
-							&dummy_jerry_value,
-							0);{{/is_module}}{{#is_module}} jerry_create_object();{{/is_module}}
+    /* create an empty {{{interfaceName}}}... */
+    Interpreter_Type new_{{{interfaceName}}} = create_empty_{{{interfaceName}}}();
+
     /* ...fill it in... */
     {{#attributes}}
     Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
@@ -442,18 +497,11 @@ Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/heade
     jerry_release_value({{{name}}}_prop_name);
 
     {{/attributes}}
-{{#is_module}}
-    {{#operations}}
-    add_field_to_object({{{interfaceName}}}_prototype_object,
-                        "{{{name}}}", &{{{name}}}_handler);
-
-    {{/operations}}
-{{/is_module}}
     /* ...and set the Native_Object field... */
 extern jerry_object_native_info_t {{{name}}}_checksum;
-    Native_Object_set(x.native_object, new_{{{name}}}, &{{{name}}}_checksum);
+    Native_Object_set(x.native_object, new_{{{interfaceName}}}, &{{{name}}}_checksum);
 
-    return new_{{{name}}};    
+    return new_{{{interfaceName}}};    
 } /* interpreter_create_{{{name}}} */
 {{/body}}
 {{#debug_printing}}

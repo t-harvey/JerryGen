@@ -44,6 +44,28 @@ typedef struct {
 {{/header}}
 
 {{#dictionaries}}
+/* all WebIDL constructs have a constructor function, so that C code
+   can build any of these constructs */
+{{{dictionaryName}}} {{{dictionaryName}}}_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    {{{dictionaryName}}} new_{{{dictionaryName}}};
+    {{#members}}
+    {{! the "get_default_value" function takes the string and either
+    	returns the default value for the C_Type if its an intrinsic
+        type or "<C_Type>_constructor()" (for WebIDL constructs) }}
+
+    {{#C_and_Jerryscript_Types}}
+    new_{{{dictionaryName}}}.{{{name}}} = {{{default_value}}};
+    {{/C_and_Jerryscript_Types}}
+    {{/members}}
+
+    return new_{{{dictionaryName}}};
+} /* {{{dictionaryName}}}_constructor */
+{{/body}}
+{{/dictionaries}}
+
+{{#dictionaries}}
 {{! really, these functions should be named "get_..._struct" rather
     than "get_..._value" -- but b/c Jerryscript already has get_*_value
     for all of the builtin types, it's easier to follow that naming

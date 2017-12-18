@@ -24,6 +24,18 @@ typedef enum { {{#members}}{{{indentation}}}{{{name}}}{{^finalMember}},{{{new_li
 {{/enums}}
 {{/header}}
 
+{{#enums}}
+{{! TODO: what if the "members" list is empty?!?"}}
+/* all WebIDL constructs have a constructor function, so that C code
+   can build any of these constructs -- for enums, just return the
+   first symbol in the list */
+{{{name}}} {{{name}}}_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    return {{{members.0.name}}};
+} /* {{{name}}}_constructor */
+{{/body}}
+{{/enums}}
 
 {{#enums}}
 {{! we first need strings that match the enumeration values }}
