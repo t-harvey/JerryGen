@@ -77,6 +77,17 @@ typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callb
 {{/header}}
 {{/callbacks}}
 {{#callbacks}}
+/* all WebIDL constructs have a constructor function, so that C code
+   can build any of these constructs -- for callbacks, we just return
+   a NULL pointer */
+{{{callbackName}}} {{{callbackName}}}_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    return jerry_create_undefined();
+} /* {{{callbackName}}}_constructor */
+{{/body}}
+{{/callbacks}}
+{{#callbacks}}
 {{#body}}
 static Interpreter_Type
 run_{{{callbackName}}}_function_handler(

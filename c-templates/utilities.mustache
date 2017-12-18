@@ -508,6 +508,59 @@ void debug_print_string(char *variable_name, char * value, unsigned int indentat
     printf("%*s%s :  \"%s\"\n", indentation, "", variable_name, value);
 } /* debug_print_string */
 {{/body}}
+{{#body}}
+static jerry_value_t debug_evaluate_script(jerry_char_t jerry_script[])
+{
+    size_t jerry_script_size = strlen ((const char *) jerry_script);
+    jerry_value_t eval_ret = jerry_eval (jerry_script, jerry_script_size, false);
+    if (jerry_value_has_error_flag (eval_ret))
+    {
+        fprintf(stderr, "ERROR parsing script!\n");
+        fprintf(stderr, "\t>%s<\n", (const char *)jerry_script);
+    }
+    return eval_ret;
+} /* debug_evaluate_script */
+{{/body}}
+void debug_print_message(char *message){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t global_object = jerry_get_global_object();
+    jerry_value_t prop_name = jerry_create_string ((const jerry_char_t *) "debug_message_parameter");
+    jerry_value_t jerry_message = jerry_create_string ((const jerry_char_t *) message);
+    jerry_release_value(jerry_set_property(global_object, prop_name, jerry_message));
+    jerry_char_t print_it[]="print(debug_message_parameter);";
+    debug_evaluate_script(print_it);
+    jerry_release_value(jerry_message);
+    jerry_release_value(prop_name);
+    jerry_release_value(global_object);
+} /* debug_print_message */
+{{/body}}
+void debug_print_object_fields(Interpreter_Type thing){{#header}};{{/header}}
+{{#body}}
+{
+    static bool first_time = true;
+
+    if (first_time)
+    {
+	first_time = false;
+        jerry_char_t temp[] = "var debug_print_fields =               \
+ 		     	       function(thing)                         \
+		     	       {                                       \
+				    for (var my_property in thing)     \
+			    	        print(\"    \" + my_property);                  \
+				};";
+    	debug_evaluate_script(temp);
+    }
+
+    jerry_value_t global_object = jerry_get_global_object();
+    jerry_value_t prop_name = jerry_create_string ((const jerry_char_t *) "debug_print_fields_parameter");
+    jerry_release_value(jerry_set_property(global_object, prop_name, thing));
+    jerry_char_t print_it[]="debug_print_fields(debug_print_fields_parameter);";
+    debug_evaluate_script(print_it);
+    jerry_release_value(prop_name);
+    jerry_release_value(global_object);
+} /* debug_print_object_fields */
+{{/body}}
 {{/debug_printing}}
 {{#header}}
 

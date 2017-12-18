@@ -25,6 +25,7 @@ function AugmentedAST(ast, fix_type_errors, moduleName)
     this.allExternalTypes = Object.create(null);
     this.array_types = Object.create(null);
     this.variadic_types = Object.create(null);
+    this.interface_names = new Array();
 
     /* the "any" type will end up being a union of all of the builtin
        types and any types defined by the webidl; we'll name the C
@@ -201,6 +202,31 @@ AugmentedAST.prototype.checkType = function (t)
 }; /* AugmentedAST.checkType */
 
 
+/* if it's a basic C type, then return a default value for that type;
+   otherwise, create and return a call to that thing's constructor */
+AugmentedAST.prototype.get_C_default_value = function(C_Type)
+{
+    let intrinsic_C_Types = {  int8_t:   0    ,
+			       uint8_t:  0    ,
+			       int16_t:  0    ,
+			       uint16_t: 0    ,
+			       int32_t:  0    ,
+			       uint32_t: 0    ,
+			       int64_t:  0    ,
+			       uint64_t: 0    ,
+			       float:    0.0  ,
+			       double:   0.0  ,
+			       string: "\"\"" ,
+			       bool:     false,
+			    };
+
+    if (Object.keys(intrinsic_C_Types).indexOf(C_Type) >= 0)
+	return intrinsic_C_Types[C_Type];
+    else
+	return C_Type + "_constructor()";
+} /* AugmentedAST.get_C_default_value */
+
+
 /* return a struct with the C and Jerryscript types for the WebIDL type
    passed in */
 AugmentedAST.prototype.getConversionTypes = function(idlType)
@@ -265,11 +291,17 @@ AugmentedAST.prototype.getConversionTypes = function(idlType)
 
     /* (for callbacks, both the C and Jerryscript types will be the same,
        so it doesn't matter which one we look at) */
+    /* TODO: AT THIS POINT, DO WE KNOW ALL OF THE TYPES' KINDS? */
     if (this.isCallbackType(return_types.C_Type))
     {
 	return_types.callback = true;
 	return_types.callback_return_type = this.callbacks[this.getTypeName(return_types.C_Type)].return_type;
     }
+
+    /* on the C side, we'll want to know what the default value is
+       when defining a variable of that type -- intrinsic types have
+       a value, while everything else has a constructor */
+    return_types.default_value = this.get_C_default_value(return_types.C_Type);
 
     /* TODO: handle arrays */
     // if (idlType.array > 0)
@@ -311,6 +343,9 @@ AugmentedAST.prototype.set_external_types = function(thing)
 				    is_callback: is_callback};
 		
 		thing.externalTypes.push(type_struct);
+
+		if (extAttr.name === "ExternalInterface")
+		    this.interface_names.push(type_name);
 		
 		/* either we haven't seen this attribute before, or we need
 		   to check that it is the same package/type combination
@@ -695,8 +730,8 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
 	attributeMember.name = interfaceMember.name;
 	attributeMember.idlType = interfaceMember.idlType;
 	attributeMember.C_and_Jerryscript_Types =
-	                     this.getConversionTypes(interfaceMember.idlType);
-	
+	                    this.getConversionTypes(interfaceMember.idlType);
+
 	this.interfaces[interfaceName].hasAttributes = true;
 	this.interfaces[interfaceName].attributes.push(attributeMember);
     }
@@ -739,6 +774,7 @@ AugmentedAST.prototype.addNewInterface = function (newInterface) {
   newInterface.attributes = [];
   newInterface.interfaceName = newInterface.name;
   this.interfaces[newInterface.name] = newInterface;
+  this.interface_names.push(newInterface.name);
   this.addInterfaceMembers(newInterface.name, newInterface.members);
 
   // add an index to the interface attributes so it's easy to assign
@@ -1012,6 +1048,26 @@ AugmentedAST.prototype.find_and_mark_callbacks = function()
 } /* AugmentedAST.find_and_mark_callbacks */
 
 
+/** walks through every interface's attributes and marks those that
+  * have type interface, b/c if interface A has an attribute that is
+  * interface B, when we call A's constructor, we'll also want to call
+  * B's constructor, so mark all of the attributes of each interface
+  * with whether or not they are interfaces
+  */
+AugmentedAST.prototype.find_interface_attributes = function()
+{
+    for (var i in this.interfaces)
+    {
+	let attribute_array = this.interfaces[i].attributes;
+	for (var j = 0; j < attribute_array.length; j++)
+	{
+	    let C_Type = attribute_array[j].C_and_Jerryscript_Types.C_Type;
+	    if (this.interface_names.indexOf(C_Type) >= 0)
+		attribute_array[j].C_and_Jerryscript_Types.is_interface = true;
+	}
+    }
+} /* AugmentedAST.find_interface_attributes */
+
 /**
  * Iterates over the ast and augments it by calling other methods in this class.
  * @param [ast]
@@ -1092,6 +1148,12 @@ AugmentedAST.prototype.augment = function (ast) {
 
     /* annotate all callback types */ 
     this.find_and_mark_callbacks();
+
+    /* if interface A has an attribute that is interface B, when we
+       call A's constructor, we'll also want to call B's constructor,
+       so mark all of the attributes of each interface with whether or
+       not they are interfaces */
+    this.find_interface_attributes();
 
   this.isAugmented = true;
   this.ast.augmenter = this; // we keep the info we collected in the process.
