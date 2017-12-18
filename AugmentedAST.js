@@ -486,6 +486,18 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 } /* AugmentedAST.prototype.get_non_intrinsic_types_list */
 
 
+
+/* for dictionaries, string default values need to be surrounded by quotes
+   so that they'll output correctly */
+AugmentedAST.prototype.find_default_string_values = function(d)
+{
+    for (var index in d.members)
+	if (d.members[index].default &&
+	    d.members[index].default.type === "string")
+	    d.members[index].default.is_string = true;
+} /* AugmentedAST.find_default_string_values */
+
+
 /**
  * Adds a dictionary to our map of dictionaries
  * @param d The original ast dictionary object
@@ -548,6 +560,10 @@ AugmentedAST.prototype.addDictionary = function (d, index)
     // get a list of types that will need to be included in the .c file for this
     // dictionary
     this.get_non_intrinsic_types_list(d);
+
+    /* string default values need to be marked so that we'll know to
+       output surrounding quotes */
+    this.find_default_string_values(d);
     
     return true;
 }; /* addDictionary */

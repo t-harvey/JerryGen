@@ -161,6 +161,15 @@ create_{{{name}}}_dictionary_handler(const Interpreter_Type func_value,
         jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{name}}}_prop_name, args_p[{{{member_index}}}]));
         jerry_release_value({{{name}}}_prop_name);
     }
+    {{#default}}
+    else
+    {
+        Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+	Interpreter_Type {{{name}}}_default = interpreter_create_{{{type}}}({{#is_string}}(const jerry_char_t *)"{{/is_string}}{{{value}}}{{#is_string}}"{{/is_string}});
+        jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{name}}}_prop_name, {{{name}}}_default));
+        jerry_release_value({{{name}}}_prop_name);
+    }
+    {{/default}}
 
     {{/members}}
     return new_{{{name}}};
