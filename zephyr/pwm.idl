@@ -1,7 +1,7 @@
 // require returns a PWM object
 // var pwm = require('pwm');
 
-[NoInterfaceObject]
+[Return_from_require]
 interface PWM {
     PWMPin open(PWMInit init);
 };

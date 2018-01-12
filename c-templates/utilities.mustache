@@ -281,13 +281,13 @@ char *interpreter_get_string_value(Interpreter_Type string_value){{#header}};{{/
 {{! enumeration types are represented in Javascript as strings, so
     getting them across to Jerryscript and back requires some
     finagling }}
-int enum_index(char *target, char **array){{#header}};{{/header}}
+int enum_index(char *target, char **array, int array_length){{#header}};{{/header}}
 {{#body}}
 {
-    int i = 0;
-    while (array[i] != '\0')
+    for (int i = 0; i < array_length; i++)
         if (!strcmp(target, array[i]))
 	    return i;
+
     /* fallthrough indicates the string's not in the array */
     return -1;
 } /* enum_index */

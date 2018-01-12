@@ -15,7 +15,7 @@ module.exports = {
        various WebIDL constructs, which is abstracted in this function...
        b/c of the way Javascript i/o works, we need to call the Hogan
        compiler for each file we create; since each file comes from a single
-       WebIDL thing (objects are stored in lists in the AST), we chop off
+       WebIDL thing (and "things" are stored in lists in the AST), we chop off
        the list of objects and then successively stick a single one back
        onto the AST and call the Hogan compiler; (stubs take a little extra
        finagling, but are otherwise the same) */
@@ -132,7 +132,6 @@ module.exports = {
 	if (parameters.stubs === 'off')
 	    return;
 
-	augAST.debug_printing = (parameters.debug_printing === "on");
 	this.generate_C_files(augAST, parameters, "stubs",
 			      Generator.genStubsString);
     } /* stubs */,
@@ -145,8 +144,6 @@ module.exports = {
 
 	let header_or_body = ["generate_header", "generate_body"];
 	let filename_extension = [".h", ".c"];
-
-	augAST.debug_printing = (parameters.debug_printing === "on");
 
 	for (let index = 0; index < 2; index++)
 	{

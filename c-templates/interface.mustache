@@ -15,6 +15,10 @@
 {{#non_intrinsic_types}}
 #include "{{{type_name}}}.h"
 {{/non_intrinsic_types}}
+{{#prototype_chain}}
+#include "{{{parentName}}}.h"
+{{/prototype_chain}}
+
 
 {{/header}}
 #include <stdio.h>
@@ -34,11 +38,11 @@ struct Native_Object_{{{interfaceName}}};
 typedef struct {
     {{#attributes}}
         {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#is_array}}_Array{{/is_array}} {{{name}}};
+    {{{C_Type}}}{{#is_array}}_Array{{/is_array}} {{{attributeName}}};
         {{/C_and_Jerryscript_Types}}
     {{/attributes}}
     struct Native_Object_{{{interfaceName}}} *native_object;
-} {{name}};
+} {{{interfaceName}}};
 
 /* we need to have the {{{interfaceName}}} struct defined for
    {{{interfaceName}}}_stubs.h, so first we define it, and then we include
@@ -50,7 +54,7 @@ typedef struct {
 {{! SET UP #DEFS TO GET AT ATTRIBUTES OF THE INTERFACE}}
     {{#attributes}}
     {{#C_and_Jerryscript_Types}}
-#define attribute_{{{interfaceName}}}_{{{name}}}{{#is_array}}_Array{{/is_array}} (extract_{{{interfaceName}}}_{{{name}}}{{#is_array}}_Array{{/is_array}}(this_val))
+#define attribute_{{{interfaceName}}}_{{{attributeName}}}{{#is_array}}_Array{{/is_array}} (extract_{{{interfaceName}}}_{{{attributeName}}}{{#is_array}}_Array{{/is_array}}(this_val))
     {{/C_and_Jerryscript_Types}}
     {{/attributes}}
 
@@ -67,10 +71,10 @@ typedef struct {
     	returns the default value for the C_Type if its an intrinsic
         type or "<C_Type>_constructor()" (for WebIDL constructs) }}
     {{#C_and_Jerryscript_Types}}
-    new_{{{interfaceName}}}.{{{name}}} = {{{default_value}}};
-
+    new_{{{interfaceName}}}.{{{attributeName}}} = {{{default_value}}};
     {{/C_and_Jerryscript_Types}}
     {{/attributes}}
+
     /* set up the native object */
     new_{{{interfaceName}}}.native_object = (struct Native_Object_{{{interfaceName}}} *)Native_Object_{{{interfaceName}}}_create();
 
@@ -86,23 +90,22 @@ typedef struct {
 {{/attributes.length}}
 {{#attributes}}
 {{#C_and_Jerryscript_Types}}
-{{#header}}extern {{/header}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} extract_{{{interfaceName}}}_{{{name}}} (Interpreter_Type this_pointer){{#header}};{{/header}}
+{{#header}}extern {{/header}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} extract_{{{interfaceName}}}_{{{attributeName}}} (Interpreter_Type this_pointer){{#header}};{{/header}}
 {{#body}}
 {
-    Interpreter_Type property_pointer = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type property_pointer = jerry_create_string((const jerry_char_t *) "{{{attributeName}}}");
     Interpreter_Type attribute_pointer = jerry_get_property(this_pointer, property_pointer);
     {{{C_Type}}} return_value = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(attribute_pointer);
     jerry_release_value(property_pointer);
     jerry_release_value(attribute_pointer);
     return return_value;
-} /* extract_{{interfaceName}}_{{name}} */
+} /* extract_{{interfaceName}}_{{attributeName}} */
 
 {{/body}}
 {{/C_and_Jerryscript_Types}}
 {{/attributes}} {{! ATTRIBUTE GETTERS}}
 
 {{/hasAttributes}}
-
 {{#repress_stubs}}
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these
@@ -131,7 +134,13 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 } /* Native_Object_{{{interfaceName}}}_create */
 {{/body}}
 {{/repress_stubs}}
+{{^repress_stubs}}
+{{#header}}
 
+/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
+
+{{/header}}
+{{/repress_stubs}}
 {{! the checksum is used by Jerryscript to ensure that the
     Native_Object is still valid; when we make the stubs, we need to
     set up the checksum here, but also give it to the stubs file }}
@@ -145,13 +154,15 @@ jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/rep
 /* put all of the native-code functions (indentifable by the
  *  suffix "_handler") here: */
 
-
+{{/body}}
     {{#operations}}
-static Interpreter_Type
-{{{name}}}_handler(const Interpreter_Type func_value, /**< function object */
+        {{^inherited_operation}}
+Interpreter_Type
+{{{interfaceName}}}_{{{operationName}}}_handler(const Interpreter_Type func_value, /**< function object */
 		   const Interpreter_Type this_val, /**< this arg */
                    const Interpreter_Type *args_p, /**< function arguments */
-                   const jerry_length_t args_cnt) /**< number of function arguments */
+                   const jerry_length_t args_cnt){{#header}};{{/header}} /**< number of function arguments */
+{{#body}}
 {
 {{!
     ********************************************************************
@@ -182,7 +193,7 @@ static Interpreter_Type
 {{/repress_stubs}}
 {{^repress_stubs}}
 {{#C_and_Jerryscript_Types}}
-extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/return_is_this}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type);
+extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type);
 {{/C_and_Jerryscript_Types}}
 {{/repress_stubs}}
 {{! for the "return_value", the logic is as follows: 1) don't put out
@@ -193,7 +204,7 @@ declaration with an assignment from the stub }}
 {{#repress_stubs}}{{^voidReturnType}}
 /* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
 {{#C_and_Jerryscript_Types}}
-{{^voidReturnType}}{{^return_is_this}}    {{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}this_val);{{/repress_stubs}}
+{{^voidReturnType}}{{^return_is_this}}    {{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}this_val);{{/repress_stubs}}
 {{/C_and_Jerryscript_Types}}
     {{! if the return value is a string (or array of strings), we want
         to enter it into the Jerryscript environment _before_ we
@@ -239,12 +250,11 @@ declaration with an assignment from the stub }}
         {{/return_is_this}}
     {{/C_and_Jerryscript_Types}}
 {{! /repress_stubs}}
-} /* {{{name}}}_handler */
-
-    {{/operations}}
-
+} /* {{{interfaceName}}}_{{{operationName}}}_handler */
 
 {{/body}}
+	{{/inherited_operation}}
+    {{/operations}}
 
 {{#body}}
 static Interpreter_Type
@@ -257,7 +267,7 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
     not allowed to create a new one of these; for now, return the
     (single) global object instead of an error }}
 {{#NoInterfaceObject}}
-    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");
     Interpreter_Type global_object = jerry_get_global_object();
     /* THIS IS A nointerfaceobject, SO WE'RE RETURNING THE (SINGLE) GLOBAL
        INSTANCE */
@@ -272,27 +282,43 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
     {{#attributes}}
     if ((((signed int)args_cnt)-1) >= {{{attribute_index}}})
     {
-        Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
-        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, args_p[{{{attribute_index}}}]));
-        jerry_release_value({{{name}}}_prop_name);
+        Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
+        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, args_p[{{{attribute_index}}}]));
+        jerry_release_value({{{attributeName}}}_prop_name);
     }
     {{#C_and_Jerryscript_Types}}
       {{#is_interface}}
     else
     {
-        Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
-        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, create_empty_{{{C_Type}}}()));
-        jerry_release_value({{{name}}}_prop_name);
+        Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
+        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, create_empty_{{{C_Type}}}()));
+        jerry_release_value({{{attributeName}}}_prop_name);
 
     }
       {{/is_interface}}
     {{/C_and_Jerryscript_Types}}
 
     {{/attributes}}
+    {{! Note that we pushed the parents into the array as if it were a
+     	stack, so that children override parent methods (b/c they come
+	later when we walk through the array, and jerry_set_prototype
+	overwrites the old with the new) }}
+    {{! TODO: check to see if an actual prototype is returned from the
+        following call: }}
+    {{#prototype_chain}}
+    Interpreter_Type prototype_{{{parentName}}} = get_prototype((char *)"{{{parentName}}}");
+    jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
+					    prototype_{{{parentName}}}));
+    jerry_release_value(prototype_{{{parentName}}});
+    {{/prototype_chain}}
+
+    {{! ...and, of course, we overlay the current object's prototype
+        last so that its methods override all of its ancestors }}
     Interpreter_Type prototype = get_prototype((char *)"{{{interfaceName}}}");
     jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
 					    prototype));
     jerry_release_value(prototype);
+
 
     /* setup the Native_Object for the new object */
     Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}}_create();
@@ -300,7 +326,7 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
 
     return new_{{{interfaceName}}};
 {{/NoInterfaceObject}}
-} /* create_{{{name}}}_interface_handler */
+} /* create_{{{interfaceName}}}_interface_handler */
 
 {{/body}}
 /* we need this when we want to create a structure with the
@@ -323,7 +349,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {{#body}}
 {
     /* first, make sure that this prototype doesn't already exist */
-    Interpreter_Type existing_prototype = get_prototype((char *)"{{{name}}}");
+    Interpreter_Type existing_prototype = get_prototype((char *)"{{{interfaceName}}}");
     if (!jerry_value_has_error_flag(existing_prototype) &&
         !jerry_value_is_undefined(existing_prototype))
     {
@@ -342,10 +368,10 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     Interpreter_Type global_object = jerry_get_global_object();
 
     /* create a new object to hold all of the interface prototypes */
-    Interpreter_Type {{{name}}}_prototype_object = jerry_create_object();
+    Interpreter_Type {{{interfaceName}}}_prototype_object = jerry_create_object();
     {{#operations}}
     add_field_to_object({{{interfaceName}}}_prototype_object,
-                        "{{{name}}}", &{{{name}}}_handler);
+                        "{{{operationName}}}", &{{#inherited_operation}}{{{defining_interface}}}{{/inherited_operation}}{{^inherited_operation}}{{{interfaceName}}}{{/inherited_operation}}_{{{operationName}}}_handler);
     {{/operations}}
 
 {{! if it's specified as a NoInterfaceObject, then the object goes
@@ -354,24 +380,24 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {{#NoInterfaceObject}}
     /* setup the Native_Object for the new object */
     Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}}_create();
-    Native_Object_set(native_object, {{{name}}}_prototype_object, &{{{interfaceName}}}_checksum);
+    Native_Object_set(native_object, {{{interfaceName}}}_prototype_object, &{{{interfaceName}}}_checksum);
 
-    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");
     jerry_release_value(jerry_set_property(global_object,
 					   object_name,
-					   {{{name}}}_prototype_object));
+					   {{{interfaceName}}}_prototype_object));
 {{/NoInterfaceObject}}
 {{^NoInterfaceObject}}
-    register_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
+    register_prototype((char *)"{{{interfaceName}}}", {{{interfaceName}}}_prototype_object);
 {{/NoInterfaceObject}}
-    jerry_release_value({{{name}}}_prototype_object);
+    jerry_release_value({{{interfaceName}}}_prototype_object);
 
 {{^NoInterfaceObject}}
 {{! this sets up the ability to "new" the object, if it's not been specified
     as NoInterface or Return_from_require }}
 {{^is_module}}
-    add_field_to_object(global_object, "{{{name}}}",
-                        &create_{{{name}}}_interface_handler);
+    add_field_to_object(global_object, "{{{interfaceName}}}",
+                        &create_{{{interfaceName}}}_interface_handler);
 
 {{/is_module}}
 {{/NoInterfaceObject}}
@@ -387,6 +413,9 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {{#non_intrinsic_types}}
     initialize_{{{type_name}}}_();
 {{/non_intrinsic_types}}
+{{#prototype_chain}}
+    initialize_{{{parentName}}}_();
+{{/prototype_chain}}
 
 } /* initialize_{{{interfaceName}}}_ */
 {{/body}}
@@ -399,7 +428,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     and then just graft the methods onto it and return it }}
 {{#is_module}}
 {{#body}}
-static Interpreter_Type {{{name}}}_require_function_(void)
+static Interpreter_Type {{{interfaceName}}}_require_function_(void)
 {
     /* make sure that all of the types upon which this type depends
        have been initialized */
@@ -414,7 +443,7 @@ static Interpreter_Type {{{name}}}_require_function_(void)
 
     /* let the user set up the object and then map the operations onto it */
     Interpreter_Type new_{{{interfaceName}}} =
-                     interpreter_create_{{{name}}}(require_{{{name}}}_body());
+                     interpreter_create_{{{interfaceName}}}(require_{{{interfaceName}}}_body());
 
     Interpreter_Type prototype = get_prototype((char *)"{{{interfaceName}}}");
     jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
@@ -422,7 +451,7 @@ static Interpreter_Type {{{name}}}_require_function_(void)
     jerry_release_value(prototype);
    
     return new_{{{interfaceName}}};
-} /* {{{name}}}_require_function_ */
+} /* {{{interfaceName}}}_require_function_ */
 {{/body}}
 {{/is_module}}
 
@@ -437,50 +466,50 @@ static void register_initialize_{{{interfaceName}}}(void)
 
 {{#is_module}}
     /* ...supplied by webidl_utilities... */
-    register_require_function("{{{name}}}",
-    {{{name}}}_require_function_);
+    register_require_function("{{{interfaceName}}}",
+    {{{interfaceName}}}_require_function_);
 
 {{/is_module}}
 } /* register_initialize_{{{interfaceName}}} */
 {{/body}}
 {{! INTERFACE GETTER/SETTER: }}
-{{{name}}} interpreter_get_{{{name}}}_value(Interpreter_Type value){{#header}};{{/header}}
+{{{interfaceName}}} interpreter_get_{{{interfaceName}}}_value(Interpreter_Type value){{#header}};{{/header}}
 {{#body}}
 {
     Interpreter_Type object_value = jerry_value_to_object(value);
-    {{{name}}} return_struct;
+    {{{interfaceName}}} return_struct;
 
     {{#attributes}}
-    Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
-    Interpreter_Type {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
+    Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{attributeName}}}");
+    Interpreter_Type {{{attributeName}}}_value = jerry_get_property(object_value, {{{attributeName}}}_prop_name);
     {{#C_and_Jerryscript_Types}}
     {{! TODO: COMPARE THIS ASSIGNMENT TO c-templates.dictionary.mustache!!! }}
-    return_struct.{{{name}}} = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value({{{name}}}_value);
+    return_struct.{{{attributeName}}} = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value({{{attributeName}}}_value);
     {{/C_and_Jerryscript_Types}}
-    jerry_release_value({{{name}}}_prop_name);
-    jerry_release_value({{{name}}}_value);
+    jerry_release_value({{{attributeName}}}_value);
+    jerry_release_value({{{attributeName}}}_prop_name);
 
     {{/attributes}}
 
     {
 	jerry_error_t error_check;
-extern jerry_object_native_info_t {{{name}}}_checksum;
+extern jerry_object_native_info_t {{{interfaceName}}}_checksum;
        /* TODO: add error checking here (use
 	  GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR macro?) */
         return_struct.native_object = Native_Object_get(object_value,
-					&{{{name}}}_checksum,
+					&{{{interfaceName}}}_checksum,
 					&error_check);
     }
 
     jerry_release_value(object_value);
 
     return return_struct;
-} /* interpreter_get_{{{name}}}_value */
+} /* interpreter_get_{{{interfaceName}}}_value */
 
 {{/body}}
 /* like all the interpreter_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
-Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+Interpreter_Type interpreter_create_{{{interfaceName}}}({{{interfaceName}}} x){{#header}};{{/header}}
 {{#body}}
 {
     /* create an empty {{{interfaceName}}}... */
@@ -488,25 +517,25 @@ Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/heade
 
     /* ...fill it in... */
     {{#attributes}}
-    Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{attributeName}}}");
     {{#C_and_Jerryscript_Types}}
-    Interpreter_Type {{{name}}}_value = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
-    jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{name}}}_prop_name, {{{name}}}_value));
-    jerry_release_value({{{name}}}_value);
+    Interpreter_Type {{{attributeName}}}_value = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{attributeName}}});
+    jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, {{{attributeName}}}_value));
+    jerry_release_value({{{attributeName}}}_value);
     {{/C_and_Jerryscript_Types}}
-    jerry_release_value({{{name}}}_prop_name);
+    jerry_release_value({{{attributeName}}}_prop_name);
 
     {{/attributes}}
     /* ...and set the Native_Object field... */
-extern jerry_object_native_info_t {{{name}}}_checksum;
-    Native_Object_set(x.native_object, new_{{{interfaceName}}}, &{{{name}}}_checksum);
+extern jerry_object_native_info_t {{{interfaceName}}}_checksum;
+    Native_Object_set(x.native_object, new_{{{interfaceName}}}, &{{{interfaceName}}}_checksum);
 
     return new_{{{interfaceName}}};    
-} /* interpreter_create_{{{name}}} */
+} /* interpreter_create_{{{interfaceName}}} */
 {{/body}}
 {{#debug_printing}}
 void debug_print_{{{interfaceName}}} (char *variable_name,
-     				      {{{name}}} value,
+     				      {{{interfaceName}}} value,
 				      unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
@@ -525,7 +554,7 @@ void debug_print_{{{interfaceName}}} (char *variable_name,
    printf("%*sNO ATTRIBUTES TO PRINT\n", indentation+DEBUG_INDENTATION_WIDTH, "");
 {{/attributes.length}}
 {{#attributes}}
-        debug_print_{{{C_and_Jerryscript_Types.C_Type}}}("{{{name}}}", value.{{{name}}},
+        debug_print_{{{C_and_Jerryscript_Types.C_Type}}}("{{{attributeName}}}", value.{{{attributeName}}},
 	                         indentation+DEBUG_INDENTATION_WIDTH);
 {{/attributes}}
 

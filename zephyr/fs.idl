@@ -1,7 +1,27 @@
 // require returns a FS object
 // var fs = require('fs');
 
+dictionary file_descriptor
+{
+    long fd;
+}; // dictionary file_descriptor 
+
+[Return_from_require,  ExternalInterface=(buffer,Buffer)]
+interface fs {
+    file_descriptor openSync(string path, string mode);
+    void closeSync(file_descriptor fd);
+    void rmdirSync(string path);
+    long writeSync(file_descriptor fd, Buffer data, long offset, long length, optional long position);
+    long readSync(file_descriptor fd, Buffer data, long offset, long length, long position);
+    void truncateSync(string path, long length);
+    void mkdirSync(string path);
+    string[] readdirSync(string path);
+    Stat statSync(string path);
+    void writeFileSync(string file, Buffer data);
+}; // interface fs
+
+
 interface Stat {
     boolean isFile();
     boolean isDirectory();
-};
+}; // interface Stat

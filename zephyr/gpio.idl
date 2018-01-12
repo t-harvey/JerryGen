@@ -1,11 +1,13 @@
-[NoInterfaceObject]
+[Return_from_require]
 interface GPIO {
     GPIOPin open(GPIOInit init);
     Promise<GPIOPin> openAsync(GPIOInit init);
 };
 
 dictionary GPIOInit {
-    unsigned long pin;
+    unsigned long pin; // Zephyr has this as "number of string" --
+                       // but there is no "number" in WebIDL, and the
+                       // "or" construct doesn't appear to work in the parser
     boolean activeLow = false;
     string direction = "out";  // in, out
     string edge = "any";       // none, rising, falling, any

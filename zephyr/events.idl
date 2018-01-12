@@ -1,9 +1,11 @@
-callback ListenerCallback = void (any... x);
+// TODO: switch "long" to "any"
+callback ListenerCallback = void (long... x);
 
 interface EventEmitter {
     this on(string event, ListenerCallback... listener);
     this addListener(string event, ListenerCallback[]... listener);
-    boolean emit(string event, optional long arg1, any... rest);
+// TODO: switch "long" to "any"
+    boolean emit(string event, optional long arg1, long... rest);
     this removeListener(string event, ListenerCallback listener);
     this removeAllListeners(string event);
     string[] eventNames();

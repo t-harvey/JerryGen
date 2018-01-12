@@ -1,117 +1,14 @@
 // require returns an OCFObject
 // var ocf = require('ocf');
 
+[Return_from_require]
 interface OCFObject {
-    attribute Server server;         // OCF server object
+    attribute OCFServer server;         // OCF server object
     attribute Client client;         // OCF client object
     attribute Platform platform;     // OCF platform info
-    attribute Device device;          // OCF device info
+    attribute Device device;         // OCF device info
+    void start();
 };
-
-/* cribbed from zjs_ocf_server, from zephyr.js on github */
-dictionary Server {
-    unsigned long error_code;
-    oc_resource_t res;
-    string device_id;
-    string resource_path;
-    string resource_types;
-    string resource_ifaces;
-    octet num_types;
-    octet num_ifaces;
-    octet flags;
-}; /* Server */
-
-/***********************************************/
-/* cribbed from oc_ri.h in iotivity-constrained on github */
-/* note that "oc_resource_t" is just the name for an "oc_resource_s"
-   in that code... */
-
-enum oc_interface_mask_t {  "OC_IF_BASELINE",
-			    "OC_IF_LL",
-			    "OC_IF_B",
-			    "OC_IF_R",
-			    "OC_IF_RW",
-			    "OC_IF_A",
-			    "OC_IF_S"
-};
-
-enum oc_resource_properties_t {
-  "OC_DISCOVERABLE",
-  "OC_OBSERVABLE",
-  "OC_SECURE",
-  "OC_PERIODIC"
-};
-
-
-dictionary oc_request_t {
-    //oc_endpoint_t origin;
-    oc_resource_t resource;
-    string query;
-    long query_len;
-    oc_rep_t request_payload;
-    oc_response_t response;
-}; /* oc_request_t */
-
-callback oc_request_callback_t = void (oc_request_t request, oc_interface_mask_t mask, Buffer buffer);
-
-interface oc_request_handler_t {
-    attribute oc_request_callback_t cb;
-    attribute Buffer user_data;
-}; /* oc_request_handler_t */
-
-
-dictionary oc_rep_t {
-//  oc_rep_value_type_t type;
-//  /*oc_rep_t *next;*/
-//  oc_string_t name;
-//  union oc_rep_value
-//  {
-//    int integer;
-//    bool boolean;
-//    double double_p;
-//    oc_string_t string;
-//    oc_array_t array;
-//   struct oc_rep_s *object;
-//    struct oc_rep_s *object_array;
-//  } value;
-    long I_got_tired_of_chasing_defs;
-};
-
-
-dictionary oc_separate_response_t {
-    long id;
-};
-
-dictionary oc_response_buffer_t {
-    long id;
-};
-
-
-dictionary oc_response_t {
-  oc_separate_response_t separate_response;
-  oc_response_buffer_t response_buffer;
-};
-
-dictionary oc_resource_t {
-    /* oc_resource_t *next; --> I don't know how to do this in webidl */
-    string uri;
-    string[] types;
-    oc_interface_mask_t interfaces;
-    oc_interface_mask_t default_interface;
-    oc_resource_properties_t properties;
-    oc_request_handler_t get_handler;
-    oc_request_handler_t put_handler;
-    oc_request_handler_t post_handler;
-    oc_request_handler_t delete_handler;
-    unsigned short observe_period_seconds;
-    octet num_observers;
-}; /* oc_resource_t */
-
-/***********************************************/
-
-dictionary Client {
-    string id;
-}; /* Client */
 
 dictionary Platform {
     string id;
@@ -131,3 +28,117 @@ dictionary Device {
     string dataModels;
     string coreSpecVersion;
 };
+
+
+// OCF SERVER
+
+
+/* TODO: this originally included a type called "OCFResource", which isn't defined
+   anywhere -- I changed it to Resource, which is defined below */
+[ExternalInterface=(events, EventEmitter)]
+interface OCFServer: EventEmitter {
+    /* ORIGINAL: Promise<OCFResource> register(ResourceInit init);*/
+    Promise<Resource> register(ResourceInit init);
+}; /* OCFServer */
+
+dictionary ResourceInit {
+    string resourcePath;           // OCF resource path
+    string[] resourceTypes;        // List of resource types
+    string[] interfaces;           // List of interfaces for resource types
+    boolean discoverable;          // Is resource discoverable
+    boolean observable;            // Is resource observable
+    boolean secure;                // Is resource security enabled
+    boolean slow;                  // Is resource a slow reader
+    ResourceProperties properties; // Dictionary of resource properties
+};
+
+/* (unspecified in zephyr's webidl; added to make the idl compile) */
+dictionary ResourceProperties {
+}; /* ResourceProperties */
+
+interface Resource {
+    attribute string resourcePath;         // Path for this resource
+    attribute ResourceObject properties;   // Application specific resource properties
+};
+
+/* (this is undefined in zerphy's webidl; added to make the idl compile) */
+dictionary ResourceObject {
+}; /* ResourceObject */
+
+/* TODO: this originally included a type called "OCFResource", which isn't defined
+   anywhere -- I changed it to Resource, which is defined immediately above */
+interface Request {
+    /* ORIGIANL:
+       attribute OCFResource target;       // Target/destination resource
+       attribute OCFResource source;       // Source/origin resource
+    */
+    attribute Resource target;       // Target/destination resource
+    attribute Resource source;       // Source/origin resource
+    attribute ObjectData data;              // resource representation
+    Promise<void> respond(ObjectData data);
+};
+
+/* (this is undefined in zephyr's webidl; added to make the idl compile) */
+dictionary ObjectData {
+}; /* ObjectData */
+
+
+//OCF CLIENT
+
+[ExtenalInterface=(events,EventEmitter)]
+interface Client: EventEmitter {
+    Promise<Resource> findResources(ClientOptions options, optional FoundListener listener);
+    Promise<Resource> retrieve(string deviceId, ObjectOptions options);
+    Promise<Resource> update(Resource resource);
+    Promise<Platform> getPlatformInfo(string deviceId);
+    Promise<Device> getDeviceInfo(string deviceId);
+};
+
+dictionary ClientOptions {
+    string deviceId;
+    string resourceType;
+    string resourcePath;
+};
+
+/* in zephyr's WebIDL, the type of the "options" parameter in the retrieve operation
+   is object -- but look at the docs and the zephyr code show that this should be
+   a collection of flags that are, essentially, a subset of the ResourceInit dictionary */
+dictionary ObjectOptions {
+    boolean discoverable;          // Is resource discoverable
+    boolean observable;            // Is resource observable
+    boolean secure;                // Is resource security enabled
+    boolean slow;                  // Is resource a slow reader
+}; /* ObjectOptions */
+
+
+callback FoundListener = void (ClientResource x);
+
+
+
+/* cribbed from zjs_ocf_client, from zephyr.js on github */
+
+/* TODO: figure out what this type is supposed to be (esp. the
+   jerry_value_t's!) */
+dictionary ClientResource {
+    string device_id;
+    string resource_path;
+    string resource_type;
+    /* jerry_value_t types_array; */
+    /* jerry_value_t iface_array; */
+    /* oc_endpoint_t *endpoint; */  /* NOTE: this is not defined in
+                                        zephyr.js (it is referenced in
+                                        zjs_ocf_client.c, but "grep
+                                        -r" did not find its
+                                        definition) */
+    ResourceState state;
+    unsigned long flags;
+    unsigned long error_code;
+    ClientResource next;
+}; /* ClientResource */
+
+enum ResourceState {
+    "RES_STATE_SEARCHING",
+    "RES_STATE_FOUND"
+};
+
+

@@ -1,10 +1,10 @@
 
-[NoInterfaceObject]
+[NoInterfaceObject, Return_from_require]
 interface dgram {
     DgramSocket createSocket(string udp4_or_udp6);
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject,ExternalInterface=(buffer,Buffer)]
 interface DgramSocket {
     void on(string event, RecvCallback cb);
     void bind(long port, string ip_addr);
@@ -14,13 +14,13 @@ interface DgramSocket {
 
 dictionary Error {
     long error_code;
-}; /* Error dictionary; temporary, until I get the Error type implemented */
+}; /* TODO: temporary, until I get the Error type implemented */
 
 callback RecvCallback = void (Buffer msg, RemoteInfo rinfo);
 callback SendCallback = void (Error err);  // or undefined if no error
 
-
-callback EventCallback = void (any x);  // callback arg depends on event
+/* TODO: change the type of "x" to "any" (original zephyr says "various"(?) */
+callback EventCallback = void (long x);  // callback arg depends on event
 
 dictionary RemoteInfo {
     string ip_addr;

@@ -1,3 +1,4 @@
+[Return_from_require]
 interface Performance {
 static double now();
 }; /* Performance */

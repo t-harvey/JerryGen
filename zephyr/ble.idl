@@ -1,7 +1,7 @@
 // require returns a BLE object
 // var ble = require('ble');
 
-[NoInterfaceObject]
+[NoInterfaceObject, Return_from_require]
 interface BLE {
     void disconnect();
     void on(string eventType, EventCallback callback);
@@ -14,7 +14,8 @@ interface BLE {
     Descriptor Descriptor(DescriptorInit init);
 };
 
-callback EventCallback = void (any x);  // callback arg depends on event
+// TODO: the argument type should be "any"...
+callback EventCallback = void (long x);  // callback arg depends on event
 
 dictionary PrimaryServiceInit {
     string uuid;
@@ -48,6 +49,7 @@ dictionary CharacteristicInit {
 callback NotifyCallback = void ();
 callback UnsubscribeCallback = void ();
 callback ReadCallback = void (unsigned long offset, FulfillReadCallback x);
+[ExternalInterface=(buffer, Buffer)]
 callback WriteCallback = void (Buffer data, unsigned long offset, boolean withoutResponse, FulfillWriteCallback x);
 callback SubscribeCallback = void (unsigned long maxValueSize,
                                    FulfillSubscribeCallback x);

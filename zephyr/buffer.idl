@@ -1,9 +1,14 @@
 // Buffer is a global object constructor that is always available
-// TJH: changed "char" to "long"
+// in WebIDL, "char" == "byte", whereas "unsigned char" == "octet"
 
+// Note that we ignore the"Constructor" external attribute; what it
+// means, here, is that when the user "new"s a Buffer, he must give
+// a length argument (normally, passing in attribute settings to the
+//constructor is fully optional)
+[Constructor(unsigned long length)]
 interface Buffer {
-    unsigned long readUInt8(unsigned long offset);
-    void writeUInt8(unsigned long value, unsigned long offset);
+    octet readUInt8(unsigned long offset);
+    void writeUInt8(octet value, unsigned long offset);
     unsigned short readUInt16BE(unsigned long offset);
     void writeUInt16BE(unsigned short value, unsigned long offset);
     unsigned short readUInt16LE(unsigned long offset);

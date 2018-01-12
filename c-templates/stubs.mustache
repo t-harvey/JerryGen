@@ -8,6 +8,7 @@
 #ifndef {{{interfaceName}}}_STUBS_HEADER_FILE
 #define {{{interfaceName}}}_STUBS_HEADER_FILE 1
 #include "{{{utilities_filename}}}.h"
+#include "{{{interfaceName}}}.h"
 {{/header}}
 {{#body}}
 #include "{{{interfaceName}}}_stubs.h"
@@ -105,7 +106,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {{/body}}
 {{/is_module}}
 {{#operations}}
-{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{name}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{#C_and_Jerryscript_Types}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type this_val){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type this_val){{#header}};{{/header}}
 {{#body}}
 {
     {{#arguments}}
@@ -121,22 +122,53 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 
 {{#debug_printing}}
 #ifdef DEBUG_PRINTING
-   printf("\nPARAMETERS TO CALL: {{{name}}}:\n");
-{{#arguments}}
+{{#arguments.length}}
+   printf("PARAMETERS TO \"{{{operationName}}}\" :\n");
+ {{#arguments}}
 	{{! TODO: VARIADIC AND ARRAY PARAMETER PRINTING! }}
         {{^variadic}}{{^is_array}}
    	     {{#C_and_Jerryscript_Types}}
     debug_print_{{{C_Type}}}("{{{name}}}", {{{name}}}, DEBUG_INDENTATION_WIDTH);
              {{/C_and_Jerryscript_Types}}	
         {{/is_array}}{{/variadic}}
-{{/arguments}}
+ {{/arguments}}
+{{/arguments.length}}
+{{^arguments.length}}
+   printf("\tThe function \"{{{operationName}}}\" takes no parameters.\n");
+{{/arguments.length}}
 #endif /* DEBUG_PRINTING */
 
 {{/debug_printing}}
     /* USER CODE GOES HERE */
 
-    {{! TODO: do we need to undo the #defines for callbacks? }}
-}; /* {{{interfaceName}}}_{{{name}}}_body */
+{{#debug_printing}}
+{{#C_and_Jerryscript_Types}}
+{{^voidReturnType}}
+{{#return_is_this}} {{! CAN A STUB EVER RETURN "this"?!? -- NO; IT'S A
+		        VOID RETURN TYPE... }}
+    /*return this_val;*/
+{{/return_is_this}}
+{{^return_is_this}}
+#ifdef DEBUG_PRINTING
+    /* CAUTION: this is undefined; it is used to allow us to compile the code
+       without warnings */
+    {{{C_and_Jerryscript_Types.C_Type}}} undefined_return_value;
+    return undefined_return_value;
+#endif /* DEBUG_PRINTING */
+{{/return_is_this}}
+{{/voidReturnType}}
+{{/C_and_Jerryscript_Types}}
+{{/debug_printing}}
+    {{! we need to undo the #defines for callbacks }}
+
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+	{{#callback}}
+#undef {{{name}}}
+	{{/callback}}
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+}; /* {{{interfaceName}}}_{{{operationName}}}_body */
 
 {{/body}}
 {{/operations}}

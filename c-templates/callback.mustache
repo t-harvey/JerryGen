@@ -35,12 +35,11 @@
     
     
 }}
+{{#callbacks}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{#header}}
-{{#callbacks}}
 #ifndef {{{callbackName}}}_H_
 #define {{{callbackName}}}_H_
-{{/callbacks}}
 {{/header}}
 
 /* these are included to simplify the generator. Remove if not needed.*/
@@ -52,22 +51,17 @@
 
 {{#header}}
 #include "{{{utilities_filename}}}.h"
-{{#callbacks}}
 {{#externalTypes}}
 #include "{{{package}}}/{{{type}}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
 #include "{{{type_name}}}.h"
 {{/non_intrinsic_types}}
-{{/callbacks}}
 {{/header}}
 {{#body}}
-{{#callbacks}}
 #include "{{{callbackName}}}.h"
-{{/callbacks}}
 {{/body}}
 
-{{#callbacks}}
 {{#header}}
 typedef Interpreter_Type {{{callbackName}}};
 /* this is the type signature of functions that can be assigned
@@ -75,8 +69,6 @@ typedef Interpreter_Type {{{callbackName}}};
 typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
 
 {{/header}}
-{{/callbacks}}
-{{#callbacks}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for callbacks, we just return
    a NULL pointer */
@@ -86,8 +78,7 @@ typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callb
     return jerry_create_undefined();
 } /* {{{callbackName}}}_constructor */
 {{/body}}
-{{/callbacks}}
-{{#callbacks}}
+
 {{#body}}
 static Interpreter_Type
 run_{{{callbackName}}}_function_handler(
@@ -170,8 +161,7 @@ put out the declaration with an assignment from "run" routine }}
 } /* run_{{{callbackName}}}_function_handler */
 
 {{/body}}
-{{/callbacks}}
-{{#callbacks}}
+
 {{! TODO: WE (CURRENTLY) IGNORE ARRAYS OF CALLBACKS!!! }}
 {{{callbackName}}}
 interpreter_get_{{{callbackName}}}_value(Interpreter_Type value){{#header}};{{/header}}
@@ -206,20 +196,18 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value){{#header}};{{/h
     Native_Object_set(callback_function, new_function, &checksum);
 
     return new_function;
-} /* interpreter_convert_C_function_to_{{{name}}} */
+} /* interpreter_convert_C_function_to_{{{callbackName}}} */
 
 {{/body}}
 /* the create function for callbacks is just the identity, since we
    pass them around as Interpreter_Type's */
-{{{callbackName}}} interpreter_create_{{{name}}}({{{callbackName}}} callback_function){{#header}};{{/header}}
+{{{callbackName}}} interpreter_create_{{{callbackName}}}({{{callbackName}}} callback_function){{#header}};{{/header}}
 {{#body}}
 {
      return callback_function;
-} /* interpreter_create_{{{name}}} */
+} /* interpreter_create_{{{callbackName}}} */
 {{/body}}
 
-{{/callbacks}}
-{{#callbacks}}
 {{#body}}
 /* we'll use these wrapper functions to marshal the parameters for
    the function and then call the function through the interpreter */
@@ -256,7 +244,7 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value){{#header}};{{/h
 	   convert all of the passed-in parameters to Interpreter_Type's and
     	   make the call */
 {{#arguments}}{{#C_and_Jerryscript_Types}}
-        Interpreter_Type {{{name}}}_value = interpreter_create_{{{Jerryscript_Type}}}({{{name}}});
+        Interpreter_Type {{{name}}}_value = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}{{{name}}});
 {{/C_and_Jerryscript_Types}}{{/arguments}}
 
         Interpreter_Type argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
@@ -274,9 +262,6 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value){{#header}};{{/h
 } /* run_{{{callbackName}}}_function */
 {{/body}}
 
-{{/callbacks}}
-{{#callbacks}}
-
 void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
 {{#body}}
 {
@@ -289,7 +274,7 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
 
     /* first, check to see if the prototype object exists for this
        callback; if so, just return */
-    Interpreter_Type prototype = get_prototype((char *)"{{{name}}}");
+    Interpreter_Type prototype = get_prototype((char *)"{{{callbackName}}}");
     if (!jerry_value_has_error_flag(prototype) &&
         !jerry_value_is_undefined(prototype))
     {
@@ -298,14 +283,14 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
     }
 
     /* create the prototype object */
-    Interpreter_Type {{{name}}}_prototype_object = jerry_create_object();
+    Interpreter_Type {{{callbackName}}}_prototype_object = jerry_create_object();
 
     /* store the prototype in the global prototypes holder */
     Interpreter_Type global_object = jerry_get_global_object();
-    register_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
+    register_prototype((char *)"{{{callbackName}}}", {{{callbackName}}}_prototype_object);
 
     jerry_release_value(global_object);
-    jerry_release_value({{{name}}}_prototype_object);
+    jerry_release_value({{{callbackName}}}_prototype_object);
 
     /* finally, make sure that all of the types upon which the callback
        depends have been loaded; note that if there's a cycle,
@@ -333,7 +318,7 @@ static void register_initialize_{{{callbackName}}}(void)
 {{/body}}
 {{#debug_printing}}
 void debug_print_{{{callbackName}}} (char *variable_name,
-     				      {{{name}}} value,
+     				      {{{callbackName}}} value,
 				      unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
@@ -354,11 +339,9 @@ void debug_print_{{{callbackName}}} (char *variable_name,
 } /* debug_print_{{{callbackName}}} */
 {{/body}}
 {{/debug_printing}}
-{{/callbacks}}
 
 {{#header}}
-{{#callbacks}}
 #endif /* {{{callbackName}}}_H_ */
-{{/callbacks}}
 {{/header}}
+{{/callbacks}}
 {{/OBEYFORMATTING}}

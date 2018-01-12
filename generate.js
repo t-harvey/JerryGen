@@ -20,6 +20,7 @@ var augAST = new AugmentedAST(parsed_file,
 			      parameters.fix_type_errors, parameters.package);
 
 augAST.utilities_filename = "webidl_compiler_utilities";
+augAST.debug_printing     = (parameters.debug_printing === "on");
 
 // NOTE: THIS COMMENT WAS IN THE ORIGINAL CODE; IT SEEMS LIKE A GOOD IDEA(?)
 // TODO, use cross-platform paths (using '/' is bad...)
@@ -78,6 +79,21 @@ catch(error_code)
     {
         parameters.print_usage_message();
     }
+    /* TODO: make actual error codes from AugmentedAST */
+    else if (error_code.message==AugmentedAST.error_codes.external_inheritance)
+    {
+	console.log("ERROR: the interface \"" + error_code.parent_name + "\" has to be included in this file for the object \"" + error_code.object_name + "\" to inherit from it.");
+    }
+    else if (error_code.message == AugmentedAST.error_codes.duplicate_names)
+    {
+	var messages = error_code.messages;
+	var verb = (messages.length === 1)?"is":"are";
+
+	var plural = (parameters.files.length > 1)?"s":"";
+	console.log("ERROR: duplicate names in the input file" + plural + ":");
+	for(var i = 0; i < messages.length; i++)
+	    console.log("\t" + messages[i]);
+    }
     else
     {
 	if (error_code.message === undefined)
@@ -93,4 +109,5 @@ catch(error_code)
 			    "< at line: " + error_code.line);
 	}
     }
+    process.exit(1);
 } /* try-catch block */

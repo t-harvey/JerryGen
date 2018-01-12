@@ -12,7 +12,7 @@ interface Sensor {
 };
 
 dictionary SensorOptions {
-    double frequency;  // desire frequency, default is 20 if unset
+    double frequency = 20.0;  // desire frequency, default is 20 if unset
 };
 
 enum SensorState {
@@ -23,9 +23,10 @@ enum SensorState {
     "errored"
 };
 
+/* TODO: we do not yet have implemented the Error type */
 dictionary Error {
     long error_code;
-}; /* Error dictionary; temporary, until I get the Error type implemented */
+}; /* Error dictionary */
 
 interface SensorErrorEvent {
     attribute Error error;
@@ -34,8 +35,10 @@ interface SensorErrorEvent {
 callback ChangeCallback = void();
 callback ActivateCallback = void();
 callback ErrorCallback = void(SensorErrorEvent error);
+
 //####Accelerometer Interface
 
+// TODO: handle constructors (?)
 [Constructor(optional AccelerometerOptions accelerometerOptions)]
 interface Accelerometer : Sensor {
     attribute boolean includesGravity;
@@ -45,9 +48,10 @@ interface Accelerometer : Sensor {
 };
 
 dictionary AccelerometerOptions : SensorOptions  {
-    string controller;       // controller name, default to "bmi160"
-    boolean includeGravity;  // not supported currently
+    string controller = "bmi160";       // controller name, default to "bmi160"
 };
+
+
 //####GyroscopeSensor Interface
 
 [Constructor(optional SensorOptions sensorOptions)]
@@ -58,8 +62,10 @@ interface GyroscopeSensor : Sensor {
 };
 
 dictionary GyroscopeOptions : SensorOptions  {
-    string controller;  // controller name, default to "bmi160"
+    string controller = "bmi160";  // controller name, default to "bmi160"
 };
+
+
 //####AmbientLightSensor Interface
 
 [Constructor(optional SensorOptions sensorOptions)]
@@ -69,9 +75,10 @@ interface AmbientLightSensor : Sensor {
 };
 
 dictionary AmbientLightSensorOptions : SensorOptions  {
-    string controller;  // controller name, default to "ADC_0"
+    string controller = "ADC_0";  // controller name, default to "ADC_0"
     unsigned long pin;  // analog pin where the light is connected
 };
+
 //####TemperatureSensor Interface
 
 [Constructor(optional SensorOptions sensorOptions)]
@@ -80,5 +87,5 @@ interface TemperatureSensor : Sensor {
 };
 
 dictionary TemperatureSensorOptions : SensorOptions  {
-    string controller;  // controller name, default to "bmi160"
+    string controller = "bmi160";  // controller name, default to "bmi160"
 };

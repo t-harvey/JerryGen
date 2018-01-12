@@ -43,6 +43,8 @@ module.exports.getContext = function(ast, moduleName){
 
     externalTypes: ast.getExternalTypesArray(),
 
+    prototype_chain: ast.prototype_chain,
+
     uses_any_type: ast.uses_any_type,
     any_type_list: ast.get_any_type_list(),  
 

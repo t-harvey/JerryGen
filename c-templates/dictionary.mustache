@@ -2,11 +2,10 @@
 {{! This one .mustache file is used to create both the .h and the .c
     *_Types files -- look for the "body" and "header" markers }}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
-{{#header}}
 {{#dictionaries}}
+{{#header}}
 #ifndef {{{dictionaryName}}}_H_
 #define {{{dictionaryName}}}_H_
-{{/dictionaries}}
 {{/header}}
 
 /* these are included to simplify the generator. Remove if not needed.*/
@@ -26,13 +25,10 @@
 {{/header}}
 {{#body}}
 #include "{{{utilities_filename}}}.h"
-{{#dictionaries}}
 #include "{{{dictionaryName}}}.h"
-{{/dictionaries}}
 {{/body}}
 
 {{#header}}
-{{#dictionaries}}
 typedef struct {
 	{{#members}}
     {{#C_and_Jerryscript_Types}}
@@ -40,10 +36,8 @@ typedef struct {
     {{/C_and_Jerryscript_Types}}
 	{{/members}}
 } {{name}};
-{{/dictionaries}}
 {{/header}}
 
-{{#dictionaries}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
 {{{dictionaryName}}} {{{dictionaryName}}}_constructor(void){{#header}};{{/header}}
@@ -63,9 +57,7 @@ typedef struct {
     return new_{{{dictionaryName}}};
 } /* {{{dictionaryName}}}_constructor */
 {{/body}}
-{{/dictionaries}}
 
-{{#dictionaries}}
 {{! really, these functions should be named "get_..._struct" rather
     than "get_..._value" -- but b/c Jerryscript already has get_*_value
     for all of the builtin types, it's easier to follow that naming
@@ -139,9 +131,7 @@ Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/heade
 } /* interpreter_create_{{{name}}} */
 
 {{/body}}
-{{/dictionaries}}
 
-{{#dictionaries}}
 {{#body}}
 static Interpreter_Type
 create_{{{name}}}_dictionary_handler(const Interpreter_Type func_value,
@@ -260,11 +250,9 @@ void debug_print_{{{dictionaryName}}} (char *variable_name,
 {{/body}}
 {{/debug_printing}}
 
-{{/dictionaries}}
 {{#header}}
 
-{{#dictionaries}}
 #endif /* {{{dictionaryName}}}_H_ */
-{{/dictionaries}}
 {{/header}}
+{{/dictionaries}}
 {{/OBEYFORMATTING}}

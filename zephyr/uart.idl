@@ -3,6 +3,11 @@
 
 enum UARTParity { "none", "event", "odd" };
 
+[Return_from_require]
+interface UART {
+    UARTConnection init(UARTOptions options);
+};
+
 dictionary UARTOptions {
     string port;
     // number baud = 115200;
@@ -12,7 +17,7 @@ dictionary UARTOptions {
     // boolean flowControl = false;
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, ExternalInterface=(buffer, Buffer)]
 interface UARTConnection {
     Promise<void> init(UARTOptions options);
     // void close();

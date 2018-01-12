@@ -1,7 +1,7 @@
 // require returns an AIO object
 // var aio = require('aio');
 
-[NoInterfaceObject]
+[Return_from_require]
 interface AIO {
     AIOPin open(AIOInit init);
 };
