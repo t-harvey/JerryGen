@@ -1,0 +1,14 @@
+// require returns a Net object
+// var net_cfg = require('netconfig');
+
+[Return_from_require, ExternalInterface=(events,EventEmitter)]
+interface NetConfig: EventEmitter {
+    // set a static IP
+    boolean setStaticIP(string ip);
+    // start DHCP
+    void dhcp(DHCPCallback callback);
+    // set the BLE MAC address
+    void setBleAddress(string address);
+};
+
+callback DHCPCallback = void (string address, string subnet, string gateway);

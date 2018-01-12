@@ -1,0 +1,27 @@
+// require returns a WebSocket object
+// var ws = require('ws');
+
+[Return_from_require]
+interface WebSocket {
+    WebSocketServer Server(OptionsObject options);
+};
+
+[ExternalInterface=(events, EventEmitter)]
+interface WebSocketServer: EventEmitter {};
+
+[ExternalInterface=(buffer, Buffer)]
+interface WebSocketConnection: EventEmitter {
+    // WebSocketConnection methods
+    void send(Buffer data, boolean mask);
+    void ping(Buffer data, boolean mask);
+    void pong(Buffer data, boolean mask);
+};
+
+dictionary OptionsObject {
+    long port;               // Port to bind to
+    long backlog;            // Max number of concurrent connections
+    boolean clientTracking;  // enable client tracking
+    long maxPayload;         // set the max payload bytes per message
+    // TODO: make this an array of strings:
+    string acceptHandler;    // handler to call to accept/deny connections
+}; /* OptionsObject */

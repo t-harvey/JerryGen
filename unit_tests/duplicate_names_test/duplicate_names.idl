@@ -1,0 +1,205 @@
+// a callback with no name conflicts (should produce no errors)
+callback unique_callback_name = void (long arg1, double arg2);
+
+// a dictionary with no name conflicts (should produce no errors)
+dictionary unique_dictionary_name { long field1; double field2; };
+
+// an interface with no name conflicts (should produce no errors)
+interface unique_interface_name {
+    attribute double attribute1;
+     long operation1(long arg1, double arg2);
+    attribute double attribute2;
+     long operation2(long arg1, double arg2);
+}; // unique_interface_name
+
+// two callbacks that share the same name (notice that the argument
+// lists contain similar names, but that's not a conflict)
+callback test02 = void (long arg1, double arg2);
+callback test02 = void (long arg1, double arg2);
+
+// a callback with duplicate argument names
+callback test03 = void (long arg1, double arg2, string arg1, long arg2);
+
+// a callback and a dictionary with the same name
+callback test04 = void (long arg1, double arg2);
+dictionary    test04 { long field1;};
+
+//a callback and an interface with the same name
+callback test05 = void (long arg1, double arg2);
+interface     test05 { attribute long attribute1;};
+
+//a dictionary and an interface with the same name
+dictionary test06 { long field1;};
+interface  test06 { attribute long attribute1;};
+
+// a callback, dictionary, and interface with the same name
+callback   test07 = void (long arg1, double arg2);
+dictionary test07 { long field1;};
+interface  test07 { attribute long attribute1;};
+
+// a dictionary with duplicate field names
+dictionary test08 {long field1; double field2; string field1; double field2; };
+
+// an interface with duplicate attribute names
+interface test09 {
+    attribute double attribute1;
+     long operation1(long arg1, double arg2);
+    attribute double attribute1;
+     long operation2(long arg1, double arg2);
+}; // test09
+
+// an interface with duplicate operation names
+interface test10 {
+    attribute double attribute1;
+     long operation1(long arg1, double arg2);
+    attribute double attribute2;
+     long operation1(long arg1, double arg2);
+}; // test10
+
+// an interface with duplicate attribute/operation names
+interface test11 {
+    attribute double attribute1;
+     long operation1(long arg1, double arg2);
+    attribute double attribute2;
+     long attribute1(long arg1, double arg2);
+}; // test11
+
+// an interface with an operation with duplicate argument names
+interface test12 {
+    attribute double attribute1;
+     long operation1(long arg1, double arg2);
+    attribute double attribute2;
+     long operation2(long arg1, double arg1);
+}; // test12
+
+
+// the user deserves to be shot
+interface test13 {
+    attribute double F;
+    long             F (long N, double N, long N, double N);
+    attribute double F;
+    long             F (long N, double N, long N, double N);
+    attribute double F;
+    long             F (long N, double N, long N, double N);
+    attribute double F;
+    long             F (long N, double N, long N, double N);
+    attribute double F;
+    long             F (long N, double N, long N, double N);
+    attribute double F;
+    long             F (long N, double N, long N, double N);
+}; // test13
+
+
+// to test the sentence that describes name duplicates between WebIDL
+// constructs: for each of the three constructs, there are three values
+// we care about: none, one, and more-than-one; 
+
+// three callbacks
+callback   duptest01 = void (long arg1, double arg2);
+callback   duptest01 = void (long arg1, double arg2);
+callback   duptest01 = void (long arg1, double arg2);
+
+// three dictionaries
+dictionary duptest02 { long field1; };
+dictionary duptest02 { long field1; };
+dictionary duptest02 { long field1; };
+
+// three interfaces
+interface  duptest03 { attribute double F; }; 
+interface  duptest03 { attribute double F; }; 
+interface  duptest03 { attribute double F; }; 
+
+// one callback and one dictionary
+callback   duptest04 = void (long arg1, double arg2);
+dictionary duptest04 { long field1; };
+
+// one callback and one interface
+callback   duptest05 = void (long arg1, double arg2);
+interface  duptest05 { attribute double F; }; 
+
+// one dictionary and one interface
+dictionary duptest06 { long field1; };
+interface  duptest06 { attribute double F; }; 
+
+// two callbacks and one dictionary
+callback   duptest07 = void (long arg1, double arg2);
+callback   duptest07 = void (long arg1, double arg2);
+dictionary duptest07 { long field1; };
+
+// two callbacks and one interface
+callback   duptest08 = void (long arg1, double arg2);
+callback   duptest08 = void (long arg1, double arg2);
+interface  duptest08 { attribute double F; }; 
+
+// two dictionaries and one interface
+dictionary duptest09 { long field1; };
+dictionary duptest09 { long field1; };
+interface  duptest09 { attribute double F; }; 
+
+// one callback and two dictionaries
+callback   duptest10 = void (long arg1, double arg2);
+dictionary duptest10 { long field1; };
+dictionary duptest10 { long field1; };
+
+// one callback and two interfaces
+callback   duptest11 = void (long arg1, double arg2);
+interface  duptest11 { attribute double F; }; 
+interface  duptest11 { attribute double F; }; 
+
+// one dictionary and two interfaces
+dictionary duptest12 { long field1; };
+interface  duptest12 { attribute double F; }; 
+interface  duptest12 { attribute double F; }; 
+
+// one callback, one dictionary, and one interface
+callback   duptest13 = void (long arg1, double arg2);
+dictionary duptest13 { long field1; };
+interface  duptest13 { attribute double F; }; 
+
+// one callback, one dictionary, and two interfaces
+callback   duptest14 = void (long arg1, double arg2);
+dictionary duptest14 { long field1; };
+interface  duptest14 { attribute double F; }; 
+interface  duptest14 { attribute double F; }; 
+
+// one callback, two dictionaries, and one interface
+callback   duptest15 = void (long arg1, double arg2);
+dictionary duptest15 { long field1; };
+dictionary duptest15 { long field1; };
+interface  duptest15 { attribute double F; }; 
+
+// one callback, two dictionaries, and two interfaces
+callback   duptest16 = void (long arg1, double arg2);
+dictionary duptest16 { long field1; };
+dictionary duptest16 { long field1; };
+interface  duptest16 { attribute double F; }; 
+interface  duptest16 { attribute double F; }; 
+
+// two callbacks, one dictionary, and one interface
+callback   duptest17 = void (long arg1, double arg2);
+callback   duptest17 = void (long arg1, double arg2);
+dictionary duptest17 { long field1; };
+interface  duptest17 { attribute double F; }; 
+
+// two callbacks, one dictionary, and two interfaces
+callback   duptest18 = void (long arg1, double arg2);
+callback   duptest18 = void (long arg1, double arg2);
+dictionary duptest18 { long field1; };
+interface  duptest18 { attribute double F; }; 
+interface  duptest18 { attribute double F; }; 
+
+// two callbacks, two dictionaries, and one interface
+callback   duptest19 = void (long arg1, double arg2);
+callback   duptest19 = void (long arg1, double arg2);
+dictionary duptest19 { long field1; };
+dictionary duptest19 { long field1; };
+interface  duptest19 { attribute double F; }; 
+
+// two callbacks, two dictionaries, and two interfaces
+callback   duptest20 = void (long arg1, double arg2);
+callback   duptest20 = void (long arg1, double arg2);
+dictionary duptest20 { long field1; };
+dictionary duptest20 { long field1; };
+interface  duptest20 { attribute double F; }; 
+interface  duptest20 { attribute double F; }; 
+

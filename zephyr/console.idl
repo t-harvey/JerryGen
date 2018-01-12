@@ -1,0 +1,15 @@
+// require returns a Console object
+// var console = require('console');
+
+// TODO: Note that we don't recognize optional parameters; all parameters
+// are necessary
+[Return_from_require]
+interface Console {
+    void assert(boolean value, optional string message);
+    void error(optional string data);
+    void warn(optional string data);
+    void log(optional string data);
+    void info(optional string data);
+    void time(string label);
+    void timeEnd(string label);
+}; // Console interface
