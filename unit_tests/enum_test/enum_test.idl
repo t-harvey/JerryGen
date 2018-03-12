@@ -1,0 +1,16 @@
+enum values {"ENUM_ONE",
+	     "ENUM_TWO",
+	     "ENUM_THREE",
+	     "ENUM_FOUR",
+	     "ENUM_FIVE",
+	     "ENUM_SIX"
+}; /* values enum */
+
+dictionary enum_holder {
+    values enum_value;
+}; /* enum_holder dictionary */
+
+
+interface enum_printer {
+    void debug_print_it(enum_holder x);
+}; /* enum_printer interface */

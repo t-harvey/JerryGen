@@ -1,3 +1,25 @@
+{{! Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+}}
+
+{{! Mustache doesn't understand how to transfer blank lines from this
+    script file to the output file unless those blank lines are within
+    a #<name> construct, so we wrap this entire script with a name
+    that shouldn't(?)(!) be in the input file }}
 {{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .c and the .h
     *_Types files -- look for the "body" and "header" markers }}
@@ -21,7 +43,94 @@
 {{#header}}
 typedef char * string;
 typedef jerry_value_t Interpreter_Type;
+typedef enum {BOOLEAN = 0, INT8, INT16, UINT16, INT32, UINT32,
+	                 INT64, UINT64, FLOAT, DOUBLE, STRING} Union_Type;
+typedef struct
+{
+    Union_Type      union_type; /* describes the type */
+    union {
+	bool     Boolean;
+	int8_t   Int8;
+	int16_t  Int16;
+	uint16_t Uint16;
+	int32_t  Int32;
+	uint32_t Uint32;
+	int64_t  Int64;
+	uint64_t Uint64;
+	float    Float;
+	double   Double;
+	string   String;
+    } value;
+} Union_Type_For_Any;
+{{/header}}
+/* NOTE: Jerryscript only has three types that "value" can be: string,
+   boolean, or number (double) ... */
+Union_Type_For_Any interpreter_get_Union_Type_For_Any_value(Interpreter_Type value){{#header}};{{/header}}
+{{#body}}
+{
+    Union_Type_For_Any return_value;
 
+    if (jerry_value_is_number(value))
+    {
+	return_value.union_type = DOUBLE;
+	return_value.value.Double = jerry_get_number_value(value);
+    }
+    else if (jerry_value_is_boolean(value))
+    {
+	return_value.union_type = BOOLEAN;
+	return_value.value.Boolean = jerry_get_boolean_value(value);
+    }
+    else if (jerry_value_is_string(value))
+    {
+	return_value.union_type = STRING;
+	return_value.value.String = interpreter_get_string_value(value);
+    }
+    else /* ERROR!  TODO: do something here... */
+	;
+
+    return return_value;
+} /* interpreter_get_Union_Type_For_Any */
+{{/body}}
+Interpreter_Type interpreter_create_any(Union_Type_For_Any any_value){{#header}};{{/header}}
+{{#body}}
+{
+    if (any_value.union_type == BOOLEAN)
+	return interpreter_create_boolean(any_value.value.Boolean);
+    else if (any_value.union_type == STRING)
+	return interpreter_create_string(
+				 (const jerry_char_t *)any_value.value.String);
+    else /* one of the number types */
+    {
+	switch(any_value.union_type)
+	{
+	    case INT8:
+		return interpreter_create_number(any_value.value.Int8);
+	    case INT16:
+		return interpreter_create_number(any_value.value.Int16);
+	    case UINT16:
+		return interpreter_create_number(any_value.value.Uint16);
+	    case INT32:
+		return interpreter_create_number(any_value.value.Int32);
+	    case UINT32:
+		return interpreter_create_number(any_value.value.Uint32);
+	    case INT64:
+		return interpreter_create_number(any_value.value.Int64);
+	    case UINT64:
+		return interpreter_create_number(any_value.value.Uint64);
+	    case FLOAT:
+		return interpreter_create_number(any_value.value.Float);
+	    case DOUBLE:
+		return interpreter_create_number(any_value.value.Double);
+
+	    default: /* ERROR!  TODO: maybe report to the user? */
+		/* abort(); */
+		return interpreter_create_undefined();
+	}
+    }
+} /* interpreter_create_any */
+{{/body}}
+
+{{#header}}
 /* calls to functions residing in the Javascript environment require
    extra context; from the C-programmer's point of view, callbacks
    can be thought of as _being_ this context -- for example, when
@@ -78,7 +187,7 @@ typedef Interpreter_Type (*Module_Creation_Function)(void);
 {{/header}}
 {{#body}}
 
-/* WebIDL constructs that have the "Return_from_require" external
+/* WebIDL constructs that have the "ReturnFromRequire" external
    attribute set cannot be created by "new", but, rather, are the values
    returned from a call to "require" (we define that function, below); we
    store a mapping of the name given to "require" and the function that
@@ -200,7 +309,6 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_create_null      jerry_create_null
 #define interpreter_create_string    jerry_create_string
 #define interpreter_create_undefined jerry_create_undefined
-
 
 #ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
 #define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
@@ -560,6 +668,47 @@ void debug_print_object_fields(Interpreter_Type thing){{#header}};{{/header}}
     jerry_release_value(prop_name);
     jerry_release_value(global_object);
 } /* debug_print_object_fields */
+{{/body}}
+void debug_print_Union_Type_For_Any(char *variable_name, Union_Type_For_Any value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    switch(value.union_type)
+    {
+	case BOOLEAN:
+	   debug_print_bool(variable_name, value.value.Boolean, indentation);
+	   break;
+	case INT8:
+	   debug_print_int8_t(variable_name, value.value.Int8, indentation);
+	   break;
+	case INT16:
+	   debug_print_int16_t(variable_name, value.value.Int16, indentation);
+	   break;
+	case UINT16:
+	   debug_print_uint16_t(variable_name, value.value.Uint16, indentation);
+	   break;
+	case INT32:
+	   debug_print_int32_t(variable_name, value.value.Int32, indentation);
+	   break;
+	case UINT32:
+	   debug_print_uint32_t(variable_name, value.value.Uint32, indentation);
+	   break;
+	case INT64:
+	   debug_print_int64_t(variable_name, value.value.Int64, indentation);
+	   break;
+	case UINT64:
+	   debug_print_uint64_t(variable_name, value.value.Uint64, indentation);
+	   break;
+	case FLOAT:
+	   debug_print_float(variable_name, value.value.Float, indentation);
+	   break;
+	case DOUBLE:
+	   debug_print_double(variable_name, value.value.Double, indentation);
+	   break;
+	case STRING:
+	   debug_print_string(variable_name, value.value.String, indentation);
+	   break;
+    }
+} /* debug_print_Union_Type_For_Any */
 {{/body}}
 {{/debug_printing}}
 {{#header}}

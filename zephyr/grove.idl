@@ -1,7 +1,7 @@
 // require returns a GroveLCD object
 // var grove_lcd = require('grove_lcd');
 
-[NoInterfaceObject, Return_from_require]
+[NoInterfaceObject, ReturnFromRequire]
 interface GroveLCD {
     GroveLCDDevice init();
     attribute unsigned long GLCD_FS_8BIT_MODE;

@@ -1,4 +1,4 @@
-The purpose of this test is to exercise the separate-copmilation
+The purpose of this test is to exercise the separate-compilation
 facilities, both of types defined in other .idl files and of types
 defined in different objects in the same .idl file.
 

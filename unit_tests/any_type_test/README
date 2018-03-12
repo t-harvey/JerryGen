@@ -1,0 +1,13 @@
+The purpose of this test is to exercise the "any" type, which is
+essentially just a union type of all of the primitive WebIDL types.
+
+Generate with the following command:
+
+ ../generate.js --debug_printing --output_utility_files
+ --package=any_type_test ../unit_tests/any_type_test/any_type_test.idl
+
+Copy the _stubs file:
+cp ../unit_tests/any_type_test_stubs.c any_type_test/.
+
+Compile with the following command:
+

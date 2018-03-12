@@ -1,7 +1,7 @@
 // require returns a I2C object
 // var i2c = require('i2c');
 
-[Return_from_require]
+[ReturnFromRequire]
 interface I2C {
     I2CBus open(I2CInit init);
 };

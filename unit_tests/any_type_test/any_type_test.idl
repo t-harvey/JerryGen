@@ -1,0 +1,21 @@
+
+enum type_sent_in {"BOOL",
+		   "INT8_T",
+		   "INT16_T",
+		   "UINT16_T",
+		   "INT32_T",
+		   "UINT32_T",
+		   "INT64_T",
+		   "UINT64_T",
+		   "FLOAT_T",
+		   "DOUBLE_T",
+		   "STRING_T"
+}; /* type_sent_in enum */
+
+
+interface any_type_test {
+    any do_something(type_sent_in arg1_type,
+		     any          arg1,
+		     type_sent_in arg2_type,
+		     any          arg2);
+}; /* any_type_test interface */

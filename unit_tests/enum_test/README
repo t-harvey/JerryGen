@@ -1,0 +1,25 @@
+The purpose of this test is to exercise the code that creates
+enumeration types.
+
+It's pretty simple: the WebIDL defines an enum type, and we just
+debug_print out the values.
+
+Assuming that you're in a directory (I call mine "examples")
+underneath the main Jerryscript directory, the following command will
+compile/execute this test:
+
+~/work/generator/generate.js --debug_printing --output_utility_files --package=enum_test ~/work/generator/unit_tests/enum_test/enum_test.idl && gcc -g --std=c99 -I/Users/a0179262/work/forked_jerryscript/jerry-port/default/include/ -I/Users/a0179262/work/forked_jerryscript/jerry-core/include -I/Users/a0179262/work//forked_jerryscript/jerry-ext/include -I./enum_test ~/work/generator/unit_tests/enum_test/enum_test_demo.c enum_test/*.c ../build/lib/libjerry-core.a ../build/lib/libjerry-ext.a ../build/lib/libjerry-port-default.a -lm && a.out
+
+
+Expected output:
+
+PARAMETERS TO "debug_print_it" :
+   x:
+      enum_value: ENUM_ONE
+PARAMETERS TO "debug_print_it" :
+   x:
+      enum_value: ENUM_TWO
+PARAMETERS TO "debug_print_it" :
+   x:
+      enum_value: ENUM_THREE
+CLEANING UP

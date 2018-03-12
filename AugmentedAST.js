@@ -1,9 +1,24 @@
-//"use strict"
+/* Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/
+
 
 /* the routines in this file walk the ast that was built from a WebIDL
  * file and prepare it for processing through a Mustache compiler */
-
-var did_I_ever_see_the_any_type = false;
 
 var error_codes = { duplicate_names: "duplicate_names",
 		    external_inheritance: "external_inheritance" };
@@ -50,12 +65,6 @@ function AugmentedAST(ast, fix_type_errors, moduleName)
     this.variadic_types = Object.create(null);
     this.interface_names = new Array();
 
-    /* the "any" type will end up being a union of all of the builtin
-       types and any types defined by the webidl; we'll name the C
-       union with the name of the module */
-    //TODO: currently stubbed out...
-    /*WebIDL_to_C_TypeMap["any"] = this.moduleName+"_types_union";*/
-
     /* we use this queue to keep track of members, etc. that we need
        to check after everything is processed */
     this.typeCheckQueue = [];
@@ -69,12 +78,6 @@ function AugmentedAST(ast, fix_type_errors, moduleName)
 	    file produces a non-empty tree... */
 	throw "HEY DEVELOPER!!!  FORGET SOMETHING?!?"
 
-    if (did_I_ever_see_the_any_type === true)
-    {
-	throw "ERROR: 'any' type is not supported.";
-	this.uses_any_type = true;
-	/*this.any_type_list = this.generateAnyTypeList();*/
-    }
 } /* constructor */
 
 /* an array of supported WebIDL primitive types */
@@ -183,9 +186,6 @@ AugmentedAST.prototype.addToTypeCheckQueue = function (t)
    types to check depending on the type */
 AugmentedAST.prototype.checkType = function (t)
 {
-    if (t === "any")
-	did_I_ever_see_the_any_type = true;
-
     // t could be an operation, attribute, constant member.
     if (t.type === 'operation')
     {
@@ -254,6 +254,7 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 AugmentedAST.prototype.getConversionTypes = function(idlType)
 {
     let WebIDL_to_Jerryscript_TypeMap = {
+	"any": "any",
 	"boolean" : "boolean",
 	"byte" : "number",
 	"octet" : "number",
@@ -274,6 +275,7 @@ AugmentedAST.prototype.getConversionTypes = function(idlType)
     }; /* WebIDL_to_Jerryscript_TypeMap */
 
     let WebIDL_to_C_TypeMap = {
+	"any" : "Union_Type_For_Any",
 	"boolean" : "bool",
 	"byte" : "int8_t",
 	"octet" : "uint8_t",
@@ -342,6 +344,13 @@ AugmentedAST.prototype.set_external_types = function(thing)
 
     for (let extAttr of thing.extAttrs)
     {
+	/* so the parser will let the extAttrs array have entries that
+	   are undefined -- this is a bug in the parser we should chase
+	   down, but there are only three places where this matters, so
+	   we'll just check for it in those three places, for now; TODO */
+	if (extAttr === undefined)
+	    continue;
+
 	if (extAttr.name != undefined &&
 	    (extAttr.name == "ExternalCallback" ||
 	     extAttr.name == "ExternalInterface" ||
@@ -395,8 +404,15 @@ AugmentedAST.prototype.set_is_module = function(thing)
 
     for (let extAttr of thing.extAttrs)
     {
+	/* so the parser will let the extAttrs array have entries that
+	   are undefined -- this is a bug in the parser we should chase
+	   down, but there are only three places where this matters, so
+	   we'll just check for it in those three places, for now; TODO */
+	if (extAttr === undefined)
+	    continue;
+
 	if (extAttr.name != undefined &&
-	    extAttr.name == "Return_from_require")
+	    extAttr.name == "ReturnFromRequire")
 	    thing.is_module = true;
     }
 } /* AugmentedAST.set_is_module */
@@ -421,8 +437,6 @@ AugmentedAST.prototype.set_is_module = function(thing)
   of the types, so we'll have to come back later and (perhaps) move
   some things in the externalTypes list back to the
   non_intrinsic_types list */
-/* TODO: WHAT ABOUT THE "ANY" TYPE?!? */ /* probably have to gather all
-                                            types at the end? */
 AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 {
     /* look at the return type and the arguments to the call */
@@ -820,8 +834,17 @@ AugmentedAST.prototype.addInterfaceMembers = function (interfaceName, interfaceM
 AugmentedAST.prototype.has_NoInterfaceObject_set = function (extAttrs)
 {
     for (var i = 0; i < extAttrs.length; i++)
+    {
+	/* so the parser will let the extAttrs array have entries that
+	   are undefined -- this is a bug in the parser we should chase
+	   down, but there are only three places where this matters, so
+	   we'll just check for it in those three places, for now; TODO */
+	if (extAttrs[i] === undefined)
+	    continue;
+
 	if (extAttrs[i].name === 'NoInterfaceObject')
 	    return true;
+    }
     return false;
 };  /* AugmentedAST.has_NoInterfaceObject_set */
 
@@ -896,9 +919,9 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
     // TODO: this doesn't work for "Promise", as that adds an extra layer
     // of .ildType -- so we should come up with some kind of function to
     // walk the idlType fields until we hit something we can latch onto...
-  for (let operation_count in theInterface.members)
+  for (var i = 0 ; i < theInterface.members.length; i++)
   {
-      let operation = theInterface.members[operation_count];
+      let operation = theInterface.members[i];
       if (operation.name == null)
       {
 	  if (operation.idlType !== undefined &&
@@ -1766,6 +1789,39 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper){
 	}
     }
 
+    /* TODO: handle multiple types */
+    if (idlType instanceof Array)
+    {
+	if (idlType.length === 1)
+	{
+	    /* recur */
+	    return this.idlTypeToOtherType(idlType[0], type_mapper);
+	}
+	else /* TODO: this is a simple check: if any of the types in the
+		array of types is "string" and all of the rest of the types
+		can be represented with a string (for now, those are "primitive"
+		types), then just assume that "string" will work */
+	{
+	    var found_a_string_type = false;
+	    var all_types_are_primitive = true;
+
+	    for(var i=0; i<idlType.length; i++)
+	    {
+		var next_type = idlType[i].idlType;
+
+		if (next_type === undefined)
+		    all_types_are_primitive = false;
+		else if (next_type === "string")
+		    found_a_string_type = true;
+	        else if (!this.isPrimitiveType(next_type))
+		    all_types_are_primitive = false;
+	    }
+
+	    if (all_types_are_primitive && found_a_string_type)
+		return "string";
+	    /* else: fall through to throw an error... */
+	}
+    }
     // if we haven't returned yet, there's a case we haven't handled...
     throw new Error("Couldn't handle idl type...");
 
@@ -1869,13 +1925,9 @@ AugmentedAST.prototype.getCallbackArray = function(){
   return out;
 }; /* getCallbackArray */
 
-AugmentedAST.prototype.get_any_type_list = function(){
-    return this.any_type_list;
-}; /* get_any_type_list */
-
 AugmentedAST.prototype.get_sorted_types_list = function(){
     return this.sorted_types_list;
-}; /* get_any_type_list */
+}; /* get_sorted_types_list */
 
 AugmentedAST.prototype.get_C_type_list = function(){
   if (this.C_type_list !== undefined)
@@ -1972,60 +2024,6 @@ AugmentedAST.prototype.convert_list_of_array_types_to_dictionaries = function(ar
     }
 } /* convert_list_of_array_types_to_dictionaries */
 
-
-/* TODO: useful only when we support the any type */
-/* uses the augmented data to produce an array of C types from the
-   full set of primitive types and types defined in the idl file --
-   this is used for the "any" type */
-AugmentedAST.prototype.generateAnyTypeList = function ()
-{
-    let return_array = {};
-    let suffix = "_var";
-
-    /* the mustache parser wants an array of objects to iterate through, so
-       we'll split up each of the kinds of things into their own object,
-       each of which will just be a list */
-    return_array["objects"] = [];
-    return_array["callbacks"] = [];
-    return_array["enums"] = [];
-
-    /* dictionaries and interfaces are both objects, but we only
-       add an interface to the list if it has attributes (b/c only
-       then will it have a C struct defined for it) */
-    let object_lists = [this.dictionaries, this.interfaces];
-    let DICTIONARIES = 0;
-    let first_in_list = true;
-    for(let i = 0; i<2; i++)
-    {
-        for(let [key, value] of Object.entries(object_lists[i]))
-        {
-	    if (i == DICTIONARIES || value.hasAttributes)
-            {
-                let entry = {type: value.name, type_name: value.name+suffix};
-                if (first_in_list)
-                {
-                    entry.first_in_list = true;
-                    first_in_list = false;
-                }
-		return_array["objects"].push(entry);
-            }
-        }
-    }
-
-    for(let [key, value] of Object.entries(this.callbacks))
-    {
-        let entry = {type: value.name+"_calling_context",
-		     type_name: value.name+suffix};
-	return_array["callbacks"].push(entry);
-    }
-    for(let [key, value] of Object.entries(this.enums))
-    {
-        let entry = {type: value.name, type_name: value.name+suffix};
-	return_array["enums"].push(entry);
-    }
-
-    return return_array;
-}; /* generateAnyTypeList */
 
 /* TODO: we really don't handle variadic types correctly yet, so this
    function is probably useless */
