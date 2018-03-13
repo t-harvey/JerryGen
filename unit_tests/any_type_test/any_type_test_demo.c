@@ -66,8 +66,24 @@ int main()
 
   jerry_char_t get_new_any_type[] = STRINGIFY(
 		    var anything = new any_type_test();
-		    var bob = anything.do_something("INT8_T", 1, "INT8_T", 2);
-		    print("bob = " + bob);
+
+		    var int81 = 1;
+		    var int82 = 2;
+		    var int8_sum = anything.do_something("INT8_T", int81, "INT8_T", int82);
+		    print("sum of int8s "+ int81 + " and " + int82 + " = " + int8_sum + "\n");
+		    
+		    var bool_value1 = (10 > 9);
+		    var bool_value2 = (10 > 9);
+		    var boolean_and = anything.do_something("BOOL", bool_value1, "BOOL", bool_value2);
+		    print("and of boolean values " + bool_value1 + " and " + bool_value2 + " = " + boolean_and + "\n");
+		    var string1 = "this";
+		    var string2 = "and this";
+		    var concatenation = anything.do_something("STRING_T", string1, "STRING_T", string2);
+		    print("concatention of \"" + string1 + "\" and \"" + string2 + "\" = \"" + concatenation + "\"" + "\n");
+		    var float_1 = 1.0;
+		    var float_2 = 2.0;
+		    var float_sum = anything.do_something("FLOAT_T", 1.0, "FLOAT_T", 2.0);
+		    print("sum of floats " + float_1 + " and " + float_2 + " = " + float_sum);
 	       );
   if (jerry_value_has_error_flag(evaluate_script(get_new_any_type)))
 	fprintf(stdout, "ERROR!!!\n");
