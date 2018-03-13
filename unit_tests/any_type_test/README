@@ -10,4 +10,34 @@ Copy the _stubs file:
 cp ../unit_tests/any_type_test_stubs.c any_type_test/.
 
 Compile with the following command:
+ rm -rf any_type_test/ ; ~/work/generator/generate.js --output_utility_files --debug_printing --package=any_type_test ~/work/generator/unit_tests/any_type_test/any_type_test.idl && cp ~/work/generator/unit_tests/any_type_test/*stubs* any_type_test/. && gcc -g --std=c99 -I/Users/a0179262/work/forked_jerryscript/jerry-port/default/include/ -I/Users/a0179262/work/forked_jerryscript/jerry-core/include -I/Users/a0179262/work//forked_jerryscript/jerry-ext/include -I./any_type_test ~/work/generator/unit_tests/any_type_test/any_type_test_demo.c any_type_test/*.c ../build/lib/libjerry-core.a ../build/lib/libjerry-ext.a ../build/lib/libjerry-port-default.a -lm && a.out
 
+Expected output:
+
+PARAMETERS TO "do_something" :
+   arg1_type: INT8_T
+   arg1 :  1.000000
+   arg2_type: INT8_T
+   arg2 :  2.000000
+sum of int8s 1 and 2 = 3
+
+PARAMETERS TO "do_something" :
+   arg1_type: BOOL
+   arg1 :  TRUE
+   arg2_type: BOOL
+   arg2 :  TRUE
+and of boolean values true and true = true
+
+PARAMETERS TO "do_something" :
+   arg1_type: STRING_T
+   arg1 :  "this"
+   arg2_type: STRING_T
+   arg2 :  "and this"
+concatention of "this" and "and this" = "this and this"
+
+PARAMETERS TO "do_something" :
+   arg1_type: FLOAT_T
+   arg1 :  1.000000
+   arg2_type: FLOAT_T
+   arg2 :  2.000000
+sum of floats 1 and 2 = 3
