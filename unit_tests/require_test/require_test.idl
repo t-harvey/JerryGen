@@ -1,0 +1,5 @@
+[ReturnFromRequire]
+interface bob {
+    attribute long x;
+    long foo(long y);
+} ;

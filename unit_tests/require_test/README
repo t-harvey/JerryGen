@@ -1,0 +1,19 @@
+The purpose of this test is to make sure that an interface with the
+"ReturnFromRequire" attribute is correct -- 1) the object can't be
+"new"'d, and 2) "var x = require(<interface>)" works.
+
+Generate with the following command:
+
+ ../generate.js --debug_printing --output_utility_files --package=require_test ../unit_tests/require_test/require_test.idl
+
+
+Compile with the following command (from ~/forked_jerryscript/examples) :
+
+rm -rf require_test ; ~/work/generator/generate.js --output_utility_files --debug_printing --package=require_test ~/work/generator/unit_tests/require_test/require_test.idl && gcc -g --std=c99 -I/Users/a0179262/work/forked_jerryscript/jerry-port/default/include/ -I/Users/a0179262/work/forked_jerryscript/jerry-core/include -I/Users/a0179262/work//forked_jerryscript/jerry-ext/include -I./require_test ~/work/generator/unit_tests/require_test/require_test_demo.c require_test/*.c ../build/lib/libjerry-core.a ../build/lib/libjerry-ext.a ../build/lib/libjerry-port-default.a -lm && a.out
+
+Expected output:
+
+ERROR parsing script!
+        >var new_bob = new bob;<
+New failed (correctly so).
+Require worked.

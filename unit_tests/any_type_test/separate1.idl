@@ -1,4 +1,0 @@
-dictionary separate1 {
-    long separate1_int;
-    octet separate1_octet;
-}; 

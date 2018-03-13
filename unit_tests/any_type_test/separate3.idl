@@ -1,6 +1,0 @@
-[ExternalType=(separate1, separate1), ExternalType=(separate2, separate2)]
-dictionary separate3 {
-    separate1 separate1_field;
-    separate2 separate2_field;
-    octet separate3_octet;
-}; 
