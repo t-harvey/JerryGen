@@ -64,6 +64,7 @@ function AugmentedAST(ast, fix_type_errors, moduleName)
     this.array_types = Object.create(null);
     this.variadic_types = Object.create(null);
     this.interface_names = new Array();
+    this.composites = Object.create(null);
 
     /* we use this queue to keep track of members, etc. that we need
        to check after everything is processed */
@@ -169,6 +170,12 @@ AugmentedAST.prototype.isExternalType = function (t)
 {
     return this.allExternalTypes[this.getTypeName(t)] != undefined;
 }; /* AugmentedAST.isExternalType */
+
+/* returns true if the given type has been defined as an interface in the IDL */
+AugmentedAST.prototype.isCompositeType = function (t)
+{
+    return this.composites[this.getTypeName(t)] != undefined;
+}; /* AugmentedAST.isCompositeType */
 
 /* adds the given type to a queue of types that need to be checked;
    the queue is checked after all definitions have been processed */
@@ -431,8 +438,8 @@ AugmentedAST.prototype.set_is_module = function(thing)
    list */
 /* SIDE EFFECT: sets the non_intrinsic_types list on "thing" */
 /* Note that this could put a type in the thing's externalTypes array
-  even though that type could have been included in this compilation
-  (so it looks like a locally defined non-intrinsic-type rather than
+  even though that type is included later in this compilation
+  (so it is a locally defined non-intrinsic-type rather than
   an external type) -- at this point in the code, we haven't seen all
   of the types, so we'll have to come back later and (perhaps) move
   some things in the externalTypes list back to the
@@ -476,9 +483,10 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	for (let i = 0; i < thing.attributes.length; i++)
 	{
 	    let attribute = thing.attributes[i];
+	    let attribute_type = this.get_idlType_string(attribute.idlType);
 
-	    if (!(this.isPrimitiveType(attribute.idlType.idlType)))
-		list.push({type_name: attribute.idlType.idlType});
+	    if (!(this.isPrimitiveType(attribute_type)))
+		list.push({type_name: attribute_type});
 	}
     }
     else if (thing.type == "callback")
@@ -487,19 +495,30 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     /* dictionaries are easy: look at each field's type */
     else if (thing.type == "dictionary")
     {
-	for (let i =0; i<thing.members.length; i++)
+	for (let i = 0; i<thing.members.length; i++)
 	{
 	    let field = thing.members[i];
+	    let field_type = this.get_idlType_string(field.idlType);
 
-	    if (!(this.isPrimitiveType(field.idlType.idlType)))
-		list.push({type_name: field.idlType.idlType});
+	    if (!(this.isPrimitiveType(field_type)))
+		list.push({type_name: field_type});
 	}
+    }
+    /* composites are just lists of other types, so we just loop
+       through them and build up the list (kind of like dictionaries, really) */
+    else if (thing.type === "composite")
+    {
+	var type_list = thing.webidl_type_list;
+
+	for (let i = 0; i<type_list.length; i++)
+	    if (!(this.isPrimitiveType(type_list[i])))
+		list.push({type_name: this.get_idlType_string(type_list[i])});
     }
     else
 	/* TODO: throw an actual exception; not really all that important
 	   right now, as this can only happen (?) during development; once
 	   we're parsing WebIDL files, this clause won't ever get hit */
-	console.log("ERROR!!!");
+	console.log("ERROR in call to get_non_intrinsice_types_list");
 
     /* unique-ify the list of types */
     /* the following line was my first attempt:
@@ -508,7 +527,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     /* ...but this fails, b/c indexOf doesn't like objects (it's the perennial
        difference between == and ===) -- so I substituted the following, which
        I got off of http://tinyurl.com/yabbcs8v : */
-    let uniq_list = list.filter(
+    let uniq_list = []; uniq_list = list.filter(
 	     function(item, position)
 	     {
 		 return position === 
@@ -521,7 +540,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
        call it with the parameters sent in by list.filter */
 
     /* cull explicitly external types from the list of types */
-    /* NOTE: assumes that thing.externalTypes has been set up! */
+    /* NOTE: assumes that thing.externalTypes has been set up! */thing.non_intrinsic_types = [];
     thing.non_intrinsic_types = uniq_list.filter(
 	            function(item){return this.indexOf(item.type_name)<0;},
                     thing.externalTypes.map(function(x) {return x.type;} ));
@@ -594,6 +613,8 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 	d.dictionaryName = d.name;
 	// augment and add members
 	for(var i = 0 ; i < d.members.length; i++){
+	    d.members[i].memberName = d.members[i].name;
+	                                           /* "name" is too generic */
 	    d.members[i].C_and_Jerryscript_Types = this.getConversionTypes(d.members[i].idlType);
 	    if (i+1 == d.members.length)
 		d.members[i].finalMember = true;
@@ -916,6 +937,8 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
   // zephyr's idl contains operations with no preceding type, which is
   // incorrect WebIDL -- should we complain and exit, or convert the
   // operation to returning a void (plus tell user that's what we did)?
+  // The pattern when the parser hits this error is to put the operation's
+  // name in the idlType->idlType field, so that's where we look for it.
     // TODO: this doesn't work for "Promise", as that adds an extra layer
     // of .ildType -- so we should come up with some kind of function to
     // walk the idlType fields until we hit something we can latch onto...
@@ -1202,9 +1225,13 @@ AugmentedAST.prototype.processTypeCheckQueue = function ()
  * put them out in the right order
  */
 /* SIDE EFFECT: sets this.sorted_types_list */
+/* TODO: THIS WAS DEPRECATED AFTER MOVING TO SEPARATE COMPILATION;
+ * REMOVE AND TEST THAT EVERYTHING WORKS... */
 var topological_sort = require('topsort'); var _ = require('lodash');
 AugmentedAST.prototype.sort_types = function()
 {
+    this.sorted_types_list = [];
+    return;
     /* first, build a list of all type names */
     let names = Object.keys(this.dictionaries).concat(
 	        Object.keys(this.callbacks).concat(
@@ -1369,8 +1396,8 @@ AugmentedAST.prototype.find_interface_attributes = function()
 } /* AugmentedAST.find_interface_attributes */
 
 
-/** we need to walk up the ineritance chain, adding each parent's
-  * attributes and operations to the each interference's list, and
+/** we need to walk up the inheritance chain, adding each parent's
+  * attributes and operations to the each interface's list, and
   * this is an inherently recursive procedure (if A inherits from B,
   * which inherits from C, we first need to add C's interfaces and
   * operations to B before adding B's fields to A); NOTE: this assumes
@@ -1512,6 +1539,62 @@ AugmentedAST.prototype.find_inheritance_chain = function(interfaces_list)
 } /* AugmentedAST.find_inheritance_chain */
 
 
+/* while we're processing the code, we build up a list of composite
+   types in the form of a list of the WebIDL types in each composite
+   -- now, we have to do post-processing on the list to: 1) convert
+   the list of WebIDL types to a list of C_and_Jerryscript_Types
+   structs so we can later build up the code to implement them; 2) get
+   the list of non-intrinsic types in the composite, since those will
+   need to be #include'd in the C file that builds the composite type */
+AugmentedAST.prototype.build_composite_types = function(composites)
+{
+    /* the composite comes in with a single value for the "default_value"
+       field -- this is the WebIDL type of the first type in the composite,
+       and we need to overwrite the "default_value" field with an object
+       composed of the WebIDL type and the C_and_Jerryscript_Types value
+       for that WebIDL type */
+    /* note that we also set up an empty externalTypes field, as all of the
+       functions that work on the other types expect this to exist */
+    var set_up_default_values = function(composite)
+    {
+	composite.externalTypes = new Array();
+
+	composite.default_value = {
+	       "default_name": composite.default_value,
+	       "C_and_Jerryscript_Types":
+			      this.getConversionTypes(composite.default_value)};
+    }; /* set_up_default_values */
+
+    var build_type_list_from_webidl_list = function(composite)
+    {
+	var webidl_type_list = composite["webidl_type_list"];
+	var getConversionTypes = this.getConversionTypes;
+
+	composite["c_and_j_type_list"] =
+	               webidl_type_list.map(getConversionTypes,
+					    this /* stay in current context */);
+
+	/* we'll need to name each field by its webidl name, so record that
+	   in each type's entry */
+	for (var i =0; i < composite["c_and_j_type_list"].length; i++)
+	    composite["c_and_j_type_list"][i].webidl_name =
+		webidl_type_list[i].replace(/ /g,''); /* remove whitespace */
+    }; /* build_type_list_from_webidl_list */
+
+    Object.values(this.composites).forEach(
+					build_type_list_from_webidl_list,
+					this /* stay in the current context */);
+
+    Object.values(this.composites).forEach(
+					set_up_default_values,
+					this /* stay in the current context */);
+
+    Object.values(this.composites).forEach(
+	                                this.get_non_intrinsic_types_list,
+					this /* stay in the current context */);
+} /* build_composite_types */
+
+
 /* as a user-interface hack, we're going to document that the
    External* attributes have to be added to every WebIDL construct
    that uses them, but as a practical matter, we'll walk the
@@ -1527,7 +1610,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(interfaces_list)
    entry from the externalTypes list to the non_intrinsic_types
    list (b/c external types (which are compiled into a different
    directory) have a different #include syntax than non-intrinsic-types
-   (which are compiled into the current directory)) */
+   (which we compile into the current directory)) */
 AugmentedAST.prototype.find_and_recategorize_external_types = function()
 {
     /* ...we've stored all of the external types we've seen, but some
@@ -1542,10 +1625,9 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
 	    Object.keys(this.allExternalTypes).filter(
 		                  val => !defined_in_this_file.includes(val));
     
-
     /* we'll do the same thing for all three constructs, so we've
        abstracted out the functionality here -- this function walks a
-       list of non_intrinsic_types and returns a list of strings
+       list of non-intrinsic types and returns a list of strings
        corresponding to types that should be deleted from the object's
        non_intrinsic_types list and added to its externalTypes list */
     var find_list_modifications = function(non_intrinsic_types)
@@ -1719,6 +1801,11 @@ AugmentedAST.prototype.augment = function (ast) {
      * will use */
     this.find_inheritance_chain(this.interfaces);
 
+     /* at this point, we have a list of composite types, but we still
+	need to build the C_and_Jerryscript_Types structures for the
+	individual elements of the composite type... */
+    this.build_composite_types();
+
     this.find_and_recategorize_external_types(this.interfaces);
 
   this.isAugmented = true;
@@ -1761,81 +1848,163 @@ AugmentedAST.prototype.getCTypeName = function (obj)
 
 /* this maps the idlType through the type_mapper and returns a string of
    the mapped type -- the type_mapper's "didn't find it" return value should
-   be "undefined" */
-AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper){
-    if(typeof idlType == 'string')
-    {
-	var this_type = type_mapper[idlType];
+   be "undefined"; this function serves as
+   a wrapper for the recursive helper function, below -- we need to be able
+   to handle composite types and then build all of the code that those
+   types will need, so we need a wrapper to notice when we've found
+   a composite and to do the extra work... */
+/* SIDE EFFECT: sets the "name" and "composite" field in idlType */
+AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
+{
+    /* the whole purpose of this wrapping function is to grab the
+       new type and make sure it doesn't require further processing; in
+       this case, if the type comes back with an array instead of a
+       string, that's a composite type, and we'll have to convert it
+       into a single string */
+    var new_type = this.idlTypeToOtherType_helper(idlType, type_mapper);
 
-	if (this_type === undefined)
+    /* when we see a composite type, we have to do two things: first,
+       build the composite-type's name (which will be a conglomeration
+       of the type names that make it up) and, second, save off the
+       list so that we can build C_and_Jerryscript_Types for each of
+       the members of the type */
+    /* SIDE EFFECT: adds the new type to the "this.composites" list for
+       later processing */
+    var create_composite_type =
+	function(list_of_webidl_types, composites)
+        {
+	    /* first, remove duplicates (since it's useless to have multiple
+	       fields of a union be the same type) and then alphabetize the
+	       list (to be able to construct a canonical name)  */
+	    /* (duplicate-removal is done by first loading all of the
+	       elements into a set (which naturally removes
+	       duplicates) and then using the ellipsis operator to
+	       turn the set back into an array) */
+	    list_of_webidl_types =
+	                       [...new Set([].concat(...list_of_webidl_types))];
+	    list_of_webidl_types = list_of_webidl_types.sort();
+
+	    /* next, build a string from the names of the types */
+	    var new_name = list_of_webidl_types.join("_or_");
+	    new_name = new_name.replace(/ /g,""); /* regex removes spaces from
+						   types like "unsigned long" */
+
+	    /* finally, add this type onto the list of "composites" (if
+	       it isn't already on the list) so that we can output all of
+	       the required code at the backend */
+	    /* for the constructor for this type, we (arbitrarily)
+	       want to put out the first field type as the default
+	       value, but since Mustache doesn't have a way to access
+	       only the first element in the list, we'll just store
+	       that first thing as a separate value and just use that
+	       one when we need to put out the constructor */
+	    if (composites[new_name] === undefined)
+	    {
+		var new_entry = {"type": "composite",
+				 "compositeName" : new_name,
+				 "webidl_type_list": list_of_webidl_types,
+				 "default_value": list_of_webidl_types[0] };
+		composites[new_name] = new_entry;
+	    }
+
+	    return new_name;
+	}; /* create_composite_type */
+
+    /* if we have an array of types, we'll need to create a new (union) type
+       and return that name, instead */
+    if (Array.isArray(new_type))
+    {
+	var list_of_webidl_types = new_type;
+
+	new_type = create_composite_type(list_of_webidl_types,
+					 this.composites);
+	idlType.name = new_type;
+	idlType.composite = true;
+    }
+    else
+    {
+	idlType.composite = false;
+
+	/* we need to store a string that is the idlType's name; the
+	   easiest way to do this is to just call the helper again
+	   with no type_mapper, as that will return this string */
+	   idlType.name = this.idlTypeToOtherType_helper(idlType, {});
+    }
+    return new_type;
+} /* AugmentedAST.idlTypeToOtherType */
+
+
+/* this maps the idlType through the type_mapper and returns a string of
+   the mapped type -- the type_mapper's "didn't find it" return value should
+   be "undefined" */
+AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper)
+{
+    if (typeof idlType == 'string')
+    {
+	if (type_mapper != undefined)
+	{
+	    var this_type = type_mapper[idlType];
+	
+	    if (this_type === undefined)
+		this_type = idlType;
+	}
+	else
 	    this_type = idlType;
 
 	return this_type;
     }
-
+    
     if(typeof idlType == 'object')
     {
 	if(idlType.sequence && idlType.idlType){
 	    throw new Error("CAN'T HANDLE SEQUENCES OF TYPES");
 	    // TODO: union types, etc.
 	    var sequenceDepth = idlType.sequence;
-	    var sequenceItemType = this.idlTypeToOtherType(idlType.idlType, type_mapper);
+	    var sequenceItemType = this.idlTypeToOtherType_helper(idlType.idlType, type_mapper);
 	    return this.idlSequenceToSchema(sequenceDepth, sequenceItemType);
 	}
-	else if(idlType.idlType)
+	else if (Array.isArray(idlType)) /* composite type; return a flattened
+					    list of the webidl types -- notice
+					    that when we recur, we send in an
+					    empty type_mapper */
+	{
+	    var idlType_array = idlType;
+	    var list_of_webidl_types = [];
+	    for (var y = 0; y < idlType_array.length; y++)
+		list_of_webidl_types =
+		    list_of_webidl_types.concat(this.idlTypeToOtherType_helper(
+							     idlType_array[y],
+							     {}));
+	    return list_of_webidl_types;
+	}
+	else if (idlType.idlType)
 	{
 	    /* recur */
-	    return this.idlTypeToOtherType(idlType.idlType, type_mapper);
+	    return this.idlTypeToOtherType_helper(idlType.idlType, type_mapper);
 	}
     }
-
-    /* TODO: handle multiple types */
-    if (idlType instanceof Array)
-    {
-	if (idlType.length === 1)
-	{
-	    /* recur */
-	    return this.idlTypeToOtherType(idlType[0], type_mapper);
-	}
-	else /* TODO: this is a simple check: if any of the types in the
-		array of types is "string" and all of the rest of the types
-		can be represented with a string (for now, those are "primitive"
-		types), then just assume that "string" will work */
-	{
-	    var found_a_string_type = false;
-	    var all_types_are_primitive = true;
-
-	    for(var i=0; i<idlType.length; i++)
-	    {
-		var next_type = idlType[i].idlType;
-
-		if (next_type === undefined)
-		    all_types_are_primitive = false;
-		else if (next_type === "string")
-		    found_a_string_type = true;
-	        else if (!this.isPrimitiveType(next_type))
-		    all_types_are_primitive = false;
-	    }
-
-	    if (all_types_are_primitive && found_a_string_type)
-		return "string";
-	    /* else: fall through to throw an error... */
-	}
-    }
+   
     // if we haven't returned yet, there's a case we haven't handled...
-    throw new Error("Couldn't handle idl type...");
-
-}; /* AugmentedAST.idlTypeToOtherType */
+    throw new Error("Couldn't handle idl type...");	
+}; /* AugmentedAST.idlTypeToOtherType_helper */
 
 
 /* this is a simple-minded version of idlTypeToOtherType, used just to get
    at the idlType's string */
 AugmentedAST.prototype.get_idlType_string = function(idlType)
 {
+    /* 4/13/18: TODO: we updated idlTypeToOtherType to side effect the
+       name that it finds into the top-level of the idlType data
+       structure for every object, so we just return that name,
+       here, stubbing off the old, broken (for composite types) code */
+    return idlType.name;
+
     if (idlType === undefined)
-	console.log("NOT DEFINED");
+	console.log("NOT DEFINED"); /* TODO: probably raise an exception? */
     if (typeof idlType === "string")
 	return idlType;
+    else if (idlType.is_composite === true)
+	return idlType.name;
     else if (idlType.idlType === undefined)
 	throw new Error("Can't find idlType...");
     else
@@ -1868,6 +2037,16 @@ AugmentedAST.prototype.getInterfaceArray = function(){
 
   return out;
 }; /* AugmentedAST.getInterfaceArray */
+
+
+AugmentedAST.prototype.getCompositeTypesArray = function()
+{
+    var array_of_types = [];
+    for(var key in this.interfaces)
+	array_of_types.push(this.composites[key]);
+
+    return array_of_types;
+} /* getCompositeTypesArray */
 
 
 /* change the type of the externalTypes so that the Hogan compiler
@@ -1916,6 +2095,14 @@ AugmentedAST.prototype.getEnumsArray = function(){
   }
   return out;
 }; /* getEnumsArray */
+
+AugmentedAST.prototype.getCompositesArray = function(){
+  var out = [];
+  for(var key in this.composites){
+    out.push(this.composites[key]);
+  }
+  return out;
+}; /* getCompositesArray */
 
 AugmentedAST.prototype.getCallbackArray = function(){
   var out = [];

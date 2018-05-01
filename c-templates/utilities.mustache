@@ -43,84 +43,130 @@ under the License.
 {{#header}}
 typedef char * string;
 typedef jerry_value_t Interpreter_Type;
-typedef enum {BOOLEAN = 0, INT8, INT16, UINT16, INT32, UINT32,
-	                 INT64, UINT64, FLOAT, DOUBLE, STRING} Union_Type;
+
+{{/header}}
+/* each type needs to have its own unique id (uid) so that we can
+   build union types out of multiple types and differentiate between
+   them; at creation of a type, we'll call this bookkeeper to give
+   that type its uid */
+/* since we know up front all of the WebIDL types, we'll go ahead and
+   give them #defines -- this lets us use a switch statement inside of
+   the interpreter_create_any function, which is a little more
+   efficient */
+#define boolean_uid          0
+#define byte_uid             1
+#define octet_uid            2
+#define short_uid            3
+#define unsignedshort_uid    4
+#define long_uid             5
+#define unsignedlong_uid     6
+#define longlong_uid         7
+#define unsignedlonglong_uid 8
+#define float_uid            9
+#define double_uid           10
+#define string_uid           11
+/* any_uid MUST BE THE HIGHEST OF THESE PREDEFINED VALUES! (b/c it's used
+   as the initializor for the counter in get_type_uide, below) */
+#define any_uid              12
+int get_type_uid(void){{#header}};{{/header}}
+{{#body}}
+{
+    static int counter = any_uid+1;
+
+    return counter++;
+} /* get_type_uid */
+{{/body}}
+
+/* we'll give all of the atomic WebIDL types their own uids so that
+   all types are treated the same way; these should be treated as
+   read-only values */
+
+/* NOTE: we only handle the above types.  Missing are: ByteString,
+   USVString, Object, and Symbol. */
+
+{{#header}}
+/* WebIDL's "any" type: */
 typedef struct
 {
-    Union_Type      union_type; /* describes the type */
+    int          union_type; /* describes the type */
     union {
-	bool     Boolean;
-	int8_t   Int8;
-	int16_t  Int16;
-	uint16_t Uint16;
-	int32_t  Int32;
-	uint32_t Uint32;
-	int64_t  Int64;
-	uint64_t Uint64;
-	float    Float;
-	double   Double;
-	string   String;
+	bool     boolean_field;
+	int8_t   byte_field;
+	uint8_t  octet_field;
+	int16_t  short_field;
+	uint16_t unsignedshort_field;
+	int32_t  long_field;
+	uint32_t unsignedlong_field;
+	int64_t  longlong_field;
+	uint64_t unsignedlonglong_field;
+	float    float_field;
+	double   double_field;
+	string   string_field;
     } value;
-} Union_Type_For_Any;
+} any;
 {{/header}}
 /* NOTE: Jerryscript only has three types that "value" can be: string,
    boolean, or number (double) ... */
-Union_Type_For_Any interpreter_get_Union_Type_For_Any_value(Interpreter_Type value){{#header}};{{/header}}
+any interpreter_get_any_value(Interpreter_Type value){{#header}};{{/header}}
 {{#body}}
 {
-    Union_Type_For_Any return_value;
+    any return_value;
 
     if (jerry_value_is_number(value))
     {
-	return_value.union_type = DOUBLE;
-	return_value.value.Double = jerry_get_number_value(value);
+	return_value.union_type = double_uid;
+	return_value.value.double_field = jerry_get_number_value(value);
     }
     else if (jerry_value_is_boolean(value))
     {
-	return_value.union_type = BOOLEAN;
-	return_value.value.Boolean = jerry_get_boolean_value(value);
+	return_value.union_type = boolean_uid;
+	return_value.value.boolean_field = jerry_get_boolean_value(value);
     }
     else if (jerry_value_is_string(value))
     {
-	return_value.union_type = STRING;
-	return_value.value.String = interpreter_get_string_value(value);
+	return_value.union_type = string_uid;
+	return_value.value.string_field = interpreter_get_string_value(value);
     }
     else /* ERROR!  TODO: do something here... */
 	;
 
     return return_value;
-} /* interpreter_get_Union_Type_For_Any */
+} /* interpreter_get_any */
+
 {{/body}}
-Interpreter_Type interpreter_create_any(Union_Type_For_Any any_value){{#header}};{{/header}}
+Interpreter_Type interpreter_create_any(any any_value){{#header}};{{/header}}
 {{#body}}
 {
-    if (any_value.union_type == BOOLEAN)
-	return interpreter_create_boolean(any_value.value.Boolean);
-    else if (any_value.union_type == STRING)
+    if (any_value.union_type == boolean_uid)
+	return interpreter_create_boolean(any_value.value.boolean_field);
+    else if (any_value.union_type == string_uid)
 	return interpreter_create_string(
-				 (const jerry_char_t *)any_value.value.String);
+			   (const jerry_char_t *)any_value.value.string_field);
     else /* one of the number types */
     {
 	switch(any_value.union_type)
 	{
-	    case INT8:
-		return interpreter_create_number(any_value.value.Int8);
-	    case INT16:
-		return interpreter_create_number(any_value.value.Int16);
-	    case UINT16:
-		return interpreter_create_number(any_value.value.Uint16);
-	    case INT32:
-		return interpreter_create_number(any_value.value.Int32);
-	    case UINT32:
-		return interpreter_create_number(any_value.value.Uint32);
-	    case INT64:
-		return interpreter_create_number(any_value.value.Int64);
-	    case UINT64:
-		return interpreter_create_number(any_value.value.Uint64);
-	    case FLOAT:
-		return interpreter_create_number(any_value.value.Float);
-	    case DOUBLE:
-		return interpreter_create_number(any_value.value.Double);
+	    case byte_uid:
+		return interpreter_create_number(any_value.value.byte_field);
+	    case octet_uid:
+		return interpreter_create_number(any_value.value.octet_field);
+	    case short_uid:
+		return interpreter_create_number(any_value.value.short_field);
+	    case unsignedshort_uid:
+		return interpreter_create_number(any_value.value.unsignedshort_field);
+	    case long_uid:
+		return interpreter_create_number(any_value.value.long_field);
+	    case unsignedlong_uid:
+		return interpreter_create_number(any_value.value.unsignedlong_field);
+	    case longlong_uid:
+		return interpreter_create_number(any_value.value.longlong_field);
+	    case unsignedlonglong_uid:
+		return
+		    interpreter_create_number(any_value.value.unsignedlonglong_field);
+	    case float_uid:
+		return interpreter_create_number(any_value.value.float_field);
+	    case double_uid:
+		return interpreter_create_number(any_value.value.double_field);
 
 	    default: /* ERROR!  TODO: maybe report to the user? */
 		/* abort(); */
@@ -128,6 +174,22 @@ Interpreter_Type interpreter_create_any(Union_Type_For_Any any_value){{#header}}
 	}
     }
 } /* interpreter_create_any */
+{{/body}}
+
+/* returns true if the Javascript object pointed to by "thing" has "name"
+   as one of its fields */
+bool interpreter_has_own_property(Interpreter_Type thing, string name){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t prop_name = jerry_create_string((const jerry_char_t *)name);
+    jerry_value_t jerry_boolean = jerry_has_own_property(thing, prop_name);
+    bool return_value = jerry_get_boolean_value(jerry_boolean);
+
+    jerry_release_value(jerry_boolean);
+    jerry_release_value(prop_name);
+
+    return return_value;
+} /* interpreter_has_own_property */
 {{/body}}
 
 {{#header}}
@@ -268,7 +330,8 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
     /* run all of the WebIDL constructs that have registered their respective
        initialization routines into the "initializer_list" table */
      for(int i = 0; i < function_count; i++)
-        initializer_list[i]();
+        initializer_list[i](); /* each entry is a function pointer, so
+				  with the "()", these are calls */
 
     /* create "require" in the global namespace */
     jerry_value_t require_function = jerry_create_external_function(my_require);
@@ -288,8 +351,8 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 /***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
 
 /* we don't check the type of each thing while outputting code -> we
-   assume that there'll be a "_create/get_thing" function for every
-   type, so for the atomic types, we'll need a name mapping */
+   assume that there'll be a "_create/get_thing/is_of_type" function for
+   every type, so for the atomic types, we'll need a name mapping */
 #define interpreter_get_int8_t_value (int8_t)jerry_get_number_value
 #define interpreter_get_uint8_t_value (uint8_t)jerry_get_number_value
 #define interpreter_get_int16_t_value (int16_t)jerry_get_number_value
@@ -301,6 +364,21 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_get_float_value (float)jerry_get_number_value
 #define interpreter_get_double_value (double)jerry_get_number_value
 #define interpreter_get_bool_value (bool)jerry_get_boolean_value
+
+/* we check value types using their C-type names, although the checks
+   translate into checking for synonymous Javascript types */
+#define interpreter_value_is_int8_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint8_t (bool)jerry_value_is_number
+#define interpreter_value_is_int16_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint16_t (bool)jerry_value_is_number
+#define interpreter_value_is_int32_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint32_t (bool)jerry_value_is_number
+#define interpreter_value_is_int64_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint64_t (bool)jerry_value_is_number
+#define interpreter_value_is_float (bool)jerry_value_is_number
+#define interpreter_value_is_double (bool)jerry_value_is_number
+#define interpreter_value_is_bool (bool)jerry_value_is_boolean
+#define interpreter_value_is_string (bool)jerry_value_is_string
 
 /* I don't know how many of these are automatically generated -- TODO */
 #define interpreter_create_array     jerry_create_array
@@ -321,6 +399,17 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #endif
 
 {{/header}}
+
+Interpreter_Type interpreter_get_property(Interpreter_Type thing, string property){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t prop_name =
+                 jerry_create_string((const jerry_char_t *) property);
+    jerry_value_t return_value = jerry_get_property(thing, prop_name);
+    jerry_release_value(prop_name);
+    return return_value;
+} /* interpreter_get_property */
+{{/body}}
 
 void Native_Object_set(void *thing, Interpreter_Type object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
 {{#body}}
@@ -492,7 +581,22 @@ static Interpreter_Type get_prototypes_holder(void)
 } /* get_prototypes_holder */
 
 {{/body}}
-void create_prototypes_holder(){{#header}};{{/header}}
+void webidl_utilities_cleanup(void){{#header}};{{/header}}
+{{#body}}
+{
+    Interpreter_Type prototypes_holder = get_prototypes_holder();
+    jerry_error_t error_check;
+    prototypes_holder_native_object *self_pointer =
+                     Native_Object_get(prototypes_holder, NULL, &error_check);
+
+    jerry_release_value(self_pointer->self);
+    free(self_pointer);
+    jerry_release_value(prototypes_holder);
+
+} /* webidl_utilities_cleanup */
+
+{{/body}}
+void create_prototypes_holder(void){{#header}};{{/header}}
 {{#body}}
 {
     Interpreter_Type new_prototypes_holder = jerry_create_object();
@@ -669,46 +773,59 @@ void debug_print_object_fields(Interpreter_Type thing){{#header}};{{/header}}
     jerry_release_value(global_object);
 } /* debug_print_object_fields */
 {{/body}}
-void debug_print_Union_Type_For_Any(char *variable_name, Union_Type_For_Any value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_any(char *variable_name, any value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     switch(value.union_type)
     {
-	case BOOLEAN:
-	   debug_print_bool(variable_name, value.value.Boolean, indentation);
+	case boolean_uid:
+	   debug_print_bool(variable_name, value.value.boolean_field, indentation);
 	   break;
-	case INT8:
-	   debug_print_int8_t(variable_name, value.value.Int8, indentation);
+	case byte_uid:
+	   debug_print_int8_t(variable_name, value.value.byte_field, indentation);
+	case octet_uid:
+	   debug_print_int8_t(variable_name, value.value.octet_field, indentation);
 	   break;
-	case INT16:
-	   debug_print_int16_t(variable_name, value.value.Int16, indentation);
+	case short_uid:
+	   debug_print_int16_t(variable_name, value.value.short_field, indentation);
 	   break;
-	case UINT16:
-	   debug_print_uint16_t(variable_name, value.value.Uint16, indentation);
+	case unsignedshort_uid:
+	   debug_print_uint16_t(variable_name, value.value.unsignedshort_field, indentation);
 	   break;
-	case INT32:
-	   debug_print_int32_t(variable_name, value.value.Int32, indentation);
+	case long_uid:
+	   debug_print_int32_t(variable_name, value.value.long_field, indentation);
 	   break;
-	case UINT32:
-	   debug_print_uint32_t(variable_name, value.value.Uint32, indentation);
+	case unsignedlong_uid:
+	   debug_print_uint32_t(variable_name, value.value.unsignedlong_field, indentation);
 	   break;
-	case INT64:
-	   debug_print_int64_t(variable_name, value.value.Int64, indentation);
+	case longlong_uid:
+	   debug_print_int64_t(variable_name, value.value.longlong_field, indentation);
 	   break;
-	case UINT64:
-	   debug_print_uint64_t(variable_name, value.value.Uint64, indentation);
+	case unsignedlonglong_uid:
+	   debug_print_uint64_t(variable_name, value.value.unsignedlonglong_field, indentation);
 	   break;
-	case FLOAT:
-	   debug_print_float(variable_name, value.value.Float, indentation);
+	case float_uid:
+	   debug_print_float(variable_name, value.value.float_field, indentation);
 	   break;
-	case DOUBLE:
-	   debug_print_double(variable_name, value.value.Double, indentation);
+	case double_uid:
+	   debug_print_double(variable_name, value.value.double_field, indentation);
 	   break;
-	case STRING:
-	   debug_print_string(variable_name, value.value.String, indentation);
+	case string_uid:
+	   debug_print_string(variable_name, value.value.string_field, indentation);
 	   break;
     }
-} /* debug_print_Union_Type_For_Any */
+} /* debug_print_any */
+{{/body}}
+
+/* this will give a list of all of the objects that are resident (that
+   have been compiled into the interpreter) */
+void debug_list_all_objects(void){{#header}};{{/header}}
+{{#body}}
+{
+    Interpreter_Type prototypes_holder = get_prototypes_holder();
+    debug_print_object_fields(prototypes_holder);
+    jerry_release_value(prototypes_holder);
+} /* debug_list_all_objects */
 {{/body}}
 {{/debug_printing}}
 {{#header}}

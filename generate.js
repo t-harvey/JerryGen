@@ -56,6 +56,7 @@ generate.stubs(augAST, parameters); /* stubs don't get overwritten, so if the
 generate.dictionaries(augAST, parameters);
 generate.enums(augAST, parameters);
 generate.callbacks(augAST, parameters);
+generate.composites(augAST, parameters);
 if (parameters.output_utility_files)
     generate.utilities(augAST, parameters);
 

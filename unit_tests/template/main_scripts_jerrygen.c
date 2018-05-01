@@ -64,29 +64,14 @@ int main()
     /* test the code */
     jerry_value_t return_value;
 
-    /* this should fail... */
-    jerry_char_t get_new_bob[] = STRINGIFY(
-					   var new_bob = new bob;
+    jerry_char_t script[] = STRINGIFY(
+					   /* USER CODE GOES HERE */
 			         );
-    return_value = evaluate_script(get_new_bob);
+    return_value = evaluate_script(script);
     if (jerry_value_has_error_flag(return_value))
-	fprintf(stdout, "New failed (correctly so).\n");
-    else
 	fprintf(stdout, "ERROR!!!\n");
     jerry_release_value(return_value);
   
-  
-    /* this should produce no error... */
-    jerry_char_t get_require_bob[] = STRINGIFY(
-					       var new_bob = require("bob");
-				     );
-    return_value = evaluate_script(get_require_bob);
-    if (jerry_value_has_error_flag(return_value))
-	fprintf(stdout, "ERROR!!!\n");
-    else
-	fprintf(stdout, "Require worked.\n");
-    jerry_release_value(return_value);
-
     jerry_cleanup();
 
 } /* main */

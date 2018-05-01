@@ -91,6 +91,11 @@ typedef Interpreter_Type {{{callbackName}}};
 typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
 
 {{/header}}
+
+/* this variable is used in composite types to denote a field of type
+   {{{interfaceName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{callbackName}}}_uid;
+
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for callbacks, we just return
    a NULL pointer */
@@ -333,6 +338,9 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
 __attribute__((constructor))
 static void register_initialize_{{{callbackName}}}(void)
 {
+    /* ...supplied by webidl_utilities */
+    {{{callbackName}}}_uid = get_type_uid();
+    
     /* ...supplied by webidl_utilities... */
     register_initialization_function(initialize_{{{callbackName}}}_);
 } /* register_initialize_{{{callbackName}}} */

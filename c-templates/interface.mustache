@@ -28,7 +28,7 @@ under the License.
 #ifndef {{{interfaceName}}}_H_
 #define {{{interfaceName}}}_H_
 {{#externalTypes}}
-#include "{{{package}}}/{{{type}}}.h"
+#include "{{! REMOVING AS A TEST: brace brace brace package brace brace brace/}}{{{type}}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
 #include "{{{type_name}}}.h"
@@ -44,10 +44,14 @@ under the License.
 #include <string.h>
 
 #include "jerryscript.h"
-{{#body}}
 #include "{{{utilities_filename}}}.h"
+{{#body}}
 #include "{{{interfaceName}}}.h"
 {{/body}}
+
+/* this variable is used in composite types to denote a field of type
+   {{{interfaceName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{interfaceName}}}_uid;
 
 {{^repress_stubs}}
 {{#header}}
@@ -458,7 +462,6 @@ static Interpreter_Type {{{interfaceName}}}_require_function_(void)
 {{#non_intrinsic_types}}
     initialize_{{{type_name}}}_();
 {{/non_intrinsic_types}}
-
 {{! TODO: handle repress_stubs }}
 
     /* let the user set up the object and then map the operations onto it */
@@ -481,13 +484,16 @@ static Interpreter_Type {{{interfaceName}}}_require_function_(void)
 __attribute__((constructor))
 static void register_initialize_{{{interfaceName}}}(void)
 {
+    /* ...supplied by webidl_utilities */
+    {{{interfaceName}}}_uid = get_type_uid();
+
     /* ...supplied by webidl_utilities... */
     register_initialization_function(initialize_{{{interfaceName}}}_);
 
 {{#is_module}}
     /* ...supplied by webidl_utilities... */
     register_require_function("{{{interfaceName}}}",
-    {{{interfaceName}}}_require_function_);
+                              {{{interfaceName}}}_require_function_);
 
 {{/is_module}}
 } /* register_initialize_{{{interfaceName}}} */
@@ -552,6 +558,17 @@ extern jerry_object_native_info_t {{{interfaceName}}}_checksum;
 
     return new_{{{interfaceName}}};    
 } /* interpreter_create_{{{interfaceName}}} */
+{{/body}}
+
+bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
+{{#body}}
+{
+    {{#operations}}
+    
+    {{/operations}}
+    return true;
+} /* interpreter_value_is_{{{interfaceName}}} */
+
 {{/body}}
 {{#debug_printing}}
 void debug_print_{{{interfaceName}}} (char *variable_name,

@@ -1,0 +1,199 @@
+{{! Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+}}
+
+{{! Mustache doesn't understand how to transfer blank lines from this
+    script file to the output file unless those blank lines are within
+    a #<name> construct, so we wrap this entire script with a name
+    that shouldn't(?)(!) be in the input file }}
+{{^OBEYFORMATTING}}
+{{! This one .mustache file is used to create both the .h and the .c
+    *_Types files -- look for the "body" and "header" markers }}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{#composites}}
+{{#header}}
+
+#ifndef {{{compositeName}}}_H_
+#define {{{compositeName}}}_H_
+{{/header}}
+
+/* these are included to simplify the generator. Remove if not needed.*/
+/* #include <string> */
+/* #include <vector> */
+#include <stdio.h>
+#include <string.h>
+#include "jerryscript.h"
+
+{{#header}}
+#include "{{{utilities_filename}}}.h"
+{{#externalTypes}}
+#include "{{{package}}}/{{{type}}}.h"
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+#include "{{{type_name}}}.h"
+{{/non_intrinsic_types}}
+{{/header}}
+{{#body}}
+#include "{{{compositeName}}}.h"
+{{/body}}
+
+/* this variable is used in composite types to denote a field of type
+   {{{interfaceName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{compositeName}}}_uid;
+
+{{#header}}
+typedef struct {
+    int union_type;
+    union {
+{{! TODO: add arrays of composites}}
+{{#c_and_j_type_list}}
+        {{{C_Type}}} {{{webidl_name}}}_field;
+    } value;
+{{/c_and_j_type_list}}
+} {{{compositeName}}};
+{{/header}}
+
+/* all WebIDL constructs have a constructor function, so that C code
+   can build any of these constructs */
+/* for unions, we'll arbitrarily pick the first field as the default
+   type */
+{{{compositeName}}} {{{compositeName}}}_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    {{{compositeName}}} new_{{{compositeName}}};
+    {{#default_value}}
+    {{#C_and_Jerryscript_Types}}
+    new_{{{compositeName}}}.{{{default_name}}}_field = {{{default_value}}};
+    {{/C_and_Jerryscript_Types}}
+    {{/default_value}}
+
+    return new_{{{compositeName}}};
+} /* {{{compositeName}}}_constructor */
+{{/body}}
+
+{{! really, these functions should be named "get_..._union" rather
+    than "get_..._value" -- but b/c Jerryscript already has get_*_value
+    for all of the builtin types, it's easier to follow that naming
+    scheme for composites and interfaces...}}
+{{{compositeName}}} interpreter_get_{{{compositeName}}}_value(Interpreter_Type composite_value){{#header}};{{/header}}
+{{#body}}
+{
+    {{{compositeName}}} return_struct;
+
+    {{! TODO: what about arrays? }}
+    {{! loop through all of the possible types until we hit the right one and
+	then set up the union }}
+    {{! TODO: CAUTION: THIS WILL RETURN THE FIRST NUMBER TYPE, EVEN IF THE
+        COMPOSITE IS MADE UP OF MULTIPLE KINDS OF NUMBERS, E.G. }}
+    {{#c_and_j_type_list}}
+    if (interpreter_is_{{{Javascript_Type}}}(value))
+    {
+	return_struct.union_type = {{{webidl_name}}}_uid;
+
+	return_struct.{{{webidl_name}}}_field = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}})interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(composite_value);
+    }
+    {{/c_and_j_type_list}}
+
+    jerry_release_value(composite_value);
+
+    return return_struct;
+} /* interpreter_get_{{{name}}}_value */
+{{/body}}
+
+/* like all the interpreter_create_* functions, this one takes a C
+   variable and creates its Jerryscript/Javascript equivalent */
+Interpreter_Type interpreter_create_{{{CompositeName}}}({{{CompositeName}}} x){{#header}};{{/header}}
+{{#body}}
+{
+    {{! TODO: handle arrays }}
+    switch(x.union_type)
+    {
+        {{#c_and_j_type_list}}
+        case {{{webidl_name}}}_uid:
+	    return interpreter_create_{{{Jerryscript_Type}}}(x.{{{webidl_name}}}_field);
+
+        {{/c_and_j_type_list}}
+        default:
+	    fprintf(stderr, "ERROR IN CONVERTING UNION TYPE TO JAVASCRIPT.\n");
+	    return (Interpreter_Type)(-1);
+    }
+    
+} /* interpreter_create_{{{compositeName}}} */
+{{/body}}
+
+bool interpreter_value_is_{{{compositeName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
+{{#body}}
+{
+    {{#c_and_j_type_list}}
+    if (interpreter_value_is_{{{Jerryscript_Type}}}(thing_value))
+        return true;
+    {{/c_and_j_type_list}}
+} /* interpreter_is_{{{compositeName}}} */
+{{/body}}
+{{#body}}
+
+{{! TODO: maybe change the name of this?  (the user never sees it, so perhaps
+    the consistency is a better choice than the meaning?) }}
+/* composite types don't have a prototype on the Javascript side, so unlike
+   other objects, the only thing we have to do in the constructor is set up
+   the uid for this type */
+__attribute__((constructor))
+static void register_initialize_{{{compositeName}}}(void)
+{
+                              /* ...supplied by webidl_utilities */
+    {{{compositeName}}}_uid = get_type_uid();
+
+} /* register_initialize_{{{compositeName}}} */
+{{/body}}
+
+
+{{#debug_printing}}
+{{! TODO: THIS DOES NOT HANDLE ARRAYS! }}
+void debug_print_{{{compositeName}}} (char *variable_name,
+     				      {{{compositeName}}} value,
+				      unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+   /* we can get into infinite recursion, with one structure printing
+      a second, which prints the first, and so on -- a simple
+      mechanism would be to return whenever the indentation (which
+      tracks recursion depth) gets too big */
+   if (indentation > DEBUG_RECURSION_DEPTH_TOO_BIG)
+   {
+       printf("%*s%s -- RECURSION HALTED\n", indentation, "", variable_name);
+       return;
+   }
+
+   {{#c_and_j_type_list}}
+   if (value.union_type == {{{webidl_name}}}_uid)
+   {
+       printf("%*s%s with union type >{{{webidl_name}}}<:\n",
+	                                      indentation, "", variable_name);
+       debug_print_{{{C_Type}}}("{{{name}}}", value.{{{webidl_name}}}_field, indentation+DEBUG_INDENTATION_WIDTH);
+   }
+
+   {{/c_and_j_type_list}}
+} /* debug_print_{{{compositeName}}} */
+{{/body}}
+{{/debug_printing}}
+
+{{#header}}
+
+#endif /* {{{compositeName}}}_H_ */
+{{/header}}
+{{/composites}}
+{{/OBEYFORMATTING}}

@@ -52,17 +52,18 @@ Union_Type_For_Any any_type_test_do_something_body(type_sent_in arg1_type, Union
 
     Union_Type_For_Any return_value;
     static Union_Type type_lookup[] = {
-	/* BOOL */     BOOLEAN,
-	/* INT8_T */   INT8,
-	/* INT16_T */  INT16,
-	/* UINT16_T */ UINT16,
-	/* INT32_T */  INT32,
-	/* UINT32_T */ UINT32,
-	/* INT64_T */  INT64,
-	/* UINT64_T */ UINT64,
-	/* FLOAT_T */  FLOAT,
-	/* DOUBLE_T */ DOUBLE,
-	/* STRING_T */ STRING
+	/*BOOLEAN_T*/ Boolean_uid,
+	/*BYTE_T*/ Byte_uid,
+	/*OCTET_T*/ Octet_uid,
+	/*SHORT_T*/ Short_uid,
+	/*UNSIGNEDSHORT_T*/ Unsignedshort_uid,
+	/*LONG_T*/ Long_uid,
+	/*UNSIGNEDSHORT_T*/ Unsignedshort_uid,
+	/*LONGLONG_T*/ Longlong_uid,
+	/*UNSIGNEDLONGLONG_T*/ Unsignedlonglong_uid,
+	/*FLOAT_T*/ Float_uid,
+	/*DOUBLE_T*/ Double_uid,
+	/*STRING_T*/ String_uid
     }; /* type_lookup */
 
     return_value.union_type = type_lookup[arg1_type];
@@ -76,41 +77,44 @@ Union_Type_For_Any any_type_test_do_something_body(type_sent_in arg1_type, Union
     {
 	switch (arg1_type)
 	{
-	    case BOOL:
+	    case Boolean_uid:
 		return_value.value.Boolean = arg1.value.Boolean && arg2.value.Boolean;
 		break;
-	    case INT8_T:
-		return_value.value.Int8 = ((int8_t)arg1.value.Double) + ((int8_t)arg2.value.Double);
+	    case Byte_uid:
+		return_value.value.Byte = ((int8_t)arg1.value.Double) + ((int8_t)arg2.value.Double);
 		break;
-	    case INT16_T:
-		return_value.value.Int16 = ((int16_t)arg1.value.Double) + ((int16_t)arg2.value.Double);
+	    case Octet_uid:
+		return_value.value.Octet = ((uint8_t)arg1.value.Double) + ((uint8_t)arg2.value.Double);
 		break;
-	    case UINT16_T:
-		return_value.value.Uint16 =
+	    case Short_uid:
+		return_value.value.Short = ((int16_t)arg1.value.Double) + ((int16_t)arg2.value.Double);
+		break;
+	    case Short_uid:
+		return_value.value.UnsignedShort =
 		                         ((uint16_t)arg1.value.Double) + ((uint16_t)arg2.value.Double);
 		break;
-	    case INT32_T:
-		return_value.value.Int32 = ((int32_t)arg1.value.Double) + ((int32_t)arg2.value.Double);
+	    case Long_uid:
+		return_value.value.Long = ((int32_t)arg1.value.Double) + ((int32_t)arg2.value.Double);
 		break;
-	    case UINT32_T:
-		return_value.value.Uint32 =
+	    case UnsignedLong_uid:
+		return_value.value.UnsignedLong =
 		                         ((uint32_t)arg1.value.Double) + ((uint32_t)arg2.value.Double);
 		break;
-	    case INT64_T:
-		return_value.value.Int64 = ((int64_t)arg1.value.Double) + ((int64_t)arg2.value.Double);
+	    case LongLong_uid:
+		return_value.value.LongLong = ((int64_t)arg1.value.Double) + ((int64_t)arg2.value.Double);
 		break;
-	    case UINT64_T:
-		return_value.value.Uint64 =
+	    case UnsignedLongLong:
+		return_value.value.UnsignedLongLong =
 		                         ((uint64_t)arg1.value.Double) + ((uint64_t)arg2.value.Double);
 		break;
-	    case FLOAT_T:
+	    case Float_uid:
 		return_value.value.Float = ((float)arg1.value.Double) + ((float)arg2.value.Double);
 		break;
-	    case DOUBLE_T:
+	    case Double_uid:
 		return_value.value.Double =
 		                         arg1.value.Double + arg2.value.Double;
 		break;
-	    case STRING_T:
+	    case String_uid:
 {
 		int arg1_length = strlen(arg1.value.String);
 		int arg2_length = strlen(arg2.value.String);

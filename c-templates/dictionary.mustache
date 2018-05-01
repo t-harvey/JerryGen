@@ -39,16 +39,20 @@ under the License.
 
 {{#header}}
 {{#externalTypes}}
-#include "{{{package}}}/{{{type}}}.h"
+#include "{{! REMOVING AS A TEST: brace brace brace package brace brace brace/}}{{{type}}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
 #include "{{{type_name}}}.h"
 {{/non_intrinsic_types}}
+#include "{{{utilities_filename}}}.h"
 {{/header}}
 {{#body}}
-#include "{{{utilities_filename}}}.h"
 #include "{{{dictionaryName}}}.h"
 {{/body}}
+
+/* this variable is used in composite types to denote a field of type
+   {{{interfaceName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{dictionaryName}}}_uid;
 
 {{#header}}
 typedef struct {
@@ -57,7 +61,7 @@ typedef struct {
     {{{C_Type}}}{{#is_array_object}}{{#is_array}} *{{/is_array}}{{/is_array_object}}{{^is_array_object}}{{#is_array}}_Array{{/is_array}}{{/is_array_object}} {{{name}}};
     {{/C_and_Jerryscript_Types}}
 	{{/members}}
-} {{name}};
+} {{{dictionaryName}}};
 {{/header}}
 
 /* all WebIDL constructs have a constructor function, so that C code
@@ -154,6 +158,39 @@ Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/heade
 
 {{/body}}
 
+bool interpreter_value_is_{{{dictionaryName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
+{{#body}}
+{
+    /* it's perfectly legal for a dictionary to be built without using
+       "new", in which case, checking its type won't give us the
+       actual dictionary type we're looking for -- it'll just give us
+       "object"; instead, we'll walk through an object's fields and,
+       	if they're all there and of the right type, then we'll return true */
+{{#members}}
+        if (!interpreter_has_own_property(thing_value,
+                                          "{{{memberName}}}"))
+            return false;
+        else
+        {
+{{#C_and_Jerryscript_Types}}
+            Interpreter_Type field = interpreter_get_property(thing_value,
+                                                            "{{{memberName}}}");
+
+            if (!interpreter_value_is_{{{C_Type}}}(field))
+            {
+                jerry_release_value(field);
+                return false;
+            }
+            jerry_release_value(field);
+{{/C_and_Jerryscript_Types}}
+        }
+
+{{/members}}
+    /* fall-through indicates that we have an object of this type */
+    return true;
+} /* interpreter_value_is_{{{dictionaryName}}} */
+{{/body}}
+
 {{#body}}
 static Interpreter_Type
 create_{{{name}}}_dictionary_handler(const Interpreter_Type func_value,
@@ -234,6 +271,9 @@ void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
 __attribute__((constructor))
 static void register_initialize_{{{dictionaryName}}}(void)
 {
+    /* ...supplied by webidl_utilities */
+    {{{dictionaryName}}}_uid = get_type_uid();
+
     /* ...supplied by webidl_utilities... */
     register_initialization_function(initialize_{{{dictionaryName}}}_);
 } /* register_initialize_{{{dictionaryName}}} */

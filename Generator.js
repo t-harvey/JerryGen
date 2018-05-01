@@ -78,7 +78,7 @@ module.exports.genEnumString = function(ast, moduleName, header_or_body)
 	context.body = true;
 
     return hogan.compile(getMustacheTemplate('enum')).render(context);
-};
+}; /* genEnumString */
 
 
 /*
@@ -113,6 +113,25 @@ module.exports.genDictionaryTypesString = function(ast, moduleName, header_or_bo
     
     return hogan.compile(getMustacheTemplate("types")).render(context);
 }; /* genDictionaryTypesString */
+
+
+
+/*
+Composite-type Code generation
+ */
+
+module.exports.genCompositeString =
+    function(ast, moduleName, header_or_body)
+    {
+	var context = CHoganHelpers.getContext(ast, moduleName);
+
+	if (header_or_body === "generate_header")
+	    context.header = true;
+	else /* header_or_body === "generate_body" */
+	    context.body = true;
+    
+	return hogan.compile(getMustacheTemplate("composites")).render(context);
+}; /* genCompositeString */
 
 
 

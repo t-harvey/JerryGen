@@ -53,6 +53,8 @@ module.exports.getContext = function(ast, moduleName){
 
     enums: ast.getEnumsArray(),
 
+    composites: ast.getCompositesArray(),
+
     debug_printing: ast.debug_printing,
 
     array_types: ast.turn_object_into_array(ast.array_types),
@@ -73,6 +75,14 @@ module.exports.getContext = function(ast, moduleName){
     is_interface: function() { return this.type === "interface" },
     is_dictionary: function() { return this.type === "dictionary" },
     is_callback: function() { return this.type === "callback" },
+
+    debug_counter: 0,
+    debug_print: function() { this.debug_counter++;
+			      return function(text, render)
+			      {
+				  console.log(this.debug_counter + ":  " + text);
+			      } ;
+			    },
 
   };
 

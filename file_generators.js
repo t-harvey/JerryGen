@@ -42,7 +42,7 @@ module.exports = {
 	if (object_type === "stubs")
 	{
 	    compiling_stubs = true;
-	    /* we need to compile a stubs file for each interfaces, so
+	    /* we need to compile a stubs file for each interface, so
 	       that's what we'll really iterate through... */
 	    object_type = "interfaces";
 	}
@@ -151,7 +151,13 @@ module.exports = {
 
 	this.generate_C_files(augAST, parameters, "stubs",
 			      Generator.genStubsString);
-    } /* stubs */,
+    }, /* stubs */
+
+    composites: function(augAST, parameters)
+    {
+	this.generate_C_files(augAST, parameters, "composites",
+			      Generator.genCompositeString);
+    }, /* composites */
 
 
     utilities: function(augAST, parameters)

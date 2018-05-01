@@ -37,7 +37,7 @@ under the License.
 
 {{#header}}
 {{#externalTypes}}
-#include "{{{package}}}/{{{type}}}.h"
+#include "{{! REMOVING AS A TEST: brace brace brace package brace brace brace/}}{{{type}}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
 #include "{{{type_name}}}.h"
@@ -108,8 +108,15 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 
 /* {{{interfaceName}}} */
 {{#is_module}}
-/* this gets us the definition of the {{{interfaceName}}} type */
+{{#body}}
+/**
+ * this is the initialization routine for a "require"'d type (that
+ * is, a module)
+ */
+{{/body}}
+{{#header}}
 #include "{{{interfaceName}}}.h"
+{{/header}}
 {{{interfaceName}}} require_{{{interfaceName}}}_body(void){{#header}};{{/header}}
 {{#body}}
 {
@@ -124,6 +131,11 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {{/body}}
 {{/is_module}}
 {{#operations}}
+{{#body}}
+/**
+ *
+ */ 
+{{/body}}
 {{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type this_val){{#header}};{{/header}}
 {{#body}}
 {
