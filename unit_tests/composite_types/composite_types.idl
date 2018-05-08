@@ -1,0 +1,83 @@
+
+enum Enum1  { "EnumString1",  "EnumString2", "EnumString3" };
+enum Enum2  { "EnumString1a", "EnumString2a", "EnumString3a" };
+
+
+callback Callback1 = long (float x);
+callback Callback2 = long (string y);
+callback Callback3 = long (float x, string y);
+
+dictionary Dictionary1 {
+    float float_field;
+    long long_field;
+    Callback1 callback1_field;
+}; /* Dictionary1 */
+
+dictionary Dictionary2 {
+    float float_field;
+    long long_field;
+    Callback3 callback3_field;
+}; /* Dictionary2 */
+
+interface Interface1 {
+    attribute long long_attribute;
+    attribute float float_attribute;
+    long interface_function1(float arg1, long arg2);
+}; /* Interface1 */
+
+interface Interface2 {
+    attribute long long_attribute;
+    attribute float float_attribute;
+    long interface_function2(long long_arg1);
+}; /* Interface2 */
+
+interface Interface3 {
+    attribute long long_attribute;
+    attribute float float_attribute;
+    long interface_function1(float float_arg1, long long_arg3);
+    long interface_function2(long long_arg1);
+}; /* Interface3 */
+
+
+interface Interface4 {
+    long interface4_function1((long or Interface1)l_or_i1, (long or float or string) l_or_f_or_s);
+}; /* Interface4 */
+
+
+/* we want to make sure that composites get sorted correctly, so we'll
+   define two of the same sets of types in differing orders and then
+   check to make sure that we only get one .c/.h file */
+enum Duplicate_type1 { "doesnt_matter1", "really_doesnt_matter1" };
+enum Duplicate_type2 { "doesnt_matter2", "really_doesnt_matter2" };
+enum Duplicate_type3 { "doesnt_matter3", "really_doesnt_matter3" };
+dictionary combo {
+    (Duplicate_type1 or Duplicate_type2 or Duplicate_type3) one_two_three;
+    (Duplicate_type2 or Duplicate_type3 or Duplicate_type1) two_three_one;
+    (Duplicate_type3 or Duplicate_type1 or Duplicate_type2) three_one_two;
+}; /* combo */
+
+
+/* what happens when we have overlapping composites?!? */
+dictionary single_composite1 {
+    (long or float) single_composite_field;
+}; /* single_composite1 */
+
+dictionary single_composite2 {
+    (string or boolean) single_composite_field;
+}; /* single_composite2 */
+
+dictionary composite_of_composites
+{
+    (single_composite1 or single_composite2) composite_of_composites_field;
+}; /* composite_of_composites */
+
+interface check_nested_composites {
+    void show_explicitly_nested((float or (string or (long or boolean))) explicitly_nested_arg);
+    void show_nested_dictionaries((long or composite_of_composites) implicitly_nested_arg);
+}; /* check_nested_compsites */
+
+
+interface check_really_big_composites {
+    long foo( (byte or octet or (short or unsigned short or (unsigned long or long or long or (long long or Enum1 or unsigned long long or double or float or string or boolean)))) intrinsic_arg);
+
+}; /* check_really_big_composites */

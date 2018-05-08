@@ -310,17 +310,14 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
         jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, args_p[{{{attribute_index}}}]));
         jerry_release_value({{{attributeName}}}_prop_name);
     }
-    {{#C_and_Jerryscript_Types}}
-      {{#is_interface}}
     else
     {
+    {{#C_and_Jerryscript_Types}}
         Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
-        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, create_empty_{{{C_Type}}}()));
+        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, {{{default_value}}}));
         jerry_release_value({{{attributeName}}}_prop_name);
-
-    }
-      {{/is_interface}}
     {{/C_and_Jerryscript_Types}}
+    }
 
     {{/attributes}}
     {{! Note that we pushed the parents into the array as if it were a
@@ -563,9 +560,67 @@ extern jerry_object_native_info_t {{{interfaceName}}}_checksum;
 bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
 {{#body}}
 {
+    {{#attributes}}
+    if (!interpreter_has_own_property(thing_value, "{{{attributeName}}}"))
+            return false;
+    else
+    {
+{{#C_and_Jerryscript_Types}}
+        Interpreter_Type field = interpreter_get_property(thing_value,
+                                                         "{{{attributeName}}}");
+	bool value_is_right_type = interpreter_value_is_{{{C_Type}}}(field);
+        jerry_release_value(field);
+
+        if (!value_is_right_type)
+            return false;
+{{/C_and_Jerryscript_Types}}
+    }
+
+    {{/attributes}}
+
+    /* the best we can do for operations is test if: a) they exist,
+       and b) they have the right number of parameters */
+    jerry_value_t length_property = 
+                           jerry_create_string((const jerry_char_t *)"length");
+
     {{#operations}}
-    
+    if (!interpreter_has_own_property(thing_value, "{{{operationName}}}"))
+    {
+        /* check to see if this object inherited the operation */
+        if (interpreter_has_property(thing_value, "{{{operationName}}}"))
+	{
+	    jerry_value_t parent = jerry_get_prototype(thing_value);
+	    bool parent_has_operation = interpreter_has_own_property(parent, "{{{operationName}}}");
+
+	    /* TODO: IF YOU RELEASE THE jerry_value_t FOR THE PROTOTYPE, THE
+   	       INTERPRETER THROWS AN EXCEPTION:
+	    jerry_release_value(parent);
+	    */
+	    if (!parent_has_operation)
+	        return false;
+	}
+	else
+            return false;
+    }
+    else
+    {
+{{#C_and_Jerryscript_Types}}
+        Interpreter_Type field = interpreter_get_property(thing_value,
+                                                         "{{{operationName}}}");
+        jerry_value_t length_value =
+	                     jerry_get_property(field, length_property);
+	int number_of_parameters =
+	(int)jerry_get_number_value(length_value);
+        jerry_release_value(field);
+        jerry_release_value(length_value);
+
+        if (number_of_parameters != {{{arguments.length}}})
+            return false;
+{{/C_and_Jerryscript_Types}} 
+    }	
+
     {{/operations}}
+    /* fall-through indicates success */
     return true;
 } /* interpreter_value_is_{{{interfaceName}}} */
 

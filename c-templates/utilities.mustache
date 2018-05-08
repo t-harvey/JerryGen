@@ -35,16 +35,16 @@ under the License.
 
 {{#header}}
 #include "jerryscript.h"
+
 {{/header}}
 {{#body}}
 #include "{{{utilities_filename}}}.h"
-{{/body}}
 
+{{/body}}
 {{#header}}
 typedef char * string;
 typedef jerry_value_t Interpreter_Type;
 
-{{/header}}
 /* each type needs to have its own unique id (uid) so that we can
    build union types out of multiple types and differentiate between
    them; at creation of a type, we'll call this bookkeeper to give
@@ -65,9 +65,11 @@ typedef jerry_value_t Interpreter_Type;
 #define float_uid            9
 #define double_uid           10
 #define string_uid           11
-/* any_uid MUST BE THE HIGHEST OF THESE PREDEFINED VALUES! (b/c it's used
-   as the initializor for the counter in get_type_uide, below) */
+{{! any_uid MUST BE THE HIGHEST OF THESE PREDEFINED VALUES! (b/c it's used
+   as the initializor for the counter in get_type_uid, below) }}
 #define any_uid              12
+
+{{/header}}
 int get_type_uid(void){{#header}};{{/header}}
 {{#body}}
 {
@@ -176,6 +178,15 @@ Interpreter_Type interpreter_create_any(any any_value){{#header}};{{/header}}
 } /* interpreter_create_any */
 {{/body}}
 
+bool interpreter_value_is_any(Interpreter_Type thing_value){{#header}};{{/header}}
+{{#body}}
+{
+    return (jerry_value_is_number(thing_value) ||
+    	    jerry_value_is_boolean(thing_value) ||
+    	    jerry_value_is_string(thing_value));
+} /* interpretere_value_is_any */
+{{/body}}
+
 /* returns true if the Javascript object pointed to by "thing" has "name"
    as one of its fields */
 bool interpreter_has_own_property(Interpreter_Type thing, string name){{#header}};{{/header}}
@@ -184,12 +195,27 @@ bool interpreter_has_own_property(Interpreter_Type thing, string name){{#header}
     jerry_value_t prop_name = jerry_create_string((const jerry_char_t *)name);
     jerry_value_t jerry_boolean = jerry_has_own_property(thing, prop_name);
     bool return_value = jerry_get_boolean_value(jerry_boolean);
-
     jerry_release_value(jerry_boolean);
     jerry_release_value(prop_name);
 
     return return_value;
 } /* interpreter_has_own_property */
+{{/body}}
+
+/* returns true if the Javascript object pointed to by "thing" has "name"
+   as one of its fields */
+bool interpreter_has_property(Interpreter_Type thing, string name){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t prop_name = jerry_create_string((const jerry_char_t *)name);
+    jerry_value_t jerry_boolean = jerry_has_property(thing, prop_name);
+    bool return_value = jerry_get_boolean_value(jerry_boolean);
+
+    jerry_release_value(jerry_boolean);
+    jerry_release_value(prop_name);
+
+    return return_value;
+} /* interpreter_has_property */
 {{/body}}
 
 {{#header}}
@@ -379,6 +405,9 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_value_is_double (bool)jerry_value_is_number
 #define interpreter_value_is_bool (bool)jerry_value_is_boolean
 #define interpreter_value_is_string (bool)jerry_value_is_string
+
+#define interpreter_value_is_boolean (bool)jerry_value_is_boolean
+#define interpreter_value_is_number (bool)jerry_value_is_number
 
 /* I don't know how many of these are automatically generated -- TODO */
 #define interpreter_create_array     jerry_create_array
@@ -817,6 +846,42 @@ void debug_print_any(char *variable_name, any value, unsigned int indentation){{
 } /* debug_print_any */
 {{/body}}
 
+void debug_typeof(Interpreter_Type thing, string thing_name){{#header}};{{/header}}
+{{#body}}
+{
+    bool printed_at_least_one = false;
+
+    fprintf(stdout, "%s is:\t", thing_name);
+    switch(jerry_value_get_type(thing))
+    {
+	case JERRY_TYPE_NONE:
+	    fprintf(stdout, "none\n");
+	    break;
+	case JERRY_TYPE_UNDEFINED:
+	    fprintf(stdout, "undefined\n");
+	    break;
+	case JERRY_TYPE_NULL:
+	    fprintf(stdout, "null\n");
+	    break;
+	case JERRY_TYPE_BOOLEAN:
+	    fprintf(stdout, "boolean\n");
+	    break;
+	case JERRY_TYPE_NUMBER:
+	    fprintf(stdout, "number\n");
+	    break;
+	case JERRY_TYPE_STRING:
+	    fprintf(stdout, "string\n");
+	    break;
+	case JERRY_TYPE_OBJECT:
+	    fprintf(stdout, "object\n");
+	    break;
+	case JERRY_TYPE_FUNCTION:
+	    fprintf(stdout, "function\n");
+	    break;
+    }
+} /* debug_typeof */
+
+{{/body}}
 /* this will give a list of all of the objects that are resident (that
    have been compiled into the interpreter) */
 void debug_list_all_objects(void){{#header}};{{/header}}

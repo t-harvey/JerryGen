@@ -459,7 +459,8 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	for (let j = 0; j < call.arguments.length; j++)
 	{
 	    let argument = call.arguments[j];
-	    let argument_type = this_ptr.get_idlType_string(argument.idlType);
+	    let argument_type = argument.idlType.name;
+	    let argument_type2 = this_ptr.get_idlType_string(argument.idlType);
 
 	    if (!(this_ptr.isPrimitiveType(argument_type)))
 		list.push({type_name: argument_type});
@@ -512,7 +513,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 
 	for (let i = 0; i<type_list.length; i++)
 	    if (!(this.isPrimitiveType(type_list[i])))
-		list.push({type_name: this.get_idlType_string(type_list[i])});
+		list.push({type_name: type_list[i]});
     }
     else
 	/* TODO: throw an actual exception; not really all that important
@@ -646,39 +647,40 @@ AugmentedAST.prototype.addDictionary = function (d, index)
  * @param index The index this dictionary is in the original ast
  * @returns {boolean} True if added successfully, false otherwise.
  */
-AugmentedAST.prototype.addEnum = function (d, index) {
+AugmentedAST.prototype.addEnum = function (new_enum, index) {
   //A enumeration declaration looks like this:
   //{ type: 'enum', name: 'name', values: [ [string], [string], ... ], extAttrs: [] }
 
   // does the enum name already exist?
-  var existingEnum = this.enums[d.name];
+  var existingEnum = this.enums[new_enum.name];
     // TODO: handle existing enums in the face of an error of having two
     // named the same
   if (0 && existingEnum) {
       /* OLD CODE */
-      ;//throw "The enum already exists: " + d.name;
+      ;//throw "The enum already exists: " + new_enum.name;
   } else {
       // doesn't exist. Add it as a new key.
-      this.enums[d.name] = d;
+      new_enum.enumName = new_enum.name;
+      this.enums[new_enum.name] = new_enum;
 
     // augment and add members
-    d.number_of_members = d.values.length; // needed for mustache'ing
-    if (d.values.length == 0)
+    new_enum.number_of_members = new_enum.values.length; // needed for mustache'ing
+    if (new_enum.values.length == 0)
 	throw "Enumeration type with no values is not allowed";
-    else if (d.values.length == 1)
-	  d.onlyOneMember = true;
+    else if (new_enum.values.length == 1)
+	  new_enum.onlyOneMember = true;
 
-    d.members = [];
-    for(var i = 0 ; i < d.values.length; i++){
-	let new_object = {name: d.values[i], new_line: "\n"};
+    new_enum.members = [];
+    for(var i = 0 ; i < new_enum.values.length; i++){
+	let new_object = {name: new_enum.values[i], new_line: "\n"};
 	if (i == 0)
 	    new_object.indentation = "";
 	else
 	    new_object.indentation = new Array("typedef enum {  ".length).join( " " );
-	if (i+1 == d.values.length)
+	if (i+1 == new_enum.values.length)
 	    new_object.finalMember = true;
 	    
-	d.members.push(new_object);
+	new_enum.members.push(new_object);
     }
   }
   return true;
@@ -1579,7 +1581,61 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	for (var i =0; i < composite["c_and_j_type_list"].length; i++)
 	    composite["c_and_j_type_list"][i].webidl_name =
 		webidl_type_list[i].replace(/ /g,''); /* remove whitespace */
+	
+	/* this is for Mustache output: */
+	composite["c_and_j_type_list"][0].first_in_list = true;
     }; /* build_type_list_from_webidl_list */
+
+    /* because Javascript only has a single numeric type, we want to convert
+       Javascript values into the largest C type so as to keep from losing
+       bits; this routine will build a subset of the c_and_j_type_list with
+       only a single (the largest) numeric (C) type and then store this
+       filtered list in j_to_c_type_list in the composite */
+    let filter_numeric_types = function(composite)
+    {
+	var filtered_list = [];
+	/* we'll arbitrarily define unsigned's to be bigger than signed's,
+	   and floating-point trumps any integral value */
+	var c_type_size = { int8_t:    7 ,
+			    uint8_t:  8 ,
+			    int16_t:  15,
+			    uint16_t: 16,
+			    int32_t:  31,
+			    uint32_t: 32,
+			    int64_t:  63,
+			    uint64_t: 64,
+			    float:    65,
+			    double:   66,
+			  };
+	var greater_than = function(x, y)
+	{
+	    if (typeof x == "undefined") return y;
+	    else if (typeof y == "undefined") return x;
+
+	    return (c_type_size[x.C_Type] > c_type_size[y.C_Type]);
+	}; /* greater_than */
+
+	var largest_numeric_type;
+	var c_and_j_type_list = composite.c_and_j_type_list;
+	for(var i = 0; i < c_and_j_type_list.length; i++)
+	{
+	    var this_type = Object.assign({}, c_and_j_type_list[i]);
+
+	    /* if the C_Type field isn't numeric, just put it onto the new
+	       list */
+	    if (typeof c_type_size[this_type.C_Type] == "undefined")
+		filtered_list.push(this_type);
+	    else if (greater_than(this_type, largest_numeric_type))
+		largest_numeric_type = this_type;
+	}
+
+	/* stick the largest numeric type we found onto the end of the list */
+	if (typeof largest_numeric_type != "undefined")
+	    filtered_list.push(largest_numeric_type);
+
+	filtered_list[0].first_in_list = true;
+	composite.j_to_c_type_list = filtered_list;
+    }; /* filter_numeric_types */
 
     Object.values(this.composites).forEach(
 					build_type_list_from_webidl_list,
@@ -1592,6 +1648,10 @@ AugmentedAST.prototype.build_composite_types = function(composites)
     Object.values(this.composites).forEach(
 	                                this.get_non_intrinsic_types_list,
 					this /* stay in the current context */);
+
+    Object.values(this.composites).forEach(
+	                                filter_numeric_types,
+	                                this /* stay in the current context */);
 } /* build_composite_types */
 
 
@@ -1780,6 +1840,9 @@ AugmentedAST.prototype.augment = function (ast) {
        them -- this will put them into the sorting algorithm so we get
        them all put out in the correct order */
     this.convert_list_of_array_types_to_dictionaries(this.array_types);
+
+    /* TODO: fix enumeration values if they overlap (b/c this won't
+       translate into C correctly) */
 
     /* types need to be put out in the correct order -- e.g., if type A
        has a field of type B, we need to make sure that B gets outputted
@@ -1993,17 +2056,11 @@ AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper
    at the idlType's string */
 AugmentedAST.prototype.get_idlType_string = function(idlType)
 {
-    /* 4/13/18: TODO: we updated idlTypeToOtherType to side effect the
-       name that it finds into the top-level of the idlType data
-       structure for every object, so we just return that name,
-       here, stubbing off the old, broken (for composite types) code */
-    return idlType.name;
-
     if (idlType === undefined)
 	console.log("NOT DEFINED"); /* TODO: probably raise an exception? */
     if (typeof idlType === "string")
 	return idlType;
-    else if (idlType.is_composite === true)
+    else if (idlType.composite === true)
 	return idlType.name;
     else if (idlType.idlType === undefined)
 	throw new Error("Can't find idlType...");

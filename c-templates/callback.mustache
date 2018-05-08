@@ -54,6 +54,10 @@ under the License.
 	   new object
 	4) build a calling_context out of the object (with NULL for
     	   the "this" value, unless we have one...)
+
+    5) interpreter_value_is_<callback> -- composite types require us to
+    discern the type of a Javascript thing, so every WebIDL type has
+    to have its own _is_ function to positively identify the type
     
     
 }}
@@ -234,6 +238,31 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value){{#header}};{{/h
      return callback_function;
 } /* interpreter_create_{{{callbackName}}} */
 {{/body}}
+
+bool interpreter_value_is_{{{callbackName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
+{{#body}}
+{
+    {{! TODO: IS THIS REALLY THE BEST WE CAN DO?!? }}
+    if (!jerry_value_is_function(thing_value))
+        return false;
+    else
+    {
+        jerry_value_t length_property = 
+                           jerry_create_string((const jerry_char_t *)"length");
+        jerry_value_t length_value =
+	                     jerry_get_property(thing_value, length_property);
+	int number_of_parameters = (int)jerry_get_number_value(length_value);
+        jerry_release_value(length_value);
+        jerry_release_value(length_property);
+
+        if (number_of_parameters != {{{arguments.length}}})
+            return false;
+    }
+    /* fall-through indicates success */
+    return true;
+} /* interpreter_value_is_{{{callbackName}}} */
+{{/body}}
+
 
 {{#body}}
 /* we'll use these wrapper functions to marshal the parameters for

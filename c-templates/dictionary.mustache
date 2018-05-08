@@ -175,13 +175,11 @@ bool interpreter_value_is_{{{dictionaryName}}}(Interpreter_Type thing_value){{#h
 {{#C_and_Jerryscript_Types}}
             Interpreter_Type field = interpreter_get_property(thing_value,
                                                             "{{{memberName}}}");
-
-            if (!interpreter_value_is_{{{C_Type}}}(field))
-            {
-                jerry_release_value(field);
-                return false;
-            }
+	    bool value_is_right_type = interpreter_value_is_{{{C_Type}}}(field);
             jerry_release_value(field);
+
+            if (!value_is_right_type)
+                return false;
 {{/C_and_Jerryscript_Types}}
         }
 

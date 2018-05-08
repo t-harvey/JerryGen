@@ -62,8 +62,8 @@ typedef struct {
 {{! TODO: add arrays of composites}}
 {{#c_and_j_type_list}}
         {{{C_Type}}} {{{webidl_name}}}_field;
-    } value;
 {{/c_and_j_type_list}}
+    } value;
 } {{{compositeName}}};
 {{/header}}
 
@@ -77,7 +77,7 @@ typedef struct {
     {{{compositeName}}} new_{{{compositeName}}};
     {{#default_value}}
     {{#C_and_Jerryscript_Types}}
-    new_{{{compositeName}}}.{{{default_name}}}_field = {{{default_value}}};
+    new_{{{compositeName}}}.value.{{{default_name}}}_field = {{{default_value}}};
     {{/C_and_Jerryscript_Types}}
     {{/default_value}}
 
@@ -99,16 +99,14 @@ typedef struct {
 	then set up the union }}
     {{! TODO: CAUTION: THIS WILL RETURN THE FIRST NUMBER TYPE, EVEN IF THE
         COMPOSITE IS MADE UP OF MULTIPLE KINDS OF NUMBERS, E.G. }}
-    {{#c_and_j_type_list}}
-    if (interpreter_is_{{{Javascript_Type}}}(value))
+    {{#j_to_c_type_list}}
+    {{^first_in_list}}else {{/first_in_list}}if (interpreter_value_is_{{{Jerryscript_Type}}}(composite_value))
     {
 	return_struct.union_type = {{{webidl_name}}}_uid;
 
-	return_struct.{{{webidl_name}}}_field = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}})interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(composite_value);
+	return_struct.value.{{{webidl_name}}}_field = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}})interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(composite_value);
     }
-    {{/c_and_j_type_list}}
-
-    jerry_release_value(composite_value);
+    {{/j_to_c_type_list}}
 
     return return_struct;
 } /* interpreter_get_{{{name}}}_value */
@@ -116,20 +114,21 @@ typedef struct {
 
 /* like all the interpreter_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
-Interpreter_Type interpreter_create_{{{CompositeName}}}({{{CompositeName}}} x){{#header}};{{/header}}
+Interpreter_Type interpreter_create_{{{compositeName}}}({{{compositeName}}} x){{#header}};{{/header}}
 {{#body}}
 {
     {{! TODO: handle arrays }}
-    switch(x.union_type)
+    {{#c_and_j_type_list}}
+    {{^first_in_list}}else {{/first_in_list}}if (x.union_type == {{{webidl_name}}}_uid)
     {
-        {{#c_and_j_type_list}}
-        case {{{webidl_name}}}_uid:
-	    return interpreter_create_{{{Jerryscript_Type}}}(x.{{{webidl_name}}}_field);
-
-        {{/c_and_j_type_list}}
-        default:
-	    fprintf(stderr, "ERROR IN CONVERTING UNION TYPE TO JAVASCRIPT.\n");
-	    return (Interpreter_Type)(-1);
+	    return interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.value.{{{webidl_name}}}_field);
+    }
+    {{/c_and_j_type_list}}
+    else
+    {
+        /* TODO: report an error _NOT_ through stderr */
+	fprintf(stderr, "ERROR IN CONVERTING UNION TYPE TO JAVASCRIPT.\n");
+	return (Interpreter_Type)(-1);
     }
     
 } /* interpreter_create_{{{compositeName}}} */
@@ -138,11 +137,28 @@ Interpreter_Type interpreter_create_{{{CompositeName}}}({{{CompositeName}}} x){{
 bool interpreter_value_is_{{{compositeName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
 {{#body}}
 {
-    {{#c_and_j_type_list}}
-    if (interpreter_value_is_{{{Jerryscript_Type}}}(thing_value))
+    {{#j_to_c_type_list}}
+    {{^first_in_list}}else {{/first_in_list}}if (interpreter_value_is_{{{C_Type}}}(thing_value))
         return true;
-    {{/c_and_j_type_list}}
-} /* interpreter_is_{{{compositeName}}} */
+    {{/j_to_c_type_list}}
+    else
+        return false;
+} /* interpreter_value_is_{{{compositeName}}} */
+{{/body}}
+
+void initialize_{{{compositeName}}}_(void){{#header}};{{/header}}
+{{#body}}
+{
+    /* the only thing to initialize for composites is their external
+       types */
+{{#externalTypes}}
+    initialize_{{{type}}}_();
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+    initialize_{{{type_name}}}_();
+{{/non_intrinsic_types}}
+} /* initialize_{{{compositeName}}}_ */
+
 {{/body}}
 {{#body}}
 
@@ -179,14 +195,14 @@ void debug_print_{{{compositeName}}} (char *variable_name,
    }
 
    {{#c_and_j_type_list}}
-   if (value.union_type == {{{webidl_name}}}_uid)
+   {{^first_in_list}}else {{/first_in_list}}if (value.union_type == {{{webidl_name}}}_uid)
    {
        printf("%*s%s with union type >{{{webidl_name}}}<:\n",
 	                                      indentation, "", variable_name);
-       debug_print_{{{C_Type}}}("{{{name}}}", value.{{{webidl_name}}}_field, indentation+DEBUG_INDENTATION_WIDTH);
+       debug_print_{{{C_Type}}}("{{{name}}}", value.value.{{{webidl_name}}}_field, indentation+DEBUG_INDENTATION_WIDTH);
    }
-
    {{/c_and_j_type_list}}
+
 } /* debug_print_{{{compositeName}}} */
 {{/body}}
 {{/debug_printing}}
