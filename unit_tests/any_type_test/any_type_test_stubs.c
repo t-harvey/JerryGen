@@ -34,7 +34,7 @@ jerry_object_native_info_t any_type_test_checksum = {Native_Object_any_type_test
 /******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
 
 /* any_type_test */
-Union_Type_For_Any any_type_test_do_something_body(type_sent_in arg1_type, Union_Type_For_Any arg1, type_sent_in arg2_type, Union_Type_For_Any arg2, Interpreter_Type this_val)
+any any_type_test_do_something_body(type_sent_in arg1_type, any arg1, type_sent_in arg2_type, any arg2, Interpreter_Type this_val)
 {
     /* EXAMINE THE VALUE OF "ERROR_CHECK" IF THERE COULD BE AN ERROR
        WITH AN OBJECT'S Native_Object */    
@@ -43,27 +43,27 @@ Union_Type_For_Any any_type_test_do_something_body(type_sent_in arg1_type, Union
 #ifdef DEBUG_PRINTING
    printf("PARAMETERS TO \"do_something\" :\n");
     debug_print_type_sent_in("arg1_type", arg1_type, DEBUG_INDENTATION_WIDTH);
-    debug_print_Union_Type_For_Any("arg1", arg1, DEBUG_INDENTATION_WIDTH);
+    debug_print_any("arg1", arg1, DEBUG_INDENTATION_WIDTH);
     debug_print_type_sent_in("arg2_type", arg2_type, DEBUG_INDENTATION_WIDTH);
-    debug_print_Union_Type_For_Any("arg2", arg2, DEBUG_INDENTATION_WIDTH);
+    debug_print_any("arg2", arg2, DEBUG_INDENTATION_WIDTH);
 #endif /* DEBUG_PRINTING */
 
     /* USER CODE GOES HERE */
 
-    Union_Type_For_Any return_value;
-    static Union_Type type_lookup[] = {
-	/*BOOLEAN_T*/ Boolean_uid,
-	/*BYTE_T*/ Byte_uid,
-	/*OCTET_T*/ Octet_uid,
-	/*SHORT_T*/ Short_uid,
-	/*UNSIGNEDSHORT_T*/ Unsignedshort_uid,
-	/*LONG_T*/ Long_uid,
-	/*UNSIGNEDSHORT_T*/ Unsignedshort_uid,
-	/*LONGLONG_T*/ Longlong_uid,
-	/*UNSIGNEDLONGLONG_T*/ Unsignedlonglong_uid,
-	/*FLOAT_T*/ Float_uid,
-	/*DOUBLE_T*/ Double_uid,
-	/*STRING_T*/ String_uid
+    any return_value;
+    static int type_lookup[] = {
+	/*BOOLEAN_T*/ boolean_uid,
+	/*BYTE_T*/ byte_uid,
+	/*OCTET_T*/ octet_uid,
+	/*SHORT_T*/ short_uid,
+	/*UNSIGNEDSHORT_T*/ unsignedshort_uid,
+	/*LONG_T*/ long_uid,
+	/*UNSIGNEDSHORT_T*/ unsignedshort_uid,
+	/*LONGLONG_T*/ longlong_uid,
+	/*UNSIGNEDLONGLONG_T*/ unsignedlonglong_uid,
+	/*FLOAT_T*/ float_uid,
+	/*DOUBLE_T*/ double_uid,
+	/*STRING_T*/ string_uid
     }; /* type_lookup */
 
     return_value.union_type = type_lookup[arg1_type];
@@ -71,62 +71,83 @@ Union_Type_For_Any any_type_test_do_something_body(type_sent_in arg1_type, Union
     /* if types don't match, what do we do? */
     if (arg1_type != arg2_type)
     {
-	return_value.value.Boolean = true;
+	return_value.union_type = boolean_uid;
+	return_value.value.boolean_field = true;
     }
     else /* types match */
     {
+	return_value.union_type = arg1_type;
 	switch (arg1_type)
 	{
-	    case Boolean_uid:
-		return_value.value.Boolean = arg1.value.Boolean && arg2.value.Boolean;
+	    case boolean_uid:
+		return_value.value.boolean_field = arg1.value.boolean_field &&
+		                                   arg2.value.boolean_field;
 		break;
-	    case Byte_uid:
-		return_value.value.Byte = ((int8_t)arg1.value.Double) + ((int8_t)arg2.value.Double);
+	    case byte_uid:
+		return_value.value.byte_field = 
+		                      ((int8_t)arg1.value.double_field) +
+		                      ((int8_t)arg2.value.double_field);
 		break;
-	    case Octet_uid:
-		return_value.value.Octet = ((uint8_t)arg1.value.Double) + ((uint8_t)arg2.value.Double);
+	    case octet_uid:
+		return_value.value.octet_field =
+		                      ((uint8_t)arg1.value.double_field) +
+		                      ((uint8_t)arg2.value.double_field);
 		break;
-	    case Short_uid:
-		return_value.value.Short = ((int16_t)arg1.value.Double) + ((int16_t)arg2.value.Double);
+	    case short_uid:
+		return_value.value.short_field = 
+		                      ((int16_t)arg1.value.double_field) +
+		                      ((int16_t)arg2.value.double_field);
 		break;
-	    case Short_uid:
-		return_value.value.UnsignedShort =
-		                         ((uint16_t)arg1.value.Double) + ((uint16_t)arg2.value.Double);
+	    case unsignedshort_uid:
+		return_value.value.unsignedshort_field =
+		                      ((uint16_t)arg1.value.double_field) +
+		                      ((uint16_t)arg2.value.double_field);
 		break;
-	    case Long_uid:
-		return_value.value.Long = ((int32_t)arg1.value.Double) + ((int32_t)arg2.value.Double);
+	    case long_uid:
+		return_value.value.long_field =
+		                      ((int32_t)arg1.value.double_field) +
+		                      ((int32_t)arg2.value.double_field);
 		break;
-	    case UnsignedLong_uid:
-		return_value.value.UnsignedLong =
-		                         ((uint32_t)arg1.value.Double) + ((uint32_t)arg2.value.Double);
+	    case unsignedlong_uid:
+		return_value.value.unsignedlong_field =
+		                      ((uint32_t)arg1.value.double_field) +
+		                      ((uint32_t)arg2.value.double_field);
 		break;
-	    case LongLong_uid:
-		return_value.value.LongLong = ((int64_t)arg1.value.Double) + ((int64_t)arg2.value.Double);
+	    case longlong_uid:
+		return_value.value.longlong_field =
+		                      ((int64_t)arg1.value.double_field) +
+		                      ((int64_t)arg2.value.double_field);
 		break;
-	    case UnsignedLongLong:
-		return_value.value.UnsignedLongLong =
-		                         ((uint64_t)arg1.value.Double) + ((uint64_t)arg2.value.Double);
+	    case unsignedlonglong_uid:
+		return_value.value.unsignedlonglong_field =
+		                      ((uint64_t)arg1.value.double_field) +
+		                      ((uint64_t)arg2.value.double_field);
 		break;
-	    case Float_uid:
-		return_value.value.Float = ((float)arg1.value.Double) + ((float)arg2.value.Double);
+	    case float_uid:
+		return_value.value.float_field =
+		                      ((float)arg1.value.double_field) +
+		                      ((float)arg2.value.double_field);
 		break;
-	    case Double_uid:
-		return_value.value.Double =
-		                         arg1.value.Double + arg2.value.Double;
+	    case double_uid:
+		return_value.value.double_field =
+		                      arg1.value.double_field +
+		                      arg2.value.double_field;
 		break;
-	    case String_uid:
+	    case string_uid:
 {
-		int arg1_length = strlen(arg1.value.String);
-		int arg2_length = strlen(arg2.value.String);
-		return_value.value.String = malloc(sizeof(char) *
+		int arg1_length = strlen(arg1.value.string_field);
+		int arg2_length = strlen(arg2.value.string_field);
+		return_value.value.string_field = malloc(sizeof(char) *
 						   (arg1_length + arg2_length) +
 						   2 /* one for the space, one
 							for the null */);
-		strcpy(return_value.value.String, arg1.value.String);
-		strcpy(return_value.value.String+arg1_length, " ");
-		strcpy(return_value.value.String+arg1_length+1,
-		       arg2.value.String);
-		*(return_value.value.String+arg1_length+arg2_length+1) = '\0';
+		strcpy(return_value.value.string_field,
+		       arg1.value.string_field);
+		strcpy(return_value.value.string_field + arg1_length, " ");
+		strcpy(return_value.value.string_field + arg1_length+1,
+		       arg2.value.string_field);
+		*(return_value.value.string_field+arg1_length+arg2_length+1) =
+		    '\0';
 }
 		break;
 	}; /* switch(arg1_type) */

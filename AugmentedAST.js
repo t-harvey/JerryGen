@@ -282,7 +282,7 @@ AugmentedAST.prototype.getConversionTypes = function(idlType)
     }; /* WebIDL_to_Jerryscript_TypeMap */
 
     let WebIDL_to_C_TypeMap = {
-	"any" : "Union_Type_For_Any",
+	"any" : "any",
 	"boolean" : "bool",
 	"byte" : "int8_t",
 	"octet" : "uint8_t",
