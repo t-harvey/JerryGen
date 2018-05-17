@@ -58,7 +58,7 @@ under the License.
 typedef struct {
 	{{#members}}
     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#is_array_object}}{{#is_array}} *{{/is_array}}{{/is_array_object}}{{^is_array_object}}{{#is_array}}_Array{{/is_array}}{{/is_array_object}} {{{name}}};
+    {{{C_Type}}}{{#is_array_object}}{{#is_array}} *{{/is_array}}{{/is_array_object}} {{{memberName}}};
     {{/C_and_Jerryscript_Types}}
 	{{/members}}
 } {{{dictionaryName}}};
@@ -70,15 +70,21 @@ typedef struct {
 {{#body}}
 {
     {{{dictionaryName}}} new_{{{dictionaryName}}};
+    {{#is_array_object}}
+    new_{{{dictionaryName}}}.length = 0;
+    new_{{{dictionaryName}}}.items = NULL;
+    {{/is_array_object}}
+    {{^is_array_object}}
     {{#members}}
     {{! the "get_default_value" function takes the string and either
     	returns the default value for the C_Type if its an intrinsic
         type or "<C_Type>_constructor()" (for WebIDL constructs) }}
 
     {{#C_and_Jerryscript_Types}}
-    new_{{{dictionaryName}}}.{{{name}}} = {{{default_value}}};
+    new_{{{dictionaryName}}}.{{{memberName}}} = {{{default_value}}};
     {{/C_and_Jerryscript_Types}}
     {{/members}}
+    {{/is_array_object}}
 
     return new_{{{dictionaryName}}};
 } /* {{{dictionaryName}}}_constructor */
@@ -88,29 +94,38 @@ typedef struct {
     than "get_..._value" -- but b/c Jerryscript already has get_*_value
     for all of the builtin types, it's easier to follow that naming
     scheme for dictionaries and interfaces...}}
-{{{name}}} interpreter_get_{{{name}}}_value(Interpreter_Type value){{#header}};{{/header}}
+{{{dictionaryName}}} interpreter_get_{{{dictionaryName}}}_value(Interpreter_Type value){{#header}};{{/header}}
 {{#body}}
 {
     Interpreter_Type object_value = jerry_value_to_object(value);
-    {{{name}}} return_struct;
+    {{{dictionaryName}}} return_struct;
 
     {{#is_array_object}}
-    return_struct.length = jerry_get_array_length(object_value);
+    {
+	unsigned int array_length = jerry_get_array_length(value);
+    {{#members}}
     {{#C_and_Jerryscript_Types}}
-    return_struct.items = ({{{C_Type}}} *)malloc(sizeof({{{C_Type}}})*return_struct.length);
-    for(int i = 0; i < return_struct.length; i++)
-        return_struct.items[i] = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(jerry_get_property_by_index(object_value, i));
+    {{^is_array}}
+	return_struct.length = array_length;
+    {{/is_array}}
+    {{#is_array}}
+    return_struct.items = ({{{C_Type}}} *)malloc(sizeof({{{C_Type}}})*array_length);
+    for(int i = 0; i < array_length; i++)
+        return_struct.items[i] = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(jerry_get_property_by_index(value, i));
+    {{/is_array}}
     {{/C_and_Jerryscript_Types}}
+    {{/members}}
+    }
     {{/is_array_object}}
     {{^is_array_object}}
     {{#members}}
-    Interpreter_Type {{{name}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{name}}}");
-    Interpreter_Type {{{name}}}_value = jerry_get_property(object_value, {{{name}}}_prop_name);
+    Interpreter_Type {{{memberName}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{memberName}}}");
+    Interpreter_Type {{{memberName}}}_value = jerry_get_property(object_value, {{{memberName}}}_prop_name);
     {{#C_and_Jerryscript_Types}}
-    return_struct.{{{name}}} = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}})interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value({{{name}}}_value);
+    return_struct.{{{memberName}}} = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value({{{memberName}}}_value);
     {{/C_and_Jerryscript_Types}}
-    jerry_release_value({{{name}}}_prop_name);
-    jerry_release_value({{{name}}}_value);
+    jerry_release_value({{{memberName}}}_prop_name);
+    jerry_release_value({{{memberName}}}_value);
 
     {{/members}}
     {{/is_array_object}}
@@ -118,49 +133,79 @@ typedef struct {
     jerry_release_value(object_value);
 
     return return_struct;
-} /* interpreter_get_{{{name}}}_value */
+} /* interpreter_get_{{{dictionaryName}}}_value */
 
 {{/body}}
 
 /* like all the interpreter_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
-Interpreter_Type interpreter_create_{{{name}}}({{{name}}} x){{#header}};{{/header}}
+Interpreter_Type interpreter_create_{{{dictionaryName}}}({{{dictionaryName}}} x){{#header}};{{/header}}
 {{#body}}
 {
     Interpreter_Type new_jerry_value = jerry_create_object();
 
     {{#is_array_object}}
+    {{#members}}
     {{#C_and_Jerryscript_Types}}
+    {{#is_array}}
     for (int i = 0; i < x.length; i++)
     {
         Interpreter_Type next = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}(x.items[i]));
     	jerry_release_value(jerry_set_property_by_index(new_jerry_value, i, next));
     	jerry_release_value(next);
     }
+    {{/is_array}}
     {{/C_and_Jerryscript_Types}}
+    {{/members}}
     {{/is_array_object}}
     {{^is_array_object}}
     {{#members}}
-    Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+    Interpreter_Type {{{memberName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{memberName}}}");
     {{#C_and_Jerryscript_Types}}
-    Interpreter_Type {{{name}}}_value = interpreter_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{name}}});
+    Interpreter_Type {{{memberName}}}_value = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}x.{{{memberName}}});
     {{/C_and_Jerryscript_Types}}
-    jerry_release_value(jerry_set_property(new_jerry_value, {{{name}}}_prop_name, {{{name}}}_value));
-    jerry_release_value({{{name}}}_value);
-    jerry_release_value({{{name}}}_prop_name);
+    jerry_release_value(jerry_set_property(new_jerry_value, {{{memberName}}}_prop_name, {{{memberName}}}_value));
+    jerry_release_value({{{memberName}}}_value);
+    jerry_release_value({{{memberName}}}_prop_name);
 
     {{/members}}
     {{/is_array_object}}
 
     return new_jerry_value;
     
-} /* interpreter_create_{{{name}}} */
+} /* interpreter_create_{{{dictionaryName}}} */
 
 {{/body}}
 
 bool interpreter_value_is_{{{dictionaryName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
 {{#body}}
 {
+    {{#is_array_object}}
+    if (!jerry_value_is_array(thing_value))
+        return false;
+    else
+    {
+        if (jerry_get_array_length(thing_value) == 0)
+	    return true;
+	else
+	{
+	{{! TODO: maybe check every element? }}
+	{{#members}}
+	{{#C_and_Jerryscript_Types}}
+	{{#is_array}}
+	    jerry_value_t first_element =
+	                          jerry_get_property_by_index(thing_value, 0);
+	    bool is_target_value = interpreter_value_is_{{{C_and_Jerryscript_Types.C_Type}}}(first_element);
+	    jerry_release_value(first_element);
+
+	    return is_target_value;
+	{{/is_array}}
+	{{/C_and_Jerryscript_Types}}
+	{{/members}}
+	}
+    }        
+    {{/is_array_object}}
+    {{^is_array_object}}
     /* it's perfectly legal for a dictionary to be built without using
        "new", in which case, checking its type won't give us the
        actual dictionary type we're looking for -- it'll just give us
@@ -182,41 +227,42 @@ bool interpreter_value_is_{{{dictionaryName}}}(Interpreter_Type thing_value){{#h
                 return false;
 {{/C_and_Jerryscript_Types}}
         }
-
 {{/members}}
+
     /* fall-through indicates that we have an object of this type */
     return true;
+    {{/is_array_object}}
 } /* interpreter_value_is_{{{dictionaryName}}} */
 {{/body}}
 
 {{#body}}
 static Interpreter_Type
-create_{{{name}}}_dictionary_handler(const Interpreter_Type func_value,
+create_{{{dictionaryName}}}_dictionary_handler(const Interpreter_Type func_value,
                    const Interpreter_Type this_val,
                    const Interpreter_Type *args_p,
                    const jerry_length_t args_cnt)
 {
-    Interpreter_Type new_{{{name}}} = jerry_create_object();
-    Interpreter_Type prototype = get_prototype((char *) "{{{name}}}");
-    jerry_release_value(jerry_set_prototype(new_{{{name}}}, prototype));
+    Interpreter_Type new_{{{dictionaryName}}} = jerry_create_object();
+    Interpreter_Type prototype = get_prototype((char *) "{{{dictionaryName}}}");
+    jerry_release_value(jerry_set_prototype(new_{{{dictionaryName}}}, prototype));
     jerry_release_value(prototype);
 
     {{#members}}
     {
-        Interpreter_Type {{{name}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{name}}}");
+        Interpreter_Type {{{memberName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{memberName}}}");
         if ((((signed int)args_cnt)-1) >= {{{member_index}}})
-            jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{name}}}_prop_name, args_p[{{{member_index}}}]));
+            jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{memberName}}}_prop_name, args_p[{{{member_index}}}]));
         else
         {
             Interpreter_Type default_value = {{#C_and_Jerryscript_Types}}interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(jerry_char_t *){{/is_string}}{{{default_value}}}{{/C_and_Jerryscript_Types}});
-            jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{name}}}_prop_name, default_value));
+            jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{memberName}}}_prop_name, default_value));
         }
-        jerry_release_value({{{name}}}_prop_name);
+        jerry_release_value({{{memberName}}}_prop_name);
     }
     {{/members}}
 
-    return new_{{{name}}};
-} /* create_{{{name}}}_dictionary_handler */
+    return new_{{{dictionaryName}}};
+} /* create_{{{dictionaryName}}}_dictionary_handler */
 {{/body}}
 
 void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
@@ -224,7 +270,7 @@ void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
 {
     /* first, check to see if the prototype object exists for this
        dictionary; if so, just return */
-    Interpreter_Type prototype = get_prototype((char *)"{{{name}}}");
+    Interpreter_Type prototype = get_prototype((char *)"{{{dictionaryName}}}");
     if (!jerry_value_has_error_flag(prototype) &&
         !jerry_value_is_undefined(prototype))
     {
@@ -236,18 +282,18 @@ void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
     Interpreter_Type global_object = jerry_get_global_object();
 
     /* add all of the dictionary fields, and set them to undefined */
-    Interpreter_Type {{{name}}}_prototype_object = jerry_create_object();
+    Interpreter_Type {{{dictionaryName}}}_prototype_object = jerry_create_object();
     {{#members}}
     add_field_to_object({{{dictionaryName}}}_prototype_object,
-                           "{{{name}}}", NULL);
+                           "{{{memberName}}}", NULL);
     {{/members}}
 
     /* store the prototype in the global prototypes holder */
-    register_prototype((char *)"{{{name}}}", {{{name}}}_prototype_object);
-    jerry_release_value({{{name}}}_prototype_object);
+    register_prototype((char *)"{{{dictionaryName}}}", {{{dictionaryName}}}_prototype_object);
+    jerry_release_value({{{dictionaryName}}}_prototype_object);
 
     /* this sets up the ability to "new" the object */
-    add_field_to_object(global_object, "{{{name}}}", &create_{{{name}}}_dictionary_handler);
+    add_field_to_object(global_object, "{{{dictionaryName}}}", &create_{{{dictionaryName}}}_dictionary_handler);
 
     jerry_release_value(global_object);
 
@@ -294,14 +340,28 @@ void debug_print_{{{dictionaryName}}} (char *variable_name,
        return;
    }
 
-   printf("%*s%s:\n", indentation, "", variable_name);
 
+   {{#is_array_object}}
+   printf("%*s%s:\n%*s[\n", indentation, "", variable_name, indentation, "");
    {{#members}}
    {{#C_and_Jerryscript_Types}}
-   debug_print_{{{C_Type}}}("{{{name}}}", value.{{{name}}}, indentation+DEBUG_INDENTATION_WIDTH);
+   {{#is_array}}
+   for(int i = 0; i < value.length; i++)
+          debug_print_{{{C_Type}}}(debug_itoa(i), value.items[i], indentation+DEBUG_INDENTATION_WIDTH);
+   {{/is_array}}
+   {{/C_and_Jerryscript_Types}}
+   {{/members}}
+   printf("%*s]\n", indentation, "");
+   {{/is_array_object}}
+   {{^is_array_object}}
+   printf("%*s%s:\n", indentation, "", variable_name);
+   {{#members}}
+   {{#C_and_Jerryscript_Types}}
+   debug_print_{{{C_Type}}}("{{{memberName}}}", value.{{{memberName}}}, indentation+DEBUG_INDENTATION_WIDTH);
    {{/C_and_Jerryscript_Types}}
 
    {{/members}}
+   {{/is_array_object}}
 } /* debug_print_{{{dictionaryName}}} */
 {{/body}}
 {{/debug_printing}}

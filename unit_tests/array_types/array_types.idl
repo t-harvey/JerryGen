@@ -1,0 +1,19 @@
+
+enum Enum1  { "EnumString1",  "EnumString2", "EnumString3" };
+
+callback single_array_parameter = void( sequence<long> x);
+
+dictionary Dictionary1 {
+    sequence<Enum1> enum_array_field;
+    long long_field;
+    octet octet_field;
+}; /* Dictionary1 */
+
+interface Interface1 {
+    /* the WebIDL spec expressly forbids sequences in attributes */
+    /* attribute sequence<Dictionary1> dictionary1_array;*/
+    long interface_function1(unsigned long x,
+			   sequence<Dictionary1> dictionary1_array,
+			   sequence<Enum1> enum1_array,
+			   sequence<(long or Dictionary1)> long_or_dict1_array);
+}; /* Interface1 */

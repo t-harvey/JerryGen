@@ -92,7 +92,7 @@ under the License.
 typedef Interpreter_Type {{{callbackName}}};
 /* this is the type signature of functions that can be assigned
    to a {{{callbackName}}} */
-typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
+typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
 
 {{/header}}
 
@@ -132,7 +132,7 @@ run_{{{callbackName}}}_function_handler(
         {{/variadic}}
         {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#is_array}}_Array{{/is_array}} {{{name}}} = interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
+    {{{C_Type}}} {{{name}}} = interpreter_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
              {{/C_and_Jerryscript_Types}}	
         {{/variadic}}
     {{/arguments}}
@@ -142,7 +142,7 @@ run_{{{callbackName}}}_function_handler(
 the declaration if it's a void return type or this function returns
 the "this" pointer (is that possible with a callback, in WebIDL?); 2.
 put out the declaration with an assignment from "run" routine }}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}}{{#is_array}}_Array{{/is_array}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(func_value, this_value{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(func_value, this_value{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
 {{#arguments}}{{{indentation}}}{{{name}}}{{{separator}}}{{/arguments}}{{#arguments.length}};{{/arguments.length}}
 
 {{/return_type}}
@@ -154,7 +154,7 @@ put out the declaration with an assignment from "run" routine }}
         {{#is_string}}
     {{! DOES THE FOLLOWING COVER ALL OF THE PERMUTATIONS? }}
     /* put the string into Jerryscript before we cleanup any string arguments */
-    Interpreter_Type string_value = jerry_create_string{{#is_array}}_Array{{/is_array}}({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
+    Interpreter_Type string_value = jerry_create_string({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
         {{/is_string}}
     {{/return_type}}
     {{! FREE MALLOC'D STRINGS}}
@@ -181,7 +181,7 @@ put out the declaration with an assignment from "run" routine }}
             {{/voidReturnType}}
             {{^voidReturnType}}
                 {{^is_string}}
-    return interpreter_create_{{^is_array}}{{{Jerryscript_Type}}}{{/is_array}}{{#is_array}}{{{C_Type}}}_Array{{/is_array}}(return_value);
+    return interpreter_create_{{{Jerryscript_Type}}}(return_value);
                 {{/is_string}}
                 {{#is_string}}
      return string_value;

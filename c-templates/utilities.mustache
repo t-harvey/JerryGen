@@ -65,9 +65,10 @@ typedef jerry_value_t Interpreter_Type;
 #define float_uid            9
 #define double_uid           10
 #define string_uid           11
+#define ArrayBuffer_uid      12
 {{! any_uid MUST BE THE HIGHEST OF THESE PREDEFINED VALUES! (b/c it's used
-   as the initializor for the counter in get_type_uid, below) }}
-#define any_uid              12
+   as the initializer for the counter in get_type_uid, below) }}
+#define any_uid              13
 
 {{/header}}
 int get_type_uid(void){{#header}};{{/header}}
@@ -87,20 +88,36 @@ int get_type_uid(void){{#header}};{{/header}}
    USVString, Object, and Symbol. */
 
 {{#header}}
+typedef bool boolean;
+typedef int8_t byte;
+typedef uint8_t octet;
+/*typedef int16_t short;*/
+typedef uint16_t unsignedshort;
+/*typedef int32_t long;*/
+typedef uint32_t unsignedlong;
+typedef int64_t longlong;
+typedef uint64_t unsignedlonglong;
+typedef float unrestricted_float;
+typedef double unrestricted_double;
+typedef string DOMString;
+typedef string ByteString;
+typedef string USVString;
+typedef jerry_value_t this;
+
 /* WebIDL's "any" type: */
 typedef struct
 {
     int          union_type; /* describes the type */
     union {
 	bool     boolean_field;
-	int8_t   byte_field;
-	uint8_t  octet_field;
-	int16_t  short_field;
-	uint16_t unsignedshort_field;
-	int32_t  long_field;
-	uint32_t unsignedlong_field;
-	int64_t  longlong_field;
-	uint64_t unsignedlonglong_field;
+	byte   byte_field;
+	octet  octet_field;
+	short short_field;
+	unsignedshort unsignedshort_field;
+	long  long_field;
+	unsignedlong unsignedlong_field;
+	longlong  longlong_field;
+	unsignedlonglong unsignedlonglong_field;
 	float    float_field;
 	double   double_field;
 	string   string_field;
@@ -176,15 +193,15 @@ Interpreter_Type interpreter_create_any(any any_value){{#header}};{{/header}}
 	}
     }
 } /* interpreter_create_any */
-{{/body}}
 
+{{/body}}
 bool interpreter_value_is_any(Interpreter_Type thing_value){{#header}};{{/header}}
 {{#body}}
 {
     return (jerry_value_is_number(thing_value) ||
     	    jerry_value_is_boolean(thing_value) ||
     	    jerry_value_is_string(thing_value));
-} /* interpretere_value_is_any */
+} /* interpreter_value_is_any */
 {{/body}}
 
 /* returns true if the Javascript object pointed to by "thing" has "name"
@@ -200,8 +217,8 @@ bool interpreter_has_own_property(Interpreter_Type thing, string name){{#header}
 
     return return_value;
 } /* interpreter_has_own_property */
-{{/body}}
 
+{{/body}}
 /* returns true if the Javascript object pointed to by "thing" has "name"
    as one of its fields */
 bool interpreter_has_property(Interpreter_Type thing, string name){{#header}};{{/header}}
@@ -379,34 +396,53 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 /* we don't check the type of each thing while outputting code -> we
    assume that there'll be a "_create/get_thing/is_of_type" function for
    every type, so for the atomic types, we'll need a name mapping */
-#define interpreter_get_int8_t_value (int8_t)jerry_get_number_value
-#define interpreter_get_uint8_t_value (uint8_t)jerry_get_number_value
-#define interpreter_get_int16_t_value (int16_t)jerry_get_number_value
-#define interpreter_get_uint16_t_value (uint16_t)jerry_get_number_value
-#define interpreter_get_int32_t_value (int32_t)jerry_get_number_value
-#define interpreter_get_uint32_t_value (uint32_t)jerry_get_number_value
-#define interpreter_get_int64_t_value (int64_t)jerry_get_number_value
-#define interpreter_get_uint64_t_value (uint64_t)jerry_get_number_value
-#define interpreter_get_float_value (float)jerry_get_number_value
-#define interpreter_get_double_value (double)jerry_get_number_value
-#define interpreter_get_bool_value (bool)jerry_get_boolean_value
+// #define interpreter_get_int8_t_value (int8_t)jerry_get_number_value
+// #define interpreter_get_uint8_t_value (uint8_t)jerry_get_number_value
+// #define interpreter_get_int16_t_value (int16_t)jerry_get_number_value
+// #define interpreter_get_uint16_t_value (uint16_t)jerry_get_number_value
+// #define interpreter_get_int32_t_value (int32_t)jerry_get_number_value
+// #define interpreter_get_uint32_t_value (uint32_t)jerry_get_number_value
+// #define interpreter_get_int64_t_value (int64_t)jerry_get_number_value
+// #define interpreter_get_uint64_t_value (uint64_t)jerry_get_number_value
+// #define interpreter_get_float_value (float)jerry_get_number_value
+// #define interpreter_get_double_value (double)jerry_get_number_value
+// #define interpreter_get_bool_value (bool)jerry_get_boolean_value
+
+#define interpreter_get_byte_value (byte)jerry_get_number_value
+#define interpreter_get_octet_value (octet)jerry_get_number_value
+#define interpreter_get_short_value (short)jerry_get_number_value
+#define interpreter_get_unsignedshort_value (unsignedshort)jerry_get_number_value
+#define interpreter_get_long_value (long)jerry_get_number_value
+#define interpreter_get_unsignedlong_value (unsignedlong)jerry_get_number_value
+#define interpreter_get_longlong_value (longlong)jerry_get_number_value
+#define interpreter_get_unsignedlonglong_value (unsignedlonglong)jerry_get_number_value
+#define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
 
 /* we check value types using their C-type names, although the checks
    translate into checking for synonymous Javascript types */
-#define interpreter_value_is_int8_t (bool)jerry_value_is_number
-#define interpreter_value_is_uint8_t (bool)jerry_value_is_number
-#define interpreter_value_is_int16_t (bool)jerry_value_is_number
-#define interpreter_value_is_uint16_t (bool)jerry_value_is_number
-#define interpreter_value_is_int32_t (bool)jerry_value_is_number
-#define interpreter_value_is_uint32_t (bool)jerry_value_is_number
-#define interpreter_value_is_int64_t (bool)jerry_value_is_number
-#define interpreter_value_is_uint64_t (bool)jerry_value_is_number
-#define interpreter_value_is_float (bool)jerry_value_is_number
+// #define interpreter_value_is_int8_t (bool)jerry_value_is_number
+// #define interpreter_value_is_uint8_t (bool)jerry_value_is_number
+// #define interpreter_value_is_int16_t (bool)jerry_value_is_number
+// #define interpreter_value_is_uint16_t (bool)jerry_value_is_number
+// #define interpreter_value_is_int32_t (bool)jerry_value_is_number
+// #define interpreter_value_is_uint32_t (bool)jerry_value_is_number
+// #define interpreter_value_is_int64_t (bool)jerry_value_is_number
+// #define interpreter_value_is_uint64_t (bool)jerry_value_is_number
+// #define interpreter_value_is_float (bool)jerry_value_is_number
 #define interpreter_value_is_double (bool)jerry_value_is_number
-#define interpreter_value_is_bool (bool)jerry_value_is_boolean
+// #define interpreter_value_is_bool (bool)jerry_value_is_boolean
 #define interpreter_value_is_string (bool)jerry_value_is_string
 
+#define interpreter_value_is_byte (bool)jerry_value_is_number
+#define interpreter_value_is_octet (bool)jerry_value_is_number
+#define interpreter_value_is_short (bool)jerry_value_is_number
+#define interpreter_value_is_unsignedshort (bool)jerry_value_is_number
+#define interpreter_value_is_long (bool)jerry_value_is_number
+#define interpreter_value_is_unsignedlong (bool)jerry_value_is_number
+#define interpreter_value_is_longlong (bool)jerry_value_is_number
+#define interpreter_value_is_unsignedlonglong (bool)jerry_value_is_number
 #define interpreter_value_is_boolean (bool)jerry_value_is_boolean
+
 #define interpreter_value_is_number (bool)jerry_value_is_number
 
 /* I don't know how many of these are automatically generated -- TODO */
@@ -416,6 +452,16 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_create_null      jerry_create_null
 #define interpreter_create_string    jerry_create_string
 #define interpreter_create_undefined jerry_create_undefined
+
+#define interpreter_create_byte (bool)jerry_create_number
+#define interpreter_create_octet (bool)jerry_create_number
+#define interpreter_create_short (bool)jerry_create_number
+#define interpreter_create_unsignedshort (bool)jerry_create_number
+#define interpreter_create_long (bool)jerry_create_number
+#define interpreter_create_unsignedlong (bool)jerry_create_number
+#define interpreter_create_longlong (bool)jerry_create_number
+#define interpreter_create_unsignedlonglong (bool)jerry_create_number
+
 
 #ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
 #define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
@@ -707,6 +753,34 @@ void register_prototype(char * object_name, Interpreter_Type new_prototype){{#he
 
 #define debug_print_uint32_t(variable_name, value, indentation) \
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+
+#define debug_print_byte(variable_name, value, indentation) \
+	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+
+#define debug_print_octet(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+#define debug_print_short(variable_name, value, indentation) \
+	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+
+#define debug_print_unsignedshort(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+#define debug_print_long(variable_name, value, indentation) \
+	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+
+#define debug_print_unsignedlong(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+#define debug_print_unsignedlonglong(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+#define debug_print_unsignedlonglong(variable_name, value, indentation) \
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+
+#define debug_print_boolean(variable_name, value, indentation) \
+	debug_print_bool(variable_name, (uint64_t)value, indentation)
 {{/header}}
 
 void debug_print_int64_t(char *variable_name, int64_t value, unsigned int indentation){{#header}};{{/header}}
@@ -880,6 +954,17 @@ void debug_typeof(Interpreter_Type thing, string thing_name){{#header}};{{/heade
 	    break;
     }
 } /* debug_typeof */
+
+{{/body}}
+/* CAUTION: THIS FUNCTION LEAKS! */
+char *debug_itoa(int x){{#header}};{{/header}}
+{{#body}}
+{
+#define MAX_STRING_LENGTH 10
+    char *return_string = malloc(sizeof(char)*MAX_STRING_LENGTH);
+    snprintf(return_string, MAX_STRING_LENGTH, "%d", x);
+    return return_string;
+}; /* debug_itoa */
 
 {{/body}}
 /* this will give a list of all of the objects that are resident (that

@@ -82,8 +82,9 @@ function AugmentedAST(ast, fix_type_errors, moduleName)
 } /* constructor */
 
 /* an array of supported WebIDL primitive types */
-AugmentedAST.prototype.primitiveTypes = ['any', 'boolean', 'byte', 'octet',
-					 'short', 'unsigned short', 'long',
+AugmentedAST.prototype.primitiveTypes = ['any', 'ArrayBuffer', 'boolean',
+					 'byte', 'octet', 'short',
+					 'unsigned short', 'long',
                                          'unsigned long', 'long long',
 					 'unsigned long long', 'float',
                                          'unrestricted float', 'double',
@@ -235,7 +236,7 @@ AugmentedAST.prototype.checkType = function (t)
    otherwise, create and return a call to that thing's constructor */
 AugmentedAST.prototype.get_C_default_value = function(C_Type)
 {
-    let intrinsic_C_Types = {  int8_t:   0    ,
+    let intrinsic_C_Types2 = {  int8_t:   0    ,
 			       uint8_t:  0    ,
 			       int16_t:  0    ,
 			       uint16_t: 0    ,
@@ -247,6 +248,24 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 			       double:   0.0  ,
 			       string: "\"\"" ,
 			       bool:     false,
+			       ArrayBuffer: "NULL",
+			    };
+    let intrinsic_C_Types = {  byte:   0    ,
+			       octet:  0    ,
+			       short:  0    ,
+			       "unsignedshort": 0    ,
+			       long:  0    ,
+			       "unsignedlong": 0    ,
+			       "longlong":  0    ,
+			       "unsignedlonglong": 0    ,
+			       float:    0.0  ,
+			       double:   0.0  ,
+			       "DOMString": "\"\"" ,
+			       string: "\"\"" ,
+			       "ByteString": "\"\"" ,
+			       "USVString": "\"\"" ,
+			       bool:     false,
+			       ArrayBuffer: "NULL",
 			    };
 
     if (Object.keys(intrinsic_C_Types).indexOf(C_Type) >= 0)
@@ -256,12 +275,9 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 } /* AugmentedAST.get_C_default_value */
 
 
-/* return a struct with the C and Jerryscript types for the WebIDL type
-   passed in */
-AugmentedAST.prototype.getConversionTypes = function(idlType)
-{
-    let WebIDL_to_Jerryscript_TypeMap = {
+AugmentedAST.prototype.WebIDL_to_Jerryscript_TypeMap = {
 	"any": "any",
+	"ArrayBuffer": "ArrayBuffer",
 	"boolean" : "boolean",
 	"byte" : "number",
 	"octet" : "number",
@@ -281,8 +297,32 @@ AugmentedAST.prototype.getConversionTypes = function(idlType)
 	"this" : "this"
     }; /* WebIDL_to_Jerryscript_TypeMap */
 
-    let WebIDL_to_C_TypeMap = {
+AugmentedAST.prototype.WebIDL_to_C_TypeMap = {
 	"any" : "any",
+	"ArrayBuffer": "ArrayBuffer",
+	"boolean" : "boolean",
+	"byte" : "byte",
+	"octet" : "octet",
+	"short" : "short",
+	"unsigned short" : "unsignedshort",
+	"long" : "long",
+	"unsigned long" : "unsignedlong",
+	"long long" : "longlong",
+	"unsigned long long" : "unsignedlonglong",
+	"float" : "float",
+	"unrestricted float" : "unrestricted_float",
+	"double" : "double",
+	"unrestricted double" : "unrestricted_double",
+	"DOMString" : "DOMString",
+	"ByteString" : "ByteString",
+	"USVString" : "USVString",
+	"string" : "string",
+	"this" : "this"
+    }; /* WebIDL_to_C_TypeMap */
+
+AugmentedAST.prototype.WebIDL_to_C_TypeMap2 = {
+	"any" : "any",
+	"ArrayBuffer": "ArrayBuffer",
 	"boolean" : "bool",
 	"byte" : "int8_t",
 	"octet" : "uint8_t",
@@ -301,15 +341,20 @@ AugmentedAST.prototype.getConversionTypes = function(idlType)
 	"USVString" : "string",
 	"string" : "string",
 	"this" : "jerry_value_t"
-    }; /* WebIDL_to_C_TypeMap */
+    }; /* WebIDL_to_C_TypeMap2 */
 
+
+/* return a struct with the C and Jerryscript types for the WebIDL type
+   passed in */
+AugmentedAST.prototype.getConversionTypes = function(idlType)
+{
     let return_types = {};
 
     return_types.Jerryscript_Type =
 	                this.idlTypeToOtherType(idlType,
-						WebIDL_to_Jerryscript_TypeMap);
+						this.WebIDL_to_Jerryscript_TypeMap);
     return_types.C_Type = this.idlTypeToOtherType(idlType,
-						  WebIDL_to_C_TypeMap);
+						  this.WebIDL_to_C_TypeMap);
 
     /* the "this" pointer can only occur (in the WebIDL) as the return
        type of a function; mark it here for easy identification */
@@ -335,8 +380,8 @@ AugmentedAST.prototype.getConversionTypes = function(idlType)
     return_types.default_value = this.get_C_default_value(return_types.C_Type);
 
     /* TODO: handle arrays */
-    // if (idlType.array > 0)
-    //	   return_types.is_array = true;
+    if (idlType.array > 0)
+	return_types.is_array = true;
 
     return return_types;
 }; /* AugmentedAST.getConversionTypes */
@@ -447,13 +492,13 @@ AugmentedAST.prototype.set_is_module = function(thing)
 AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 {
     /* look at the return type and the arguments to the call */
-    let process_call = function(this_ptr, list, call)
+    let process_call = function(this_ptr, intrinsics_list, call)
     {
 	// examine the return type
 	let return_type = this_ptr.get_idlType_string(call.idlType);
 
 	if (!(this_ptr.isPrimitiveType(return_type)))
-	    list.push({type_name: return_type});
+	    intrinsics_list.push({type_name: return_type});
 
 	// examine the types of the arguments
 	for (let j = 0; j < call.arguments.length; j++)
@@ -461,13 +506,13 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	    let argument = call.arguments[j];
 	    let argument_type = argument.idlType.name;
 	    let argument_type2 = this_ptr.get_idlType_string(argument.idlType);
-
+ 
 	    if (!(this_ptr.isPrimitiveType(argument_type)))
-		list.push({type_name: argument_type});
+		intrinsics_list.push({type_name: argument_type});
 	}
     }; /* process_call */
 
-    let list = [];
+    let intrinsics_list = [];
 
     /* for interfaces, we have to look at each attribute's type and at
        each operation's return type and parameter types; then, we have
@@ -478,7 +523,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	for (let i = 0; i < thing.operations.length; i++)
 	{
 	    let operation = thing.operations[i];
-	    process_call(this, list, operation);
+	    process_call(this, intrinsics_list, operation);
 	}
 	/* examine the attributes (just struct fields, so they're easy) */
 	for (let i = 0; i < thing.attributes.length; i++)
@@ -487,11 +532,11 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	    let attribute_type = this.get_idlType_string(attribute.idlType);
 
 	    if (!(this.isPrimitiveType(attribute_type)))
-		list.push({type_name: attribute_type});
+		intrinsics_list.push({type_name: attribute_type});
 	}
     }
     else if (thing.type == "callback")
-	process_call(this, list, thing);
+	process_call(this, intrinsics_list, thing);
 
     /* dictionaries are easy: look at each field's type */
     else if (thing.type == "dictionary")
@@ -502,7 +547,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	    let field_type = this.get_idlType_string(field.idlType);
 
 	    if (!(this.isPrimitiveType(field_type)))
-		list.push({type_name: field_type});
+		intrinsics_list.push({type_name: field_type});
 	}
     }
     /* composites are just lists of other types, so we just loop
@@ -512,8 +557,10 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	var type_list = thing.webidl_type_list;
 
 	for (let i = 0; i<type_list.length; i++)
+	{
 	    if (!(this.isPrimitiveType(type_list[i])))
-		list.push({type_name: type_list[i]});
+		intrinsics_list.push({type_name: type_list[i]});
+	}
     }
     else
 	/* TODO: throw an actual exception; not really all that important
@@ -524,21 +571,22 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     /* unique-ify the list of types */
     /* the following line was my first attempt:
     /* let uniq_list =
-	    list.filter(function(item, pos){return list.indexOf(item)==pos;});*/
+	    intrinsics_list.filter(function(item, pos)
+	                      {return intrinsics_list.indexOf(item)==pos;});*/
     /* ...but this fails, b/c indexOf doesn't like objects (it's the perennial
        difference between == and ===) -- so I substituted the following, which
        I got off of http://tinyurl.com/yabbcs8v : */
-    let uniq_list = []; uniq_list = list.filter(
+    let uniq_list = []; uniq_list = intrinsics_list.filter(
 	     function(item, position)
 	     {
 		 return position === 
-		     (pos => list.findIndex(x => x.type_name === pos))
-		                                (item.type_name)
+		    (pos => intrinsics_list.findIndex(x => x.type_name === pos))
+		    (item.type_name)
 	     }
     );
     /* ...we rely on findIndex instead of indexOf, wrapping it in an
        anonymous function and wrapping that function in parens to instantly
-       call it with the parameters sent in by list.filter */
+       call it with the parameters sent in by intrinsics_list.filter */
 
     /* cull explicitly external types from the list of types */
     /* NOTE: assumes that thing.externalTypes has been set up! */thing.non_intrinsic_types = [];
@@ -567,6 +615,11 @@ AugmentedAST.prototype.find_default_string_values = function(d)
  * @param index The index this dictionary is in the original ast
  * @returns {boolean} True if added successfully, false otherwise.
  */
+/* CAUTION: any changes to this function should be reflected in
+ * similar changes to convert_list_of_array_types_to_dictionaries,
+ * which builds dictionaries by hand */
+/* TODO: change convert_list_of_array_types_to_dictionaries to build
+ * an AST for each array and then just call this function */
 AugmentedAST.prototype.addDictionary = function (d, index)
 {
 
@@ -597,9 +650,13 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 	    //      console.log("addDictionary:");
 	    //      console.log("    existingDict, d.members");
 	    this.addToTypeCheckQueue(d.members);
-	    // get rid of duplicate
-	    this.ast[index] = null;
-	    this.removedIndices.push(index);
+	    // get rid of duplicates; index is less-than-zero for arrays
+	    // that we create
+	    if (index > 0)
+	    {
+		this.ast[index] = null;
+		this.removedIndices.push(index);
+	    }
 	}
 	else 
 	{
@@ -1835,10 +1892,10 @@ AugmentedAST.prototype.augment = function (ast) {
        types, during execution of this function... */
   /*this.array_types = this.get_the_list_of_array_types(this.variadic_types); */
 
-    /* TODO: arrays */
     /* ...we'll take the arrays list and create dictionary entries for
-       them -- this will put them into the sorting algorithm so we get
-       them all put out in the correct order */
+       them -- array types are almost exactly like dictionaries, so
+       we'll just have a little special-case code in the
+       dictionary-handling code */
     this.convert_list_of_array_types_to_dictionaries(this.array_types);
 
     /* TODO: fix enumeration values if they overlap (b/c this won't
@@ -1916,7 +1973,7 @@ AugmentedAST.prototype.getCTypeName = function (obj)
    to handle composite types and then build all of the code that those
    types will need, so we need a wrapper to notice when we've found
    a composite and to do the extra work... */
-/* SIDE EFFECT: sets the "name" and "composite" field in idlType */
+/* SIDE EFFECT: sets the "name", "composite", and "array" fields in idlType */
 AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 {
     /* the whole purpose of this wrapping function is to grab the
@@ -1972,6 +2029,37 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 
 	    return new_name;
 	}; /* create_composite_type */
+    
+    /* like composite types (above), when we see an array, we need to
+       create a new name for it and enter it onto a list of array types
+       that will need to be instantiated in C code later; this function
+       is recursive, since it's possible to have arrays-of-arrays-of... */
+    /* the "array_thing" parameter should be a struct with two fields:
+       "items" (either a string (and we're done) or another of this
+       type (and we have to recur)) and "array", which is a boolean
+       (and ignored) */
+    var create_array_type = function(array_thing, list_of_array_types)
+    {
+	var element_typename;
+	var return_typename;
+
+	/* base case */
+	if (typeof array_thing.items === "string")
+	    element_typename = array_thing.items;
+	/* recursive case */
+	else
+	    element_typename = create_array_type(array_thing.items,
+					         list_of_array_types)+"_array";
+
+	return_typename = element_typename+"_array";
+	list_of_array_types[return_typename] = {"typeName":   return_typename,
+						"elementType":element_typename};
+	return return_typename;
+    } /* create_array_type */
+
+    /* record default values that then get updated as necessary: */
+    idlType.array = false;
+    idlType.composite = false;
 
     /* if we have an array of types, we'll need to create a new (union) type
        and return that name, instead */
@@ -1984,15 +2072,24 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 	idlType.name = new_type;
 	idlType.composite = true;
     }
-    else
+    /* similarly, if we get back an object, it's an array type */
+    else if (typeof new_type === "object")
     {
-	idlType.composite = false;
-
+	if (new_type.type === "array")
+	{
+	    new_type = create_array_type(new_type, this.array_types);
+	    idlType.name = new_type;
+	    idlType.array = true;
+	}
+	else
+	    throw new Error("Error in Sequence type.");
+    }
+    else
 	/* we need to store a string that is the idlType's name; the
 	   easiest way to do this is to just call the helper again
 	   with no type_mapper, as that will return this string */
 	   idlType.name = this.idlTypeToOtherType_helper(idlType, {});
-    }
+
     return new_type;
 } /* AugmentedAST.idlTypeToOtherType */
 
@@ -2017,14 +2114,19 @@ AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper
 	return this_type;
     }
     
-    if(typeof idlType == 'object')
+    if (typeof idlType == 'object')
     {
-	if(idlType.sequence && idlType.idlType){
-	    throw new Error("CAN'T HANDLE SEQUENCES OF TYPES");
-	    // TODO: union types, etc.
-	    var sequenceDepth = idlType.sequence;
-	    var sequenceItemType = this.idlTypeToOtherType_helper(idlType.idlType, type_mapper);
-	    return this.idlSequenceToSchema(sequenceDepth, sequenceItemType);
+	if (idlType.sequence)
+	{
+	    if (idlType.idlType)
+	    {
+		var sequenceDepth = idlType.sequence;
+		/* arrays will always be the WebIDL type... */
+		var sequenceItemType = this.idlTypeToOtherType(idlType.idlType, {});
+		return this.idlSequenceToSchema(sequenceDepth, sequenceItemType);
+	    }
+	    else
+		throw new Error("Sequence type is empty.(?)");
 	}
 	else if (Array.isArray(idlType)) /* composite type; return a flattened
 					    list of the webidl types -- notice
@@ -2060,7 +2162,7 @@ AugmentedAST.prototype.get_idlType_string = function(idlType)
 	console.log("NOT DEFINED"); /* TODO: probably raise an exception? */
     if (typeof idlType === "string")
 	return idlType;
-    else if (idlType.composite === true)
+    else if (idlType.composite === true || idlType.array === true)
 	return idlType.name;
     else if (idlType.idlType === undefined)
 	throw new Error("Can't find idlType...");
@@ -2180,27 +2282,6 @@ AugmentedAST.prototype.get_C_type_list = function(){
       return undefined;
 }; /* get_C_type_list */
 
-module.exports = AugmentedAST;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*********************************************************************/
-/* IGNORE FUNCTIONS BELOW THIS LINE!
-/*********************************************************************/
-
 /* dictionaries have the following fields:
    type: "dictionary"
    name: <string>
@@ -2221,52 +2302,89 @@ module.exports = AugmentedAST;
    finalMember: <bool>
 
    ...and here, only name and C_and_Jerryscript_Types get used
+
+   The entries in the list are structs that look like:
+   {
+       "elementType": <string> -- the type of the elements of the array
+       "typeName": <string> -- the name of the array type
+   }
 */
 AugmentedAST.prototype.convert_list_of_array_types_to_dictionaries = function(array_types)
 {
+    /* TODO: UNIQ'IFY THE array_types LIST */
+
     for (let runner in array_types)
     {
 	let next = array_types[runner];
-	next.is_string = false; /* kludge; but we know it's true */
-	let name = next.C_and_Jerryscript_Types.C_Type + "_Array";
+	let array_type = next.typeName;
+	let element_type = next.elementType;
+
 	let members = [];
-	let items_type = this.getConversionTypes(runner);
-	items_type.is_array = true;
 
 	members.push({"type": "field",
-		      "name": "length",
+		      "memberName": "length",
+		      "member_index": 0,
 		      "required": true,
 		      "idlType" : { "sequence": false,
 				    "generic" : null,
 				    "nullable" : false,
-				    "array" : false,
 				    "union" : false,
 				    "idlType" : "long",
 				  },
-		      "C_and_Jerryscript_Types": { "Jerryscript_Type": "unsigned long", "C_Type": "uint32_t"}
+		      "C_and_Jerryscript_Types":
+		                  { "Jerryscript_Type": "number",
+				    "C_Type": "uint32_t",
+				    "is_array" : false,
+				    "default_value": 0
+				  }
 		    });
 	members.push({"type": "field",
-		      "name": "items",
+		      "memberName": "items",
+		      "member_index": 1,
 		      "idlType" : { "sequence": false,
 				    "generic" : null,
 				    "nullable" : false,
-				    "array" : 1,
 				    "union" : false,
-				    "idlType" : runner,
+				    "idlType" : element_type,
 				   },
 		      "required": true,
-		      "C_and_Jerryscript_Types": items_type
+		      "C_and_Jerryscript_Types": 
+		           { "Jerryscript_Type": element_type,
+			     "C_Type": element_type,
+			     "is_array" : true,
+		             "default_value": this.get_C_default_value(element_type)
+			   }
 		    });
 
-	this.dictionaries[name] = {
+	this.dictionaries[array_type] = {
 	    "type" : "dictionary",
-	    "name" : name,
+	    "dictionaryName": array_type,
+	    "name" : array_type,
 	    "members" : members,
 	    "is_array_object": true,
-	    "C_and_Jerryscript_Types": next.C_and_Jerryscript_Types
+	    "externalTypes": [],
+	    "C_and_Jerryscript_Types":
+	                          {"Jerryscript_Type": array_type,
+				   "C_Type": array_type,
+				   "default_value": array_type+"_constructor()"}
 	};
+	this.get_non_intrinsic_types_list(this.dictionaries[array_type]);
     }
 } /* convert_list_of_array_types_to_dictionaries */
+
+
+module.exports = AugmentedAST;
+
+
+
+
+
+
+
+
+/*********************************************************************/
+/* IGNORE FUNCTIONS BELOW THIS LINE!
+/*********************************************************************/
 
 
 /* TODO: we really don't handle variadic types correctly yet, so this

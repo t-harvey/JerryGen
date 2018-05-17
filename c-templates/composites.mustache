@@ -104,7 +104,7 @@ typedef struct {
     {
 	return_struct.union_type = {{{webidl_name}}}_uid;
 
-	return_struct.value.{{{webidl_name}}}_field = ({{{C_Type}}}{{#is_array}}_Array{{/is_array}})interpreter_get_{{{C_Type}}}{{#is_array}}_Array{{/is_array}}_value(composite_value);
+	return_struct.value.{{{webidl_name}}}_field = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(composite_value);
     }
     {{/j_to_c_type_list}}
 

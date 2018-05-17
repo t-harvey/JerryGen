@@ -1,0 +1,20 @@
+This test is designed to test the infrastructure used to build
+array types.  It includes not only building arrays of
+combinations of all four WebIDL constructs, but differentiating
+between them, so there are many variations that we have to test.
+
+The .idl file defines a couple of types of each WebIDL construct with
+minor differences, and the main.c file contains many tests against the
+types, both from the Javascript side and the C/API side.
+
+To generate C code:
+
+GENERATOR/generate.js --output_utility_files --debug_printing --package=array_test GENERATOR/unit_tests/array_types/array_types.idl
+
+To compile into Jerryscript (from the
+Jerryscript/examples/array_test directory):
+
+gcc -g --std=c99 -I. -I../../jerry-port/default/include/ -I../../jerry-core/include -I../../jerry-ext/include -I../buffer -I../../jerry-main GENERATOR/unit_tests/array_types/array_test_main.c ../buffer/*.c *.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
+
+
+Expected Results:

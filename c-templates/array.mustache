@@ -1,0 +1,139 @@
+{{! Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+}}
+
+{{! Mustache doesn't understand how to transfer blank lines from this
+    script file to the output file unless those blank lines are within
+    a #<name> construct, so we wrap this entire script with a name
+    that shouldn't(?)(!) be in the input file }}
+{{^OBEYFORMATTING}}
+{{! This one .mustache file is used to create both the .c and the .h
+    *_Array files -- look for the "body" and "header" markers }}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{#header}}
+#ifndef ARRAY_OF_{{{typeName}}}_FUNCTIONS_H_
+#define ARRAY_OF_{{{typeName}}}_FUNCTIONS_H_
+{{/header}}
+
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+{{#header}}
+#include "jerryscript.h"
+#include "{{{elementType}}}.h"
+
+typedef struct
+{
+    unsigned int element_count;
+    {{{elementType}}} *elements;
+} {{{typeName}}};
+
+{{/header}}
+{{#body}}
+#include "{{{typeName}}}.h"
+
+{{/body}}
+{{{typeName}}} interpreter_get_{{{typeName}}}_value(Interpreter_Type value){{#header}};{{/header}}
+{{#body}}
+{
+    {{{typeName}}} return_value = {0, 0};
+
+    unsigned int array_length = jerry_get_array_length(value);
+    if (array_length == 0)
+    {
+        /* TODO: raise an exception, here */
+        fprintf(stderr, "ARRAY IS EMPTY\n");
+    }
+    else
+    {
+	return_array.elements = malloc(array_length*sizeof({{{elementType}}}));
+	/* TODO: check that malloc succeeded */
+    }
+
+    for(int i = 0; i < array_length; i++)
+        return_value.elements[i] = interpreter_get_{{{elementType}}}_value(jerry_get_property_by_index(value, i));
+
+    return return_value;
+} /* interpreter_get_{{{typeName}}}_value */
+
+{{/body}}
+Interpreter_Type interpreter_create_{{{typeName}}}({{{typeName}}} {{{typeName}}}_value){{#header}};{{/header}}
+{{#body}}
+{
+    unsigned int array_size = {{{typeName}}}_value.element_count;
+    jerry_value_t return_value = jerry_create_array(array_size);
+
+    for(int i = 0; i < array_size; i++)
+    {
+        jerry_value_t next_element = interpreter_create_{{{elementType}}}({{{typeName}}}_value.elements[i]);
+        jerry_release_value(jerry_set_property_by_index(return_value, i,
+    							next_element));
+	jerry_release(next_element);
+    }
+
+    return return_value;
+} /* interpreter_create_{{{typeName}}} */
+
+{{/body}}
+bool interpreter_value_is_{{{typeName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
+{{#body}}
+{
+    if (!jerry_value_is_array(thing_value))
+        return false;
+    else
+    {
+        /* TODO: should we check the type of every single element? */
+         jerry_value_t first_element =
+	                           jerry_get_property_by_index(thing_value, 0);
+	 bool correct_type = interpreter_value_is_{{{elementType}}}(first_element);
+	 jerry_release_value(first_element);
+	 
+	 if (!correct_type)
+	     return false;
+	 else
+	     return true;
+    }
+} /* interpreter_value_is_{{{typeName}}} */
+{{/body}}
+
+{{#debug_printing}}
+void debug_print_{{{typeName}}}(char *variable_name, {{{typeName}}} value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    unsigned int array_length = jerry_get_array_length(value);
+    if (array_length == 0)
+        fprintf(stdout, "%*s%s\tARRAY IS EMPTY\n", indentation, "", variable_name);
+    else
+    {
+        fprintf(stdout, "%*s%s\n", indentation, "", variable_name);
+        fprintf(stdout, "%*s[\n", indentation, "", variable_name);
+    	for(int i = 0; i < array_length; i++)
+            debug_print_{{{elementType}}}("",
+	                    jerry_get_property_by_index(value, i),
+			    indentation+DEBUG_INDENTATION_WIDTH);
+	fprint(stdout, ""%*s]\n", indentation, "");
+    }
+} /* debug_print_{{{typeName}}} */
+{{/body}}
+
+{{/debug_printing}}
+{{#header}}
+
+#endif /* ARRAY_OF_{{{typeName}}}_FUNCTIONS__H_ */
+{{/header}}
+{{/OBEYFORMATTING}}
