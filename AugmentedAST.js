@@ -1659,14 +1659,16 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 			    uint16_t: 16,
 			    int32_t:  31,
 			    uint32_t: 32,
+			    long:     32,
 			    int64_t:  63,
+			    longlong: 63,
 			    uint64_t: 64,
 			    float:    65,
 			    double:   66,
 			  };
 	var greater_than = function(x, y)
 	{
-	    if (typeof x == "undefined") return y;
+	    if      (typeof x == "undefined") return y;
 	    else if (typeof y == "undefined") return x;
 
 	    return (c_type_size[x.C_Type] > c_type_size[y.C_Type]);
