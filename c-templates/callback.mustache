@@ -97,7 +97,7 @@ typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callb
 {{/header}}
 
 /* this variable is used in composite types to denote a field of type
-   {{{interfaceName}}} -- this should be considered a read-only value */
+   {{{callbackName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{callbackName}}}_uid;
 
 /* all WebIDL constructs have a constructor function, so that C code

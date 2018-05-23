@@ -42,7 +42,7 @@ let acceptable_inputs = {
     debug_printing:       ["off", "on"],
     output_utility_files: [false, true],
     quiet:                [false, true],
-    help:                 [false, true]
+    help:                 []
 }; /* acceptable_inputs */
 
 /* give default values for undefined command-line parameters */
@@ -122,11 +122,16 @@ module.exports = Object.assign(
 	       the members of an array, so we first copy its output to a
 	       string, run a regular expression over it, and then print
 	       the now-pretty string */
-            console.log("    " + i + "       " +
+	    /* also, only print the possible values if there _are_ any */
+	    var possible_values_string = (acceptable_inputs[i].length > 0)?
+		"possible values: " +
+			   acceptable_inputs[i].toString().replace(/,/g, ", "):
+		"";
+
+	    console.log("    " + i + "       " +
 			spaces.substring(0,(longest_flag_length-
 					    i.toString().length)) +
-			"possible values: " +
-			acceptable_inputs[i].toString().replace(/,/g, ", "));
+			possible_values_string);
 	}
 	console.log("Example:")
 	console.log("    " + scriptName +
