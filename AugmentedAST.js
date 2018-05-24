@@ -2006,8 +2006,26 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 	                       [...new Set([].concat(...list_of_webidl_types))];
 	    list_of_webidl_types = list_of_webidl_types.sort();
 
-	    /* next, build a string from the names of the types */
-	    var new_name = list_of_webidl_types.join("_or_");
+	    /* next, build a string from the names of the types
+	       (first, substitute the name of the array for any
+	        structs in the list) */
+	    var list_of_type_names = [];
+	    var get_array_name = function(x) 
+	                         {
+				     if (typeof x == "string") 
+					 return x;
+				     else
+				     {
+					 if (x.type != "array" ||
+					     typeof x.items == "undefined")
+					     throw "error in creating composite-type's name";
+					 return get_array_name(x.items)+
+					                              "_array";
+				     }};
+	    var add_array_name = function (x) { list_of_type_names.push(get_array_name(x));};
+	    list_of_webidl_types.forEach(add_array_name);
+	    list_of_type_names = list_of_type_names.sort()
+	    var new_name = list_of_type_names.join("_or_");
 	    new_name = new_name.replace(/ /g,""); /* regex removes spaces from
 						   types like "unsigned long" */
 
@@ -2023,8 +2041,9 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 	    if (composites[new_name] === undefined)
 	    {
 		var new_entry = {"type": "composite",
-				 "compositeName" : new_name,
-				 "webidl_type_list": list_of_webidl_types,
+				 "compositeName" : new_name, 
+				 "webidl_type_list2": list_of_webidl_types,
+				 "webidl_type_list": list_of_type_names,
 				 "default_value": list_of_webidl_types[0] };
 		composites[new_name] = new_entry;
 	    }
@@ -2118,7 +2137,13 @@ AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper
     
     if (typeof idlType == 'object')
     {
-	if (idlType.sequence)
+	var object_is_array = function(x) { return (typeof x.type != "undefined" &&
+						x.type == "array"); }
+	if (object_is_array(idlType))
+	{
+	    return sequenceItemType = this.idlTypeToOtherType(idlType.items, {})+"_array";
+	}
+	else if (idlType.sequence)
 	{
 	    if (idlType.idlType)
 	    {
