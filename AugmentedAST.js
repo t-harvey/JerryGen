@@ -1978,12 +1978,40 @@ AugmentedAST.prototype.getCTypeName = function (obj)
 /* SIDE EFFECT: sets the "name", "composite", and "array" fields in idlType */
 AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 {
+    var self = this;
     /* the whole purpose of this wrapping function is to grab the
        new type and make sure it doesn't require further processing; in
        this case, if the type comes back with an array instead of a
        string, that's a composite type, and we'll have to convert it
        into a single string */
     var new_type = this.idlTypeToOtherType_helper(idlType, type_mapper);
+
+    /* like composite types (below), when we see an array, we need to
+       create a new name for it and enter it onto a list of array types
+       that will need to be instantiated in C code later; this function
+       is recursive, since it's possible to have arrays-of-arrays-of... */
+    /* the "array_thing" parameter should be a struct with two fields:
+       "items" (either a string (and we're done) or another of this
+       type (and we have to recur)) and "array", which is a boolean
+       (and ignored) */
+    var create_array_type = function(array_thing, list_of_array_types)
+    {
+	var element_typename;
+	var return_typename;
+
+	/* base case */
+	if (typeof array_thing.items === "string")
+	    element_typename = array_thing.items;
+	/* recursive case */
+	else
+	    element_typename = create_array_type(array_thing.items,
+					         list_of_array_types)+"_array";
+
+	return_typename = element_typename+"_array";
+	list_of_array_types[return_typename] = {"typeName":   return_typename,
+						"elementType":element_typename};
+	return return_typename;
+    } /* create_array_type */
 
     /* when we see a composite type, we have to do two things: first,
        build the composite-type's name (which will be a conglomeration
@@ -2019,11 +2047,10 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 					 if (x.type != "array" ||
 					     typeof x.items == "undefined")
 					     throw "error in creating composite-type's name";
-					 return get_array_name(x.items)+
-					                              "_array";
+					 return create_array_type(x, self.array_types);
 				     }};
 	    var add_array_name = function (x) { list_of_type_names.push(get_array_name(x));};
-	    list_of_webidl_types.forEach(add_array_name);
+	    list_of_webidl_types.forEach(add_array_name, this);
 	    list_of_type_names = list_of_type_names.sort()
 	    var new_name = list_of_type_names.join("_or_");
 	    new_name = new_name.replace(/ /g,""); /* regex removes spaces from
@@ -2051,33 +2078,6 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 	    return new_name;
 	}; /* create_composite_type */
     
-    /* like composite types (above), when we see an array, we need to
-       create a new name for it and enter it onto a list of array types
-       that will need to be instantiated in C code later; this function
-       is recursive, since it's possible to have arrays-of-arrays-of... */
-    /* the "array_thing" parameter should be a struct with two fields:
-       "items" (either a string (and we're done) or another of this
-       type (and we have to recur)) and "array", which is a boolean
-       (and ignored) */
-    var create_array_type = function(array_thing, list_of_array_types)
-    {
-	var element_typename;
-	var return_typename;
-
-	/* base case */
-	if (typeof array_thing.items === "string")
-	    element_typename = array_thing.items;
-	/* recursive case */
-	else
-	    element_typename = create_array_type(array_thing.items,
-					         list_of_array_types)+"_array";
-
-	return_typename = element_typename+"_array";
-	list_of_array_types[return_typename] = {"typeName":   return_typename,
-						"elementType":element_typename};
-	return return_typename;
-    } /* create_array_type */
-
     /* record default values that then get updated as necessary: */
     idlType.array = false;
     idlType.composite = false;
