@@ -88,18 +88,20 @@ under the License.
 #include "{{{callbackName}}}.h"
 {{/body}}
 
+/* this variable is used in composite types to denote a field of type
+   {{{callbackName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{callbackName}}}_uid;
+
 {{#header}}
 typedef Interpreter_Type {{{callbackName}}};
 /* this is the type signature of functions that can be assigned
    to a {{{callbackName}}} */
 typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
 
+
+/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
+
 {{/header}}
-
-/* this variable is used in composite types to denote a field of type
-   {{{callbackName}}} -- this should be considered a read-only value */
-{{#header}}extern {{/header}}int {{{callbackName}}}_uid;
-
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for callbacks, we just return
    a NULL pointer */

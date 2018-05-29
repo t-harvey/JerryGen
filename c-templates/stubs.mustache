@@ -136,7 +136,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
  *
  */ 
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type this_val){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type self){{#header}};{{/header}}
 {{#body}}
 {
     {{#arguments}}
@@ -148,7 +148,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
     {{/arguments}}
     /* EXAMINE THE VALUE OF "ERROR_CHECK" IF THERE COULD BE AN ERROR
        WITH AN OBJECT'S Native_Object */    
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(this_val, &{{{interfaceName}}}_checksum, &error_check);
+    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(self, &{{{interfaceName}}}_checksum, &error_check);
 
 {{#debug_printing}}
 #ifdef DEBUG_PRINTING
@@ -176,7 +176,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {{^voidReturnType}}
 {{#return_is_this}} {{! CAN A STUB EVER RETURN "this"?!? -- NO; IT'S A
 		        VOID RETURN TYPE... }}
-    /*return this_val;*/
+    /*return self;*/
 {{/return_is_this}}
 {{^return_is_this}}
 #ifdef DEBUG_PRINTING

@@ -73,14 +73,25 @@ typedef struct {
 {{#attributes.length}}
 
 {{/attributes.length}}
-{{! SET UP #DEFS TO GET AT ATTRIBUTES OF THE INTERFACE}}
-    {{#attributes}}
-    {{#C_and_Jerryscript_Types}}
-#define attribute_{{{interfaceName}}}_{{{attributeName}}} (extract_{{{interfaceName}}}_{{{attributeName}}}(this_val))
-    {{/C_and_Jerryscript_Types}}
-    {{/attributes}}
+
+#ifndef INTERFACE_EXTRACT
+#define INTERFACE_EXTRACT(self, InterfaceName, AttributeName) \
+	extract_##InterfaceName##_##AttributeName(self)
+#endif /* INTERFACE_EXTRACT */
+#ifndef INTERFACE_INSERT
+#define INTERFACE_INSERT(self, InterfaceName, AttributeName, value) \
+	insert_##InterfaceName##_##AttributeName(self, value)
+#endif /* INTERFACE_INSERT */
 
 {{/header}}
+{{^repress_stubs}}
+{{#header}}
+
+/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
+
+{{/header}}
+{{/repress_stubs}}
+
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
 {{{interfaceName}}} {{{interfaceName}}}_constructor(void){{#header}};{{/header}}
@@ -112,16 +123,26 @@ typedef struct {
 {{/attributes.length}}
 {{#attributes}}
 {{#C_and_Jerryscript_Types}}
-{{#header}}extern {{/header}}{{{C_Type}}} extract_{{{interfaceName}}}_{{{attributeName}}} (Interpreter_Type this_pointer){{#header}};{{/header}}
+{{#header}}extern {{/header}}{{{C_Type}}} extract_{{{interfaceName}}}_{{{attributeName}}} (Interpreter_Type self){{#header}};{{/header}}
 {{#body}}
 {
     Interpreter_Type property_pointer = jerry_create_string((const jerry_char_t *) "{{{attributeName}}}");
-    Interpreter_Type attribute_pointer = jerry_get_property(this_pointer, property_pointer);
+    Interpreter_Type attribute_pointer = jerry_get_property(self, property_pointer);
     {{{C_Type}}} return_value = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(attribute_pointer);
     jerry_release_value(property_pointer);
     jerry_release_value(attribute_pointer);
     return return_value;
 } /* extract_{{interfaceName}}_{{attributeName}} */
+
+{{/body}}
+{{#header}}extern {{/header}}void insert_{{{interfaceName}}}_{{{attributeName}}} (Interpreter_Type self, {{{C_Type}}} new_value){{#header}};{{/header}}
+{{#body}}
+{
+    Interpreter_Type new_value_pointer =
+              interpreter_create_{{{C_Type}}}(new_value);
+    interpreter_set_property(self, "{{{attributeName}}}", new_value_pointer);
+    jerry_release_value(new_value_pointer);
+} /* insert_{{interfaceName}}_{{attributeName}} */
 
 {{/body}}
 {{/C_and_Jerryscript_Types}}
@@ -156,13 +177,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 } /* Native_Object_{{{interfaceName}}}_create */
 {{/body}}
 {{/repress_stubs}}
-{{^repress_stubs}}
-{{#header}}
 
-/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
-
-{{/header}}
-{{/repress_stubs}}
 {{! the checksum is used by Jerryscript to ensure that the
     Native_Object is still valid; when we make the stubs, we need to
     set up the checksum here, but also give it to the stubs file }}

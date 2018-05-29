@@ -49,7 +49,11 @@ typedef enum { {{#members}}{{{indentation}}}{{{name}}}{{^finalMember}},{{{new_li
 {{#body}}
 static int number_of_{{{enumName}}} = {{{members.length}}};
 {{/body}}
+{{#header}}
 
+/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
+
+{{/header}}
 {{! TODO: what if the "members" list is empty?!?"}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for enums, just return the

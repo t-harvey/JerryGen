@@ -490,6 +490,18 @@ Interpreter_Type interpreter_get_property(Interpreter_Type thing, string propert
 } /* interpreter_get_property */
 {{/body}}
 
+void interpreter_set_property(Interpreter_Type thing, string property, Interpreter_Type new_value){{#header}};{{/header}}
+{{#body}}
+{
+   jerry_value_t prop_name =
+                 jerry_create_string((const jerry_char_t *) property);
+   jerry_value_t new_value_pointer = jerry_acquire_value(new_value);
+   jerry_release_value(jerry_set_property(thing, prop_name, new_value_pointer));
+   jerry_release_value(new_value_pointer);
+   jerry_release_value(prop_name);
+} /* interpreter_set_property */
+{{/body}}
+
 void Native_Object_set(void *thing, Interpreter_Type object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
 {{#body}}
 {
