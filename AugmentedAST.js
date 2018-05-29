@@ -265,6 +265,7 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 			       "ByteString": "\"\"" ,
 			       "USVString": "\"\"" ,
 			       bool:     false,
+			       boolean: false,
 			       ArrayBuffer: "NULL",
 			    };
 
