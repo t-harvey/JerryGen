@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "jerryscript.h"
 #include "jerryscript-ext/handler.h"
@@ -247,6 +248,22 @@ int
 main (int argc,
       char **argv)
 {
+    bool filename_given = false;
+    size_t size_of_input = 0;
+    if (argc > 1)
+    {
+	if (access(argv[1], F_OK) != -1)
+	{
+	    if (freopen(argv[1], "r", stdin) != NULL)
+		filename_given = true;
+	    else
+		abort();
+	}
+	else
+	    fprintf(stdout, "CAN'T FIND FILE: >%s<; RUNNING THE REPL.\n",
+		    argv[1]);
+    }
+
     /* initialize engine */
     jerry_init(JERRY_INIT_EMPTY);
     register_js_function ("assert", jerryx_handler_assert);
@@ -267,7 +284,8 @@ main (int argc,
       uint8_t *source_buffer_tail = buffer;
       size_t len = 0;
 
-      printf ("%s", prompt);
+      if (!filename_given)
+	  printf ("%s", prompt);
 
       /* Read a line */
       while (true)
