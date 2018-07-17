@@ -52,6 +52,9 @@ module.exports = {
 
 	for(let object_name in object_list)
 	{
+	    if (object_list[object_name].dont_print_this_thing_out)
+		continue;
+
 	    augAST[object_type] = {}; // not strictly necessary...
 	    augAST[object_type] = 
 		        {[object_name] : object_list[object_name]};

@@ -23,6 +23,7 @@ under the License.
 let argv = require('minimist')(process.argv.slice(2));
 let command_line_parms = {
     files:                argv['_'],
+    include_files:        argv['include'],
     package:              argv['package'],
     stubs:                argv['stubs'],
     fix_type_errors:      argv['fix_type_errors'],
@@ -146,6 +147,19 @@ module.exports = Object.assign(
 
     validate: function()
     {
+	let ensure_all_files_have_idl_as_an_extension = function(filename_list)
+	{
+	    for(var j=0; j < filename_list.length; j++)
+		{
+		    if (!filename_list[j].endsWith(".idl"))
+		    {
+			console.log("ERROR: The filename >" + filename_list[j] +
+				    "< does not have the \"idl\" extension.");
+			found_an_error = true;
+		    }
+		}
+	} /* ensure_all_files_have_idl_as_an_extension */
+
 	if (this.help === true)
 	    throw new Error(this.error_codes.need_help);
 
@@ -157,25 +171,23 @@ module.exports = Object.assign(
 	    throw new Error(this.error_codes.no_package_name_given);
 	if (this.files.length === 0)
 	    throw new Error(this.error_codes.no_filenames_given);
-	
+
+	/* if there's only one include file, it comes in as a string, while
+	   if there are more than one, the strings for each will be in an
+	   array; for ease, just always make this an array */
+	if (typeof this.include_files === "string")
+	    this.include_files = [ this.include_files ];
 	
 	/* make sure that the values the parameters _do_ have are valid */
 	let found_an_error = false;
-	for(var i of Object.keys(this.command_line_parms_keys))
+	for (var i of this.command_line_parms_keys)
 	{
 	    /* all of the input WebIDL files have to end in .idl */
 	    if (i === "files")
-	    {
-		for(var j=0; j < this.files.length; j++)
-		{
-		    if (!this.files[j].endsWith(".idl"))
-		    {
-			console.log("ERROR: The filename >" + this.files[j] +
-				    "< does not have the \"idl\" extension.");
-			found_an_error = true;
-		    }
-		}
-	    }
+		ensure_all_files_have_idl_as_an_extension(this.files);
+	    else if (i === "include_files" && typeof this.include_files != "undefined")
+		ensure_all_files_have_idl_as_an_extension(this.include_files);
+
 	    /* we're going to arbitrarily enforce the rule that the
 	       package name cannot end in ".idl" -- this lets us catch
 	       the error case where the user types "generate.js
@@ -218,7 +230,7 @@ module.exports = Object.assign(
 	for (var i of Object.keys(argv))
 	{
 	    /* first, knock out pieces of argv that aren't actually flags */
-	    if (i === "_" || i === "package")
+	    if (i === "_" || i === "package" || i === "include")
 		continue;
 	    
 	    /* valid flags will have an entry in acceptable_inputs */

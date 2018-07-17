@@ -57,7 +57,6 @@ function AugmentedAST(ast, fix_type_errors, moduleName)
     this.dictionaries = Object.create(null);
     this.callbacks = Object.create(null);
     this.interfaces = Object.create(null);
-    this.typedefs = Object.create(null);
     this.exceptions = Object.create(null);
     this.enums = Object.create(null);
     this.allExternalTypes = Object.create(null);
@@ -65,6 +64,7 @@ function AugmentedAST(ast, fix_type_errors, moduleName)
     this.variadic_types = Object.create(null);
     this.interface_names = new Array();
     this.composites = Object.create(null);
+    this.typedefs = Object.create(null);
 
     /* we use this queue to keep track of members, etc. that we need
        to check after everything is processed */
@@ -89,7 +89,8 @@ AugmentedAST.prototype.primitiveTypes = ['any', 'ArrayBuffer', 'boolean',
 					 'unsigned long long', 'float',
                                          'unrestricted float', 'double',
 					 'unrestricted double', 'DOMString',
-					 'void', 'string', 'this' ];
+					 'void', 'string', 'this',
+					 'object', 'Error', 'Json' ];
 
 /* uses the augmented data to produce an array of types, including
    primitive, dictionary, interface, typedef, exception and enum types
@@ -99,9 +100,9 @@ AugmentedAST.prototype.generateAllowedTypesArray = function ()
     return this.primitiveTypes.concat(Object.keys(this.dictionaries),
                                       Object.keys(this.callbacks),
                                       Object.keys(this.interfaces),
-                                      Object.keys(this.typedefs),
                                       Object.keys(this.exceptions),
-                                      Object.keys(this.enums));
+                                      Object.keys(this.enums),
+				      Object.keys(this.typedefs));
 }; /* AugmentedAST.generateAllowedTypesArray */
 
 /* checks whether the given type is properly defined in the IDL */
@@ -124,9 +125,18 @@ AugmentedAST.prototype.isAllowedType = function (t)
 };
 
 /* returns true if the given type is primitive */
+/* TODO: maybe have record_typedefs() simply add those names (that devolve
+   into primitives :-) into the primitiveTypes table and thus simplify
+   checking here and in other places? -- I'm torn on the system-design
+   question... */
 AugmentedAST.prototype.isPrimitiveType = function (t)
 {
-    return this.primitiveTypes.indexOf(this.getTypeName(t)) > -1;
+    var typeName = this.getTypeName(t);
+
+    if (typeName in this.typedefs)
+	typeName = this.typedefs[typeName].ultimate_typename;
+
+    return this.primitiveTypes.indexOf(typeName) > -1;
 }; /* AugmentedAST.isPrimitiveType */
 
 /* returns true if the given type has been defined as a dictionary in the IDL */
@@ -345,6 +355,66 @@ AugmentedAST.prototype.WebIDL_to_C_TypeMap2 = {
     }; /* WebIDL_to_C_TypeMap2 */
 
 
+/* record all of the names of typedefs in our input; 
+/* SIDE EFFECT: creates the AugmentedAST.typedefs list */
+AugmentedAST.prototype.record_typedefs = function(ast)
+{
+    this.typedefs = new Object;
+
+    /* SIDE EFFECT: sets the "parent" and "ultimate_typename" fields of
+       "current" in the "typedefs" list */
+    /* this is, essentially, a union-find algorithm; we walk up
+       "current"'s tree until we hit the parent -- this is "current"'s
+       actual type */
+    /* this function raises an exception if a loop is found -- we
+       know we've looped if the "tree_members" array contains "current" */
+    let find_ultimate_typename = function(current, typedefs_list, tree_members)
+    {
+	if (tree_members.includes(current))
+	{
+	    /* TODO: print out the members of the loop */
+	    throw new Error("Loop in typedefs.");
+	}
+
+	if (typedefs_list[current].ultimate_typename === undefined)
+	{
+	    /* (b/c a typedef is just an alias between names) */
+	    let alias = typedefs_list[current].type;
+
+	    if (alias in typedefs_list)
+	    {
+		tree_members.push(current);
+
+		typedefs_list[current].ultimate_typename =
+		    find_ultimate_typename(alias, typedefs_list, tree_members);
+	    }
+	    else
+		typedefs_list[current].ultimate_typename = alias; 
+	}
+	return typedefs_list[current].ultimate_typename;
+    } /* find_ultimate_typename */
+
+    /* first, gather the typedefs */
+    for(var i = 0; i < ast.length; i++)
+	if (ast[i].type == "typedef")
+        {
+	    this.set_external_types(ast[i]);
+
+	    this.typedefs[ast[i].name] = {name: ast[i].name,
+				          type: ast[i].idlType.idlType};
+	}
+
+    /* second, build a tree of typedefs and figure out what type they're
+       ultimately aliased to -- b/c it's perfectly okay to typedef a->b->c...
+       and we need to know what the "ultimate" type is so that we can
+       include the proper .h file to support its use */
+    let types = Object.keys(this.typedefs);
+    for(var i = 0; i < types.length; i++)
+	find_ultimate_typename(types[i], this.typedefs, []);
+
+} /* record_typedefs */
+
+
 /* return a struct with the C and Jerryscript types for the WebIDL type
    passed in */
 AugmentedAST.prototype.getConversionTypes = function(idlType)
@@ -411,37 +481,26 @@ AugmentedAST.prototype.set_external_types = function(thing)
 	{
             if (extAttr.rhs == undefined ||
 		extAttr.rhs.value == undefined ||
-		extAttr.rhs.value.length != 2)
+		extAttr.rhs.value.length != 1)
             {
-		throw new Error("External type declarations take two comma-separated, parentheses-delimited parameters representing: 1) the package name and 2) the interface name.");
+		throw new Error("External type declarations take a single parameters representing the name of the type.");
             }
             else
             {
 		/* for the local list attached to the "thing" object and
 		 * the global list attached to the "this" object, if
 		 * it's not a duplicate, add it */
-		var type_name = extAttr.rhs.value[1];
+		var type_name = extAttr.rhs.value[0];
 		let is_callback = (extAttr.name === "ExternalCallback");
-		var type_struct = { package: extAttr.rhs.value[0],
-				    type:    type_name,
+		var type_struct = { type:    type_name,
 				    is_callback: is_callback};
 		
 		thing.externalTypes.push(type_struct);
 
 		if (extAttr.name === "ExternalInterface")
 		    this.interface_names.push(type_name);
-		
-		/* either we haven't seen this attribute before, or we need
-		   to check that it is the same package/type combination
-		   as previously seen... */
-		if (this.allExternalTypes[type_name] == undefined)
-		    this.allExternalTypes[type_name] = type_struct;
-		else if (this.allExternalTypes[type_name].package !=
-			 type_struct.package)
-		{
-		    /* TODO: tell the user what we saw for each! */
-		    throw new Error("External type declarations must agree in package/type name.");
-		}
+
+		this.allExternalTypes[type_name] = type_struct;
             }
 	}
     }
@@ -483,6 +542,7 @@ AugmentedAST.prototype.set_is_module = function(thing)
    everything in the ExternalTypes list from the intrinsics type
    list */
 /* SIDE EFFECT: sets the non_intrinsic_types list on "thing" */
+/* SIDE EFFECT: sets the typedefs list on "thing" */
 /* Note that this could put a type in the thing's externalTypes array
   even though that type is included later in this compilation
   (so it is a locally defined non-intrinsic-type rather than
@@ -492,39 +552,87 @@ AugmentedAST.prototype.set_is_module = function(thing)
   non_intrinsic_types list */
 AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 {
+    let add_to_lists_if_not_primitive =
+	               function(this_ptr, type, intrinsics_list, typedefs_list)
+    {
+	if (type in this_ptr.typedefs)
+	{
+	    typedefs_list[type] = type; /* this restricts duplicates */
+	    type = this_ptr.typedefs[type].ultimate_typename;
+	}
+
+	if (!(this_ptr.isPrimitiveType(type)))
+	    intrinsics_list.push({type_name: type});
+    }; /* add_to_lists_if_not_primitive */
+
     /* look at the return type and the arguments to the call */
-    let process_call = function(this_ptr, intrinsics_list, call)
+    let process_call = function(this_ptr, intrinsics_list, call, typedefs_seen)
     {
 	// examine the return type
 	let return_type = this_ptr.get_idlType_string(call.idlType);
 
-	if (!(this_ptr.isPrimitiveType(return_type)))
-	    intrinsics_list.push({type_name: return_type});
+	add_to_lists_if_not_primitive(this_ptr, return_type, intrinsics_list, typedefs_seen);
 
 	// examine the types of the arguments
 	for (let j = 0; j < call.arguments.length; j++)
 	{
 	    let argument = call.arguments[j];
 	    let argument_type = argument.idlType.name;
+	    /* TODO: do we need the following variable? */
 	    let argument_type2 = this_ptr.get_idlType_string(argument.idlType);
- 
-	    if (!(this_ptr.isPrimitiveType(argument_type)))
-		intrinsics_list.push({type_name: argument_type});
-	}
+	    
+	    add_to_lists_if_not_primitive(this_ptr, argument_type,
+					 intrinsics_list, typedefs_seen);
+ 	}
     }; /* process_call */
 
+    /* we want to put typedefs out in the order that they
+       will need to be put out in the .h file, so walk up each tree
+       and make sure that parents get into the list before their children */
+    let gather_typedefs = function(global_typedefs_list, local_typedefs_list)
+    {
+	let seen = [];
+	let typedefs_in_order = []
+
+	/* walks up each typedef's tree, adding all of the parents as well
+	   as the typedef itself to the list of typedefs that will need to
+	   be put out for "thing" */
+	let walk_up_tree =
+	           function(current, typedefs_list, global_typedefs_list, seen)
+	{
+	    if (seen.includes(current))
+		return;
+	    else
+	    {
+		seen[current]= true;
+		let parent = global_typedefs_list[current].type;
+		if (parent in global_typedefs_list)
+		    walk_up_tree(parent, typedefs_list,
+				 global_typedefs_list, seen);
+		/* we add "current" in a post-order fashion, because
+		   we are going to put out the typedefs in parent-first
+		   order */
+		typedefs_list.push({"name": current, "type":global_typedefs_list[current].type});
+	    }
+	} /* walk_up_tree */
+
+	for (var i in local_typedefs_list)
+	    walk_up_tree(local_typedefs_list[i], typedefs_in_order,
+			 global_typedefs_list, seen);
+	return typedefs_in_order;
+    } /* gather_typedefs */
+
     let intrinsics_list = [];
+    let typedefs_seen = new Object;
 
     /* for interfaces, we have to look at each attribute's type and at
-       each operation's return type and parameter types; then, we have
-       to remove any names defined using the external attribute
-       "External<Type>" */
+       each operation's return type and parameter types */
     if (thing.type == "interface")
     {
 	for (let i = 0; i < thing.operations.length; i++)
 	{
 	    let operation = thing.operations[i];
-	    process_call(this, intrinsics_list, operation);
+	    process_call(this, intrinsics_list, operation, typedefs_seen);
 	}
 	/* examine the attributes (just struct fields, so they're easy) */
 	for (let i = 0; i < thing.attributes.length; i++)
@@ -532,12 +640,14 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	    let attribute = thing.attributes[i];
 	    let attribute_type = this.get_idlType_string(attribute.idlType);
 
-	    if (!(this.isPrimitiveType(attribute_type)))
-		intrinsics_list.push({type_name: attribute_type});
+	    add_to_lists_if_not_primitive(this, attribute_type,
+					  intrinsics_list, typedefs_seen);
 	}
     }
+
+    /* calbacks work the same way as an interface's operations */
     else if (thing.type == "callback")
-	process_call(this, intrinsics_list, thing);
+	process_call(this, intrinsics_list, thing, typedefs_seen);
 
     /* dictionaries are easy: look at each field's type */
     else if (thing.type == "dictionary")
@@ -547,22 +657,22 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	    let field = thing.members[i];
 	    let field_type = this.get_idlType_string(field.idlType);
 
-	    if (!(this.isPrimitiveType(field_type)))
-		intrinsics_list.push({type_name: field_type});
+	    add_to_lists_if_not_primitive(this, field_type,
+					  intrinsics_list, typedefs_seen);
 	}
     }
-    /* composites are just lists of other types, so we just loop
-       through them and build up the list (kind of like dictionaries, really) */
+
+    /* similar to dictionaries, composites are just lists of other types,
+       so we need to loop through them and build up the list */
     else if (thing.type === "composite")
     {
 	var type_list = thing.webidl_type_list;
 
 	for (let i = 0; i<type_list.length; i++)
-	{
-	    if (!(this.isPrimitiveType(type_list[i])))
-		intrinsics_list.push({type_name: type_list[i]});
-	}
+	    add_to_lists_if_not_primitive(this, type_list[i],
+					  intrinsics_list, typedefs_seen);
     }
+
     else
 	/* TODO: throw an actual exception; not really all that important
 	   right now, as this can only happen (?) during development; once
@@ -589,11 +699,15 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
        anonymous function and wrapping that function in parens to instantly
        call it with the parameters sent in by intrinsics_list.filter */
 
+    /* TODO: make sure that callbacks, dictionaries, and composite types
+       have an externalTypes list built */
     /* cull explicitly external types from the list of types */
     /* NOTE: assumes that thing.externalTypes has been set up! */thing.non_intrinsic_types = [];
     thing.non_intrinsic_types = uniq_list.filter(
 	            function(item){return this.indexOf(item.type_name)<0;},
                     thing.externalTypes.map(function(x) {return x.type;} ));
+
+    thing.typedefs = gather_typedefs(this.typedefs, typedefs_seen);
 
 } /* AugmentedAST.prototype.get_non_intrinsic_types_list */
 
@@ -814,6 +928,8 @@ AugmentedAST.prototype.addCallback = function (callback, index) {
 
     this.set_external_types(callback);
 
+  // get a list of types that will need to be included in the .c file for this
+  // callback
     this.get_non_intrinsic_types_list(callback);
   }
 
@@ -1843,6 +1959,11 @@ AugmentedAST.prototype.augment = function (ast) {
     return this; //already augmented
   }
 
+    /* record typedefs in their own structure (this.typedefs) -- we could(!)
+       remove them from the ast, but right now, we just ignore them in the
+       next loop... */
+    this.record_typedefs(this.ast);
+
   var t = this.ast;
   // note, we visit everything in the TOP level only.
   // this limits the nodes that are supported.
@@ -2235,6 +2356,26 @@ AugmentedAST.prototype.getCompositeTypesArray = function()
     return array_of_types;
 } /* getCompositeTypesArray */
 
+
+/* change the type of the externalTypes so that the Hogan compiler
+   can iterate through it */
+/* also, it's not an error to declare an ExternalType in the .idl file
+   and then call the generator with both .idl files (i.e., the type is not
+   really "external", b/c it is included at compile time -- in this case, we
+   shouldn't put out include directives, b/c all of those types will be
+   included */
+AugmentedAST.prototype.getExternalTypesArray = function()
+{
+    var list_of_defined_types = Array().concat(Object.keys(this.dictionaries),
+					       Object.keys(this.interfaces),
+					       Object.keys(this.callbacks));
+
+    var out = [];
+    for(var key of Object.keys(this.allExternalTypes))
+	if (list_of_defined_types.indexOf(key) == -1)
+	    out.push(this.allExternalTypes[key]);
+    return out;
+} /* getExternalTypesArray */
 
 /* change the type of the externalTypes so that the Hogan compiler
    can iterate through it */

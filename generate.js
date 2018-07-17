@@ -19,6 +19,7 @@ under the License.
 
 /* set up the packages we'll use */
 var parser = require('webidl2'),
+    parser_for_includes = require('webidl2'),
     qfs = require('q-io/fs'),
     reader = require('./IDLReader'),
     AugmentedAST = require('./AugmentedAST'),
@@ -33,6 +34,21 @@ parameters.validate();
 
 // create an ast and filter it for subsequent processing w/ Hogan/Mustache
 var parsed_file = (parser.parse(reader.readFiles(parameters.files)));
+
+if (typeof parameters.include_files != "undefined")
+{
+    var parsed_include_files = (parser_for_includes.parse(reader.readFiles(parameters.include_files)));
+
+    /* move the include files over to the main list -- but mark them so
+       they don't get printed out (since they'll get printed out when
+       those files are compiled proper) */
+    for (var i of parsed_include_files)
+    {
+	i.dont_print_this_thing_out = true;
+	parsed_file.push(i);
+    }
+}
+
 var augAST = new AugmentedAST(parsed_file,
 			      parameters.fix_type_errors, parameters.package);
 

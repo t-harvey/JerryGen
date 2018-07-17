@@ -28,7 +28,7 @@ under the License.
 #ifndef {{{interfaceName}}}_H_
 #define {{{interfaceName}}}_H_
 {{#externalTypes}}
-#include "{{! REMOVING AS A TEST: brace brace brace package brace brace brace/}}{{{type}}}.h"
+#include "{{{type}}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
 #include "{{{type_name}}}.h"
@@ -52,6 +52,14 @@ under the License.
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{interfaceName}}}_uid;
+{{#header}}
+{{#typedefs.length}}
+
+{{/typedefs.length}}
+{{#typedefs}}
+typedef {{{type}}} {{{name}}};
+{{/typedefs}}
+{{/header}}
 
 {{^repress_stubs}}
 {{#header}}
@@ -64,15 +72,6 @@ typedef Interpreter_Type {{{interfaceName}}};
    interfaceName_stubs.h, so first we define it, and then we include
    the interfaceName_stubs.h file }}
 #include "{{{interfaceName}}}_stubs.h"
-
-#ifndef INTERFACE_EXTRACT
-#define INTERFACE_EXTRACT(self, InterfaceName, AttributeName) \
-	extract_##InterfaceName##_##AttributeName(self)
-#endif /* INTERFACE_EXTRACT */
-#ifndef INTERFACE_INSERT
-#define INTERFACE_INSERT(self, InterfaceName, AttributeName, value) \
-	insert_##InterfaceName##_##AttributeName(self, value)
-#endif /* INTERFACE_INSERT */
 
 /********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
 
@@ -519,6 +518,11 @@ Interpreter_Type interpreter_create_{{{interfaceName}}}({{{interfaceName}}} x){{
 } /* interpreter_create_{{{interfaceName}}} */
 
 {{/body}}
+{{#header}}
+{{#typedefs}}
+#define interpreter_create_{{{name}}} interpreter_create_{{{type}}}
+{{/typedefs}}
+{{/header}}
 bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
 {{#body}}
 {
