@@ -1,0 +1,52 @@
+#! /bin/sh
+if [ "$#" -lt  2 ]
+then
+echo "USAGE:"
+echo "   "`basename $0`" <dir with zephry docs> <dir to write new docs> <run the parser to check for correctness -- optional>"
+else
+   if [ "$#" -gt 2 ]
+   then
+       correctness=$3
+   else
+       correctness=""
+   fi
+   bob=`ls -d $1/*.md`
+   for i in $bob
+   do
+	# skip directories
+    	if [[ ! -f $i ]]
+    	then
+	    continue;
+    	fi
+	temp_file=$2/temp_for_checking_zephyr.idl
+    	awk -f ./filter_webild.awk $i > $temp_file
+	if [ -z "$correctness" ]
+	then
+	    basename_i=`basename -s .md $i`.idl
+    	    if [[ -s $temp_file ]]
+    	    then
+	        mv $temp_file $2/$basename_i
+	    fi
+	    continue;
+	    
+	fi
+    	if [[ -s $temp_file ]]
+    	then
+            name=`basename $i`
+            events_file=`grep "interface EventEmitter" $temp_file`
+	    includes_events=`grep "EventEmitter" $temp_file | grep "interface" `
+	    if [[ -n $events_file ]]
+	    then
+                /Users/a0179262/work/generator/generate.js --package=$name $temp_file
+	    elif [[ -n $includes_events ]]
+	    then
+	        awk -f ./filter_webild.awk /Users/a0179262/work/forked_zephyr.js/docs/events.md > events.idl
+                /Users/a0179262/work/generator/generate.js --package=$name --include=`pwd`/events.idl $temp_file
+	    else
+                /Users/a0179262/work/generator/generate.js --package=$name $temp_file
+	    fi
+            echo "************************************"
+        fi
+	rm -f $temp_file
+    done
+fi
