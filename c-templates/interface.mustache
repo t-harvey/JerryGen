@@ -123,7 +123,7 @@ typedef Interpreter_Type {{{interfaceName}}};
 {{#body}}
 {
     Interpreter_Type new_value_pointer =
-              interpreter_create_{{{C_Type}}}(new_value);
+              interpreter_create_{{{C_Type}}}({{#is_string}}(const jerry_char_t *) {{/is_string}}new_value);
     interpreter_set_property(self, "{{{attributeName}}}", new_value_pointer);
     jerry_release_value(new_value_pointer);
 
@@ -190,7 +190,7 @@ Interpreter_Type
     TODO: THIS CODE DOESN'T WORK IF THEY NEED interpreter_get_value_..._ARRAY !!!
     (b/c we don't create the get_..._Array function anywhere...)
     ********************************************************************  }}
-    /* demarshal the arguments{{#repress_stubs}} and setup the Native_Object{{/repress_stubs}} */
+    /* demarshal the arguments{{#repress_stubs}} and set up the Native_Object{{/repress_stubs}} */
 {{! TODO: the "this_val" passed in to a function parameter: should it be
     this_val, or should we gen up a value_t for the global object? }}
     {{#arguments}}
@@ -313,7 +313,9 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
     {
     {{#C_and_Jerryscript_Types}}
         Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
-        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, {{{default_value}}}));
+	Interpreter_Type {{{attributeName}}}_default_value = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *) {{/is_string}}{{{default_value}}});
+        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, {{{attributeName}}}_default_value));
+        jerry_release_value({{{attributeName}}}_default_value);
         jerry_release_value({{{attributeName}}}_prop_name);
     {{/C_and_Jerryscript_Types}}
     }
@@ -340,7 +342,7 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
     jerry_release_value(prototype);
 
 
-    /* setup the Native_Object for the new object */
+    /* set up the Native_Object for the new object */
     Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}}_create();
     Native_Object_set(native_object, new_{{{interfaceName}}}, &{{{interfaceName}}}_checksum);
 
@@ -398,7 +400,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     into the global namespace; otherwise, the object is used as a
     prototype, so record it in the global prototypes holder }}
 {{#NoInterfaceObject}}
-    /* setup the Native_Object for the new object */
+    /* set up the Native_Object for the new object */
     Native_Object_{{{interfaceName}}} *native_object = Native_Object_{{{interfaceName}}}_create();
     Native_Object_set(native_object, {{{interfaceName}}}_prototype_object, &{{{interfaceName}}}_checksum);
 
@@ -493,6 +495,7 @@ static void register_initialize_{{{interfaceName}}}(void)
 
 {{/is_module}}
 } /* register_initialize_{{{interfaceName}}} */
+
 {{/body}}
 {{! INTERFACE GETTER/SETTER: }}
 {{{interfaceName}}} interpreter_get_{{{interfaceName}}}_value(Interpreter_Type value){{#header}};{{/header}}

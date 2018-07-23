@@ -46,7 +46,6 @@ typedef char * string;
 typedef jerry_value_t Interpreter_Type;
 typedef Interpreter_Type object;
 typedef string Error;
-typedef any JSON
 
 /* each type needs to have its own unique id (uid) so that we can
    build union types out of multiple types and differentiate between
@@ -126,6 +125,7 @@ typedef struct
 	string   string_field;
     } value;
 } any;
+typedef any JSON;
 {{/header}}
 /* NOTE: Jerryscript only has three types that "value" can be: string,
    boolean, or number (double) ... */
@@ -404,20 +404,6 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define INTERFACE_INSERT(self, InterfaceName, AttributeName, value) \
 	insert_##InterfaceName##_##AttributeName(self, value)
 #endif /* INTERFACE_INSERT */
-
-{{! the "## args" is a GCC-specific hack that allows for zero args --
-    it erases the preceding comma ("self, " <-- that one) if the args
-    list is empty; if we decide we don't want to tie ourselves to an
-    esoteric piece of GCC functionality, we should probably go to
-    printing out a separate call for every attribute that is a
-    function (in the style of callbacks; you'd ask for the attribute,
-    it'd return a function pointer, and then you'd have to call the
-    specific invocator); we didn't do that to start, b/c it's a lot(?)
-    more code, and we want to stay small whenever possible }}
-#ifndef INTERFACE_CALL
-#define INTERFACE_CALL(self, InterfaceName, AttributeName, args...) \
-	call_##InterfaceName##_##AttributeName(self, ## args)
-#endif /* INTERFACE_CALL */
 
 /***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
 

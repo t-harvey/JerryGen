@@ -55,6 +55,7 @@ under the License.
    any memory to free) */
 typedef struct {
     /* USER CODE GOES HERE */
+
 } Native_Object_{{{interfaceName}}};
 
 {{/header}}
@@ -120,7 +121,9 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {{{interfaceName}}} require_{{{interfaceName}}}_body(void){{#header}};{{/header}}
 {{#body}}
 {
-    {{{interfaceName}}} return_value;
+    /* the {{{interface}}}_constructor creates a new {{{interfaceName}}
+       filled in with default values */
+    {{{interfaceName}}} return_value = {{{interfaceName}}}_constructor();
 
     /* set up "return_value" */
     /* USER CODE GOES HERE */
