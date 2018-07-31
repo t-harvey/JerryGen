@@ -1,0 +1,72 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+// 
+//   http:// www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+interface Sensor {
+    readonly attribute boolean activated;   // whether the sensor is activated or not
+    readonly attribute boolean hasReading;  // whether the sensor has readings available
+    readonly attribute double timestamp;    // timestamp of the latest reading in milliseconds
+    attribute double frequency;             // sampling frequency in hertz
+    void start();                           // starts the sensor
+    void stop();                            // stops the sensor
+    attribute ChangeCallback onreading;     // callback handler for change events
+    attribute ActivateCallback onactivate;  // callback handler for activate events
+    attribute ErrorCallback onerror;        // callback handler for error events
+};
+
+dictionary SensorOptions {
+    double frequency;  // desired frequency, default is 20 if unset
+};
+interface SensorErrorEvent {
+    attribute Error error;
+};
+callback ChangeCallback = void();
+callback ActivateCallback = void();
+callback ErrorCallback = void(SensorErrorEvent error);
+[Constructor(optional AccelerometerOptions accelerometerOptions)]
+interface Accelerometer : Sensor {
+    readonly attribute double x;
+    readonly attribute double y;
+    readonly attribute double z;
+};
+dictionary AccelerometerOptions : SensorOptions  {
+    string controller;       // controller name, default to "bmi160"
+};
+[Constructor(optional SensorOptions sensorOptions)]
+interface GyroscopeSensor : Sensor {
+    readonly attribute double x;
+    readonly attribute double y;
+    readonly attribute double z;
+};
+dictionary GyroscopeOptions : SensorOptions  {
+    string controller;  // controller name, default to "bmi160"
+};
+[Constructor(optional SensorOptions sensorOptions)]
+interface AmbientLightSensor : Sensor {
+    readonly attribute unsigned long pin;
+    readonly attribute double illuminance;
+};
+dictionary AmbientLightSensorOptions : SensorOptions  {
+    string controller;  // controller name, default to "ADC_0"
+    unsigned long pin;  // analog pin where the light is connected
+};
+[Constructor(optional SensorOptions sensorOptions)]
+interface TemperatureSensor : Sensor {
+    readonly attribute double celsius;
+};
+dictionary TemperatureSensorOptions : SensorOptions  {
+    string controller;  // controller name, default to "bmi160"
+};

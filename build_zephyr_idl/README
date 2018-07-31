@@ -1,0 +1,19 @@
+In this directory are two main files:
+
+1) run_all_zephyr.script, which is a Bourne-shell-script that takes
+two parameters, a) the directory with the .md files from the zjs project;
+these files are Github markdown, and somewhere in them is the WebIDL
+that the next file parses; and b) the directory into which we will
+write the stripped-out WebIDL files; we also stick on the Apache
+license to each .idl file in case this is ever released as part of the
+JerryGen package;
+
+2) filter_webidl.awk, which is an awk script invoked by the above
+script; this awk script looks for the pattern
+"<details><pre>...<pre></details>" to delineate WebIDL (it also strips
+out the "<p>" html markup that is expected to be embedded in the
+WebIDL).
+
+The normal operation of the run_all_zephyr script is to parse .md
+files and write .idl files, but adding a third parameter (which can be
+any string) will also invoke the generate.js script on each .idl file.

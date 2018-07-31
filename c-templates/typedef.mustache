@@ -1,0 +1,48 @@
+{{! Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+}}
+
+{{! Mustache doesn't understand how to transfer blank lines from this
+    script file to the output file unless those blank lines are within
+    a #<name> construct, so we wrap this entire script with a name
+    that shouldn't(?)(!) be in the input file }}
+{{^OBEYFORMATTING}}
+{{#typedefs}}
+#ifndef TYPEDEF_DEFINES_FOR_{{{name}}}_H_
+#define TYPEDEF_DEFINES_FOR_{{{name}}}_H_
+{{! to simplify the handling of typedefs' usage, we let all of the
+    code that uses some typedefs use the standard calls (like
+    "<name>_constructor") as if the type actually existed, and then we
+    just make sure that this file gets included -- the alternative
+    would be to check every time before we put out a type to see if
+    it's a typedef'd type and then put out the other name, which
+    complicates our code more than I want to right now... }}
+{{! the upshot is that we don't even need to include any other files,
+    as all of the rest of the code will take care of their own
+    includes... }}
+
+#define {{{name}}} {{{ultimate_typename}}}
+#define interpreter_get_{{{name}}}_value interpreter_get_{{{ultimate_typename}}}_value
+#define interpreter_create_{{{name}}} interpreter_create_{{{ultimate_typename}}}
+#define interpreter_value_is_{{{name}}} interpreter_value_is_{{{ultimate_typename}}}
+#define {{{name}}}_constructor {{{ultimate_typename}}}_constructor 
+#define initialize_{{{name}}}_ initialize_{{{ultimate_typename}}}_
+#define debug_print_{{{name}}} debug_print_{{{ultimate_typename}}}
+
+#endif /* TYPEDEF_DEFINES_FOR_{{{name}}}_H_ */
+{{/typedefs}}
+{{/OBEYFORMATTING}}
