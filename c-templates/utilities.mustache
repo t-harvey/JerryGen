@@ -106,6 +106,16 @@ typedef string ByteString;
 typedef string USVString;
 typedef jerry_value_t this;
 
+/* WebIDL's ArrayBuffer type is just a char array */
+#define ArrayBuffer byte_array
+#define interpreter_get_ArrayBuffer_value interpreter_get_byte_array_value
+#define interpreter_create_ArrayBuffer interpreter_create_byte_array
+#define interpreter_value_is_ArrayBuffer interpreter_value_is_byte_array
+#define ArrayBuffer_constructor byte_array_constructor
+#define initialize_ArrayBuffer_ initialize_byte_array_
+#define debug_print_ArrayBuffer debug_print_byte_array
+
+
 /* WebIDL's "any" type: */
 typedef struct
 {
@@ -125,8 +135,22 @@ typedef struct
 	string   string_field;
     } value;
 } any;
+/* TODO: JSON types are not really equivalent to the "any" type... */
 typedef any JSON;
+
 {{/header}}
+/* for the any type, we'll aribtrarily make the default value a long
+   and set it to zero */
+any any_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    any new_any;
+    new_any.union_type = long_uid;
+    new_any.value.long_field = 0;
+    return new_any;
+} /* any_constructor */
+{{/body}}
+
 /* NOTE: Jerryscript only has three types that "value" can be: string,
    boolean, or number (double) ... */
 any interpreter_get_any_value(Interpreter_Type value){{#header}};{{/header}}
@@ -669,13 +693,13 @@ static Interpreter_Type get_prototypes_holder(void)
     /* check to see if we got the value; if not, go through the same
        code again, and if it fails again, then we've got a problem we
        can't fix */
-    if (jerry_value_has_error_flag(prototypes_holder) ||
+    if (jerry_value_is_error(prototypes_holder) ||
         jerry_value_is_undefined(prototypes_holder))
     {
         create_prototypes_holder();
 	prototypes_holder = get_prototypes_holder_helper();
 
-	if (jerry_value_has_error_flag(prototypes_holder) ||
+	if (jerry_value_is_error(prototypes_holder) ||
             jerry_value_is_undefined(prototypes_holder))
     	{	    
 	    fprintf(stderr, "FATAL ERROR\n");
@@ -803,8 +827,8 @@ void register_prototype(char * object_name, Interpreter_Type new_prototype){{#he
 #define debug_print_unsignedlong(variable_name, value, indentation) \
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
 
-#define debug_print_unsignedlonglong(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+#define debug_print_longlong(variable_name, value, indentation) \
+	debug_print_int64_t(variable_name, (int64_t)value, indentation)
 
 #define debug_print_unsignedlonglong(variable_name, value, indentation) \
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
@@ -858,7 +882,7 @@ static jerry_value_t debug_evaluate_script(jerry_char_t jerry_script[])
 {
     size_t jerry_script_size = strlen ((const char *) jerry_script);
     jerry_value_t eval_ret = jerry_eval (jerry_script, jerry_script_size, false);
-    if (jerry_value_has_error_flag (eval_ret))
+    if (jerry_value_is_error(eval_ret))
     {
         fprintf(stderr, "ERROR parsing script!\n");
         fprintf(stderr, "\t>%s<\n", (const char *)jerry_script);

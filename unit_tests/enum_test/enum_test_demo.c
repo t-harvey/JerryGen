@@ -29,7 +29,7 @@ register_js_function (const char *name_p, /**< name of the function */
 {
   jerry_value_t result_val = jerryx_handler_register_global ((const jerry_char_t *) name_p, handler_p);
 
-  if (jerry_value_has_error_flag (result_val))
+  if (jerry_value_is_error (result_val))
   {
     jerry_port_log (JERRY_LOG_LEVEL_WARNING, "Warning: failed to register '%s' method.", name_p);
     //print_unhandled_exception (result_val);
@@ -43,7 +43,7 @@ static jerry_value_t evaluate_script(jerry_char_t jerry_script[])
 {
     size_t jerry_script_size = strlen ((const char *) jerry_script);
     jerry_value_t eval_ret = jerry_eval (jerry_script, jerry_script_size, false);
-    if (jerry_value_has_error_flag (eval_ret))
+    if (jerry_value_is_error (eval_ret))
     {
 	fprintf(stderr, "ERROR parsing script!\n");
 	fprintf(stderr, "\t>%s<\n", (const char *)jerry_script);
@@ -82,13 +82,13 @@ int main()
  		    printer.debug_print_it(enum_holder2);
      ); /* Javascript test code */
 
-     if (jerry_value_has_error_flag(evaluate_script(debug_print_enum)))
+     if (jerry_value_is_error(evaluate_script(debug_print_enum)))
  	fprintf(stdout, "ERROR!!!\n");
 
     /* now, assign a value to a Javascript variable and then print it out */
     jerry_char_t reassign_enum_value[] = STRINGIFY(enum_holder1;);
     jerry_value_t enum_holder1_value_t = evaluate_script(reassign_enum_value);
-    if (jerry_value_has_error_flag(enum_holder1_value_t))
+    if (jerry_value_is_error(enum_holder1_value_t))
 	fprintf(stdout, "ERROR!!!\n");
     else
     {
@@ -106,7 +106,7 @@ int main()
 	 jerry_char_t print_out_holder3[] = STRINGIFY(
 				        printer.debug_print_it(enum_holder3);
 					    );
-	 if (jerry_value_has_error_flag(evaluate_script(print_out_holder3)))
+	 if (jerry_value_is_error(evaluate_script(print_out_holder3)))
 	     fprintf(stdout, "ERROR!!!\n");
     }
 

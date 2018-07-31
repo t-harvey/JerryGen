@@ -1,4 +1,4 @@
-[ExternalType=(separate1, separate1), ExternalType=(separate2, separate2)]
+[ExternalDictionary=(separate1), ExternalDictionary=(separate2)]
 dictionary separate3 {
     separate1 separate1_field;
     separate2 separate2_field;

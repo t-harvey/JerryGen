@@ -88,7 +88,7 @@ read_file (const char *file_name,
 static void
 print_unhandled_exception (jerry_value_t error_value) /**< error value */
 {
-  assert (!jerry_value_has_error_flag (error_value));
+  assert (!jerry_value_is_error (error_value));
 
   jerry_value_t err_str_val = jerry_value_to_string (error_value);
   jerry_size_t err_str_size = jerry_get_string_size (err_str_val);
@@ -214,7 +214,7 @@ register_js_function (const char *name_p, /**< name of the function */
 {
   jerry_value_t result_val = jerryx_handler_register_global ((const jerry_char_t *) name_p, handler_p);
 
-  if (jerry_value_has_error_flag (result_val))
+  if (jerry_value_is_error (result_val))
   {
     jerry_port_log (JERRY_LOG_LEVEL_WARNING, "Warning: failed to register '%s' method.", name_p);
     result_val = jerry_get_value_from_error (result_val, true);
@@ -311,7 +311,7 @@ main (int argc,
         /* Evaluate the line */
         jerry_value_t ret_val_eval = jerry_eval (buffer, len, false);
 
-        if (!jerry_value_has_error_flag (ret_val_eval))
+        if (!jerry_value_is_error (ret_val_eval))
         {
           /* Print return value */
           const jerry_value_t args[] = { ret_val_eval };
@@ -323,7 +323,7 @@ main (int argc,
           jerry_release_value (ret_val_eval);
           ret_val_eval = jerry_run_all_enqueued_jobs ();
 
-          if (jerry_value_has_error_flag (ret_val_eval))
+          if (jerry_value_is_error (ret_val_eval))
           {
             ret_val_eval = jerry_get_value_from_error (ret_val_eval, true);
             print_unhandled_exception (ret_val_eval);
@@ -342,7 +342,7 @@ main (int argc,
 
   int ret_code = JERRY_STANDALONE_EXIT_CODE_OK;
 
-  if (jerry_value_has_error_flag (ret_value))
+  if (jerry_value_is_error (ret_value))
   {
     ret_value = jerry_get_value_from_error (ret_value, true);
     print_unhandled_exception (ret_value);
@@ -354,7 +354,7 @@ main (int argc,
 
   ret_value = jerry_run_all_enqueued_jobs ();
 
-  if (jerry_value_has_error_flag (ret_value))
+  if (jerry_value_is_error (ret_value))
   {
     ret_value = jerry_get_value_from_error (ret_value, true);
     print_unhandled_exception (ret_value);

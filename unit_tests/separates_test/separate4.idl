@@ -1,4 +1,4 @@
-[ExternalType=(separate3, separate3)]
+[ExternalDictionary=(separate3)]
 dictionary separate4 {
     separate3 separate3_field;
     octet separate4_octet;

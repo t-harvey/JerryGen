@@ -47,6 +47,8 @@ module.exports.getContext = function(ast, moduleName){
 
     dictionaries: ast.getDictionaryArray(),
 
+    typedefs: ast.getTypedefArray(),
+
     callbacks: ast.getCallbackArray(),
 
     interfaces: ast.getInterfaceArray(),

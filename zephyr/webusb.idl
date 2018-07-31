@@ -17,10 +17,8 @@
 
 // require returns a webusb object
 // var webusb = require('webusb');
-
-[ReturnFromRequire, ExternalInterface=(buffer, Buffer)]
+[ReturnFromRequire, ExternalInterface=(Buffer)]
 interface webusb {
-    // NOTE: I don't know how to do "read"...
     void setURL(string url);
     void write(Buffer buf);
-}; /* webusb interface */
+};

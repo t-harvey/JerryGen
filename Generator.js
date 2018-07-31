@@ -65,6 +65,23 @@ module.exports.genDictionaryString = function(ast, moduleName, header_or_body)
 
 
 /*
+Typedef Code generation
+ */
+
+module.exports.genTypedefString = function(ast, moduleName, header_or_body)
+{
+    var context = CHoganHelpers.getContext(ast, moduleName);
+
+    if (header_or_body === "generate_header")
+	context.header = true;
+    else /* header_or_body === "generate_body" */
+	context.body = true;
+
+    return hogan.compile(getMustacheTemplate('typedef')).render(context);
+};
+
+
+/*
 Enum Code generation
  */
 

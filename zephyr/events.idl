@@ -15,18 +15,15 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// TODO: switch "long" to "any"
-callback ListenerCallback = void (long... x);
-
+callback ListenerCallback = void (any... params);
 interface EventEmitter {
-    this on(string event, ListenerCallback... listener);
-    this addListener(string event, ListenerCallback[]... listener);
-// TODO: switch "long" to "any"
-    boolean emit(string event, optional long arg1, long... rest);
+    this on(string event, ListenerCallback listener);
+    this addListener(string event, ListenerCallback listener);
+    boolean emit(string event, any... args);
     this removeListener(string event, ListenerCallback listener);
     this removeAllListeners(string event);
-    string[] eventNames();
+    sequence < string > eventNames();
     long getMaxListeners();
-    ListenerCallback[] listeners(string event);
+    sequence < ListenerCallback > listeners(string event);
     this setMaxListeners(long max);
 };

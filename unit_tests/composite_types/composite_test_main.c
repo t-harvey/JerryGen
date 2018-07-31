@@ -27,7 +27,7 @@ register_js_function (const char *name_p, /**< name of the function */
 {
   jerry_value_t result_val = jerryx_handler_register_global ((const jerry_char_t *) name_p, handler_p);
 
-  if (jerry_value_has_error_flag (result_val))
+  if (jerry_value_is_error (result_val))
   {
     jerry_port_log (JERRY_LOG_LEVEL_WARNING, "Warning: failed to register '%s' method.", name_p);
     //print_unhandled_exception (result_val);
@@ -41,7 +41,7 @@ static jerry_value_t evaluate_script(jerry_char_t jerry_script[])
 {
     size_t jerry_script_size = strlen ((const char *) jerry_script);
     jerry_value_t eval_ret = jerry_eval (jerry_script, jerry_script_size, false);
-    if (jerry_value_has_error_flag (eval_ret))
+    if (jerry_value_is_error (eval_ret))
     {
 	fprintf(stderr, "ERROR parsing script!\n");
 	fprintf(stderr, "\t>%s<\n", (const char *)jerry_script);
@@ -81,7 +81,7 @@ int main()
 				       var not_either_enum = "NotEnumString";
 			         );
     return_value = evaluate_script(enums_script);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in enum definition\n");
     jerry_release_value(return_value);
     jerry_char_t get_enum1[] = STRINGIFY( enum1; );
@@ -129,7 +129,7 @@ jerry_release_value(not_either_enum_value);
 		    }; /* callback3 */
 			         );
     return_value = evaluate_script(callbacks_script);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in callback definition\n");
     jerry_release_value(return_value);
     jerry_char_t get_callback1[] = STRINGIFY( callback1; ); 
@@ -172,7 +172,7 @@ jerry_release_value(callback3_value);
 		dict12_from_scratch.interface_function2 = callback1;
 			         );
     return_value = evaluate_script(dictionaries_script);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in dictionary definition\n");
     jerry_release_value(return_value);
 
@@ -210,7 +210,7 @@ jerry_release_value(dict12_value);
 		interface12_from_scratch.interface_function2 = callback1;
 			         );
     return_value = evaluate_script(interfaces_script);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in interface definition\n");
     jerry_release_value(return_value);
 
@@ -260,15 +260,15 @@ fprintf(stdout, "**************** COMPOSITE TYPES ********************\n");
        int4.interface4_function1(int1, 1.0);
 			         );
     return_value = evaluate_script(composites_script1);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in composites_script1\n");
     jerry_release_value(return_value);
     return_value = evaluate_script(composites_script2);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in composites_script2\n");
     jerry_release_value(return_value);
     return_value = evaluate_script(composites_script3);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in composites_script3\n");
     jerry_release_value(return_value);
 
@@ -286,7 +286,7 @@ fprintf(stdout, "**************** COMPOSITE TYPES ********************\n");
 				check_nested.show_nested_dictionaries(1);
 				);
     return_value = evaluate_script(nested_composites_script);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in nested-composites-script\n");
     jerry_release_value(return_value);
 
@@ -298,12 +298,10 @@ fprintf(stdout, "**************** COMPOSITE TYPES ********************\n");
 			       check_big.foo("EnumString1");
 							);
     return_value = evaluate_script(really_big_composites_script);
-    if (jerry_value_has_error_flag(return_value))
+    if (jerry_value_is_error(return_value))
 	fprintf(stdout, "ERROR!!!...in really-big-composites-script\n");
     jerry_release_value(return_value);
 
-
-    jerry_release_value(return_value);  
     jerry_cleanup();
 
 } /* main */

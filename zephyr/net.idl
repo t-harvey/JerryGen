@@ -17,27 +17,23 @@
 
 // require returns a Net object
 // var net = require('net');
-
-[ReturnFromRequire,ExternalCallback=(events,ListenerCallback)]
+[ReturnFromRequire,ExternalCallback=(ListenerCallback)]
 interface Net {
-    // create a server object
-    Server createServer(ListenerCallback onconnection);
-    // Socket constructor, create a new Socket
+    Server createServer(optional ListenerCallback onconnection);
     Socket Socket();
-    long isIP(string x);
-    boolean isIPv4(string x);
-    boolean isIPv6(string x);
+    long isIP(string input);
+    boolean isIPv4(string input);
+    boolean isIPv6(string input);
 };
 
-[ExternalCallback=(events,ListenerCallback),
- ExternalInterface=(buffer, Buffer)]
+[ExternalInterface=(EventEmitter),ExternalInterface=(Buffer),ExternalCallback=(ListenerCallback)]
 interface Socket: EventEmitter {
     // Socket methods
-    void connect(NetObjectOptions options, ListenerCallback onconnect);
+    void connect(object options, optional ListenerCallback onconnect);
     void pause();
     void resume();
     void setTimeout(long timeout, ListenerCallback ontimeout);
-    void write(Buffer buf, ListenerCallback writeDone);
+    void write(Buffer buf, optional ListenerCallback writeDone);
     // Socket properties
     attribute long bufferSize;    // Size of read buffer
     attribute long bytesRead;     // Total bytes read for the socket
@@ -48,19 +44,17 @@ interface Socket: EventEmitter {
     attribute string remoteFamily;  // Remote IP family
     attribute long remotePort;    // Remote port
 };
-
-[ExternalCallback=(events,ListenerCallback)]
+[ExternalInterface=(EventEmitter),ExternalCallback=(ListenerCallback)]
 interface Server: EventEmitter {
     // Server methods
     AddressInfo address();
     void close();
-    void getConnections(ListenerCallback x);
-    void listen(NetObjectOptions options, ListenerCallback onlistening);
+    void getConnections(ListenerCallback onconnection);
+    void listen(object options, optional ListenerCallback onlistening);
     // Server properties
     attribute boolean listening;      // true if the server is listening
     attribute long maxConnections;  // maximum number of connections
 };
-
 dictionary AddressOptions {
     long port;          // Port the client should connect to (required)
     string host;          // Host the client should connect to
@@ -68,15 +62,8 @@ dictionary AddressOptions {
     long localPort;     // local port to bind to
     long family;        // Version of IP stack, deafults to 4
 };
-
 dictionary AddressInfo {
     long port;    // Server port
     string family;  // IPv4 or IPv6
     string address; // IP address for the server
 };
-
-dictionary NetObjectOptions {
-    long port; /* Port to bind to */
-    long host; /* IP to bind to */
-    long backlog; /* Max number of concurrent connections */
-}; /* NetObjectOptions */

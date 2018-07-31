@@ -9,25 +9,6 @@ BEGIN{
     seen_details = 0;
     seen_pre = 0;
     IGNORECASE = 1;
-
-    /* print out the Apache license */
-print("// Licensed to the Apache Software Foundation (ASF) under one");
-print("// or more contributor license agreements.  See the NOTICE file");
-print("// distributed with this work for additional information");
-print("// regarding copyright ownership.  The ASF licenses this file");
-print("// to you under the Apache License, Version 2.0 (the");
-print("// "License"); you may not use this file except in compliance");
-print("// with the License.  You may obtain a copy of the License at");
-print("// ");
-print("//   http:// www.apache.org/licenses/LICENSE-2.0");
-print("// ");
-print("// Unless required by applicable law or agreed to in writing,");
-print("// software distributed under the License is distributed on an");
-print("// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY");
-print("// KIND, either express or implied.  See the License for the");
-print("// specific language governing permissions and limitations");
-print("// under the License.");
-print("");
 }
 
 {

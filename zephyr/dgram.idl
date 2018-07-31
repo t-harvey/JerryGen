@@ -15,30 +15,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-
-[NoInterfaceObject, ReturnFromRequire]
-interface dgram {
+// require returns a socket factory object
+// var dgram = require('dgram');
+[ReturnFromRequire]
+interface Dgram {
     DgramSocket createSocket(string udp4_or_udp6);
 };
 
-[NoInterfaceObject,ExternalInterface=(buffer,Buffer)]
+[ExternalInterface=(Buffer)]
 interface DgramSocket {
     void on(string event, RecvCallback cb);
     void bind(long port, string ip_addr);
-    void send(Buffer buf, unsigned long offset, unsigned long len, long port, string ip_addr, optional SendCallback cb);
+    void send(Buffer buf, unsigned long offset, unsigned long len, long port,
+              string ip_addr, optional SendCallback cb);
     void close();
 };
-
-dictionary Error {
-    long error_code;
-}; /* TODO: temporary, until I get the Error type implemented */
-
 callback RecvCallback = void (Buffer msg, RemoteInfo rinfo);
 callback SendCallback = void (Error err);  // or undefined if no error
-
-/* TODO: change the type of "x" to "any" (original zephyr says "various"(?) */
-callback EventCallback = void (long x);  // callback arg depends on event
-
+callback EventCallback = void (any... args);  // callback args depend on event
 dictionary RemoteInfo {
     string ip_addr;
     string family;

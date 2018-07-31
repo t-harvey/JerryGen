@@ -36,24 +36,10 @@ under the License.
 #include <stdio.h>
 #include <string.h>
 #include "jerryscript.h"
-
-{{#header}}
-{{#externalTypes}}
-#include "{{{type}}}.h"
-{{/externalTypes}}
-{{#non_intrinsic_types}}
-#include "{{{type_name}}}.h"
-{{/non_intrinsic_types}}
 #include "{{{utilities_filename}}}.h"
-{{/header}}
-{{#body}}
-#include "{{{dictionaryName}}}.h"
-{{/body}}
 
-/* this variable is used in composite types to denote a field of type
-   {{{interfaceName}}} -- this should be considered a read-only value */
-{{#header}}extern {{/header}}int {{{dictionaryName}}}_uid;
-
+{{! we need to define the type before any of the external includes,
+    which might need to use this type }}
 {{#header}}
 typedef struct {
 	{{#members}}
@@ -63,6 +49,23 @@ typedef struct {
 	{{/members}}
 } {{{dictionaryName}}};
 {{/header}}
+
+{{#header}}
+{{#externalTypes}}
+#include "{{{type}}}.h"
+{{/externalTypes}}
+{{#non_intrinsic_types}}
+#include "{{{type_name}}}.h"
+{{/non_intrinsic_types}}
+{{/header}}
+{{#body}}
+#include "{{{dictionaryName}}}.h"
+{{/body}}
+
+/* this variable is used in composite types to denote a field of type
+   {{{interfaceName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{dictionaryName}}}_uid;
+
 {{#header}}
 
 /********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
@@ -275,7 +278,7 @@ void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
     /* first, check to see if the prototype object exists for this
        dictionary; if so, just return */
     Interpreter_Type prototype = get_prototype((char *)"{{{dictionaryName}}}");
-    if (!jerry_value_has_error_flag(prototype) &&
+    if (!jerry_value_is_error(prototype) &&
         !jerry_value_is_undefined(prototype))
     {
         jerry_release_value(prototype);

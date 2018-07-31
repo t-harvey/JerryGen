@@ -75,6 +75,15 @@ under the License.
 #include <string.h>
 #include "jerryscript.h"
 
+{{! all types need to be defined before an include files, since those
+    might use the type (e.g., in a composite type) }}
+{{#header}}
+typedef Interpreter_Type {{{callbackName}}};
+/* this is the type signature of functions that can be assigned
+   to a {{{callbackName}}} */
+typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
+
+{{/header}}
 {{#header}}
 #include "{{{utilities_filename}}}.h"
 {{#externalTypes}}
@@ -93,11 +102,6 @@ under the License.
 {{#header}}extern {{/header}}int {{{callbackName}}}_uid;
 
 {{#header}}
-typedef Interpreter_Type {{{callbackName}}};
-/* this is the type signature of functions that can be assigned
-   to a {{{callbackName}}} */
-typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
-
 
 /********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
 
@@ -333,7 +337,7 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
     /* first, check to see if the prototype object exists for this
        callback; if so, just return */
     Interpreter_Type prototype = get_prototype((char *)"{{{callbackName}}}");
-    if (!jerry_value_has_error_flag(prototype) &&
+    if (!jerry_value_is_error(prototype) &&
         !jerry_value_is_undefined(prototype))
     {
         jerry_release_value(prototype);

@@ -17,21 +17,17 @@
 
 // require returns an AIO object
 // var aio = require('aio');
-
 [ReturnFromRequire]
 interface AIO {
     AIOPin open(AIOInit init);
 };
-
 dictionary AIOInit {
     (unsigned long or string) pin;
 };
-
 interface AIOPin {
     unsigned long read();
     void readAsync(ReadCallback callback);  // TODO: change to return a promise
     void on(string eventType, ReadCallback callback);
     void close();
 };
-
 callback ReadCallback = void (unsigned long value);

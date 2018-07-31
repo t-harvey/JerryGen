@@ -66,6 +66,7 @@ qfs.makeDirectory(packagePath);
 parameters.packagePath = packagePath;
 
 /* generate all of the various .c and .h files */
+generate.typedefs(augAST, parameters);
 generate.interfaces(augAST, parameters);
 generate.stubs(augAST, parameters); /* stubs don't get overwritten, so if the
 				     file already exists, this is a null step */
@@ -137,10 +138,46 @@ catch(error_code)
 	    if (error_code.line === undefined)
 		console.log("ERROR: Unknown error: >" + error_code.message + "<");
 	    else
+	    {
+		/* it's a common mistake to leave off the "attribute"
+		   designator in front of interface attributes, so check
+		   to see if that's the problem, here -- the pattern we're
+		   looking for is "other" and "whitespace" tokens intertwingled
+		   with a small-number-greater-than-or-equal-to-two
+		   "identifier" tokens */
+		let looks_like_missing_attribute_designator = function(tokens)
+		{
+		    let identifier_count = 0;
+
+		    if (Array.isArray(tokens))
+		    {
+			for(let i = 0; i < tokens.length; i++)
+			    if (tokens[i].type != undefined)
+		            {
+				if (tokens[i].type == "other" || 
+				                tokens[i].type == "whitespace")
+				    continue;
+				else if (tokens[i].type == "identifier")
+				    identifier_count++;
+		            }
+		            else
+				return false;
+			if (identifier_count >= 2 && identifier_count < 6)
+			    return true;
+			else
+			    return false;
+		    }
+		    else
+			return false;
+		}; /* looks_like_missing_attribute_designator */
+
 		/* if it has both .line and .message fields, it's likely
 		   a parser error code */
 		console.log("ERROR: Parser error: >" + error_code.message +
 			    "< at line: " + error_code.line);
+		if (looks_like_missing_attribute_designator(error_code.tokens))
+		    console.log("       (maybe a missing \"attribute\"?)");
+	    }
 	}
     }
     process.exit(1);

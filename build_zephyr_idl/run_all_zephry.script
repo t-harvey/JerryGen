@@ -19,31 +19,29 @@ else
 	    continue;
     	fi
 	temp_file=$2/temp_for_checking_zephyr.idl
-    	awk -f ./filter_webild.awk $i > $temp_file
+    	awk -f `dirname $0`/filter_webild.awk $i > $temp_file
 	if [ -z "$correctness" ]
 	then
 	    basename_i=`basename -s .md $i`.idl
     	    if [[ -s $temp_file ]]
     	    then
-	        mv $temp_file $2/$basename_i
+	        cat `dirname $0`/apache_license $temp_file > $2/$basename_i
 	    fi
-	    continue;
-	    
-	fi
-    	if [[ -s $temp_file ]]
+    	elif [[ -s $temp_file ]]
     	then
+	    generator_directory=`dirname $0`/../
             name=`basename $i`
             events_file=`grep "interface EventEmitter" $temp_file`
 	    includes_events=`grep "EventEmitter" $temp_file | grep "interface" `
 	    if [[ -n $events_file ]]
 	    then
-                /Users/a0179262/work/generator/generate.js --package=$name $temp_file
+                $generator_directory/generate.js --debug_printing=on --package=$name $temp_file
 	    elif [[ -n $includes_events ]]
 	    then
-	        awk -f ./filter_webild.awk /Users/a0179262/work/forked_zephyr.js/docs/events.md > events.idl
-                /Users/a0179262/work/generator/generate.js --package=$name --include=`pwd`/events.idl $temp_file
+	        awk -f `dirname $0`/filter_webild.awk /Users/a0179262/work/forked_zephyr.js/docs/events.md > events.idl
+                $generator_directory/generate.js --debug_printing=on --package=$name --include=`pwd`/events.idl $temp_file
 	    else
-                /Users/a0179262/work/generator/generate.js --package=$name $temp_file
+                $generator_directory/generate.js --debug_printing=on --package=$name $temp_file
 	    fi
             echo "************************************"
         fi

@@ -17,9 +17,6 @@
 
 // require returns a Console object
 // var console = require('console');
-
-// TODO: Note that we don't recognize optional parameters; all parameters
-// are necessary
 [ReturnFromRequire]
 interface Console {
     void assert(boolean value, optional string message);
@@ -29,4 +26,4 @@ interface Console {
     void info(optional string data);
     void time(string label);
     void timeEnd(string label);
-}; // Console interface
+};

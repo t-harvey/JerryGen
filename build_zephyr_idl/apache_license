@@ -15,9 +15,3 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// require returns a Performance object
-// var ble = require('performance');
-[ReturnFromRequire]
-interface Performance {
-    double now();
-};

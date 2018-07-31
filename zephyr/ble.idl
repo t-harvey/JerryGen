@@ -17,81 +17,59 @@
 
 // require returns a BLE object
 // var ble = require('ble');
-
-[NoInterfaceObject, ReturnFromRequire]
-interface BLE {
-    void disconnect();
-    void on(string eventType, EventCallback callback);
-    void startAdvertising(string name, string[] uuids, string url);
+[ReturnFromRequire,ExternalInterface=(EventEmitter)]
+interface BLE: EventEmitter {
+    void disconnect(string address);
+    void startAdvertising(string name, sequence < string > uuids, optional string url);
     void stopAdvertising();
-    void setServices();
-    void updateRssi();
-    PrimaryService PrimaryService(PrimaryServiceInit init);
-    Characteristic Characteristic(CharacteristicInit init);
-    Descriptor Descriptor(DescriptorInit init);
+    void setServices(sequence < PrimaryService > services);
+    PrimaryService newPrimaryService(PrimaryServiceInit init);
+    Characteristic newCharacteristic(CharacteristicInit init);
+    DescriptorInit newDescriptor(DescriptorInit init);
 };
-
-// TODO: the argument type should be "any"...
-callback EventCallback = void (long x);  // callback arg depends on event
 
 dictionary PrimaryServiceInit {
     string uuid;
-    Characteristic[] characteristics;
+    sequence < Characteristic > characteristics;
 };
-
-interface PrimaryService {
-    attribute string uuid;
-    attribute Characteristic[] characteristics;
-}; /* PrimaryService */
-
-enum CharacteristicResult2 { "RESULT_SUCCESS", "RESULT_INVALID_OFFSET", "RESULT_INVALID_ATTRIBUTE_LENGTH", "RESULT_UNLIKELY_ERROR" } ;
-
-/*unsigned long const_unsigned_long;*/
-
-dictionary CharacteristicResult {
-    unsigned long henry;
+dictionary PrimaryService {
+    string uuid;
+    sequence < Characteristic > characteristics;
 };
-
 dictionary CharacteristicInit {
     string uuid;
-    string[] properties;                // 'read', 'write', 'notify'
-    Descriptor[] descriptors;
+    sequence < string > properties;                // 'read', 'write', 'notify'
+    sequence < DescriptorInit > descriptors;
     ReadCallback onReadRequest;         // optional
     WriteCallback onWriteRequest;       // optional
     SubscribeCallback onSubscribe;      // optional
     UnsubscribeCallback onUnsubscribe;  // optional
     NotifyCallback onNotify;            // optional
 };
-
-callback NotifyCallback = void ();
-callback UnsubscribeCallback = void ();
-callback ReadCallback = void (unsigned long offset, FulfillReadCallback x);
-[ExternalInterface=(buffer, Buffer)]
-callback WriteCallback = void (Buffer data, unsigned long offset, boolean withoutResponse, FulfillWriteCallback x);
-callback SubscribeCallback = void (unsigned long maxValueSize,
-                                   FulfillSubscribeCallback x);
-callback FulfillReadCallback = void (CharacteristicResult result, Buffer data);
-callback FulfillWriteCallback = void (CharacteristicResult result);
-callback FulfillSubscribeCallback = void (Buffer data);
-
-dictionary DescriptorInit {
-    string uuid;
-    string value;
-};
-
-interface Descriptor {
-    attribute long uid;
-}; /* Descriptor */
-
-
-
-
-[NoInterfaceObject]
 interface Characteristic {
     attribute ReadCallback onReadRequest;
     attribute WriteCallback onWriteRequest;
     attribute SubscribeCallback onSubscribe;
     attribute UnsubscribeCallback onUnsubscribe;
     attribute NotifyCallback onNotify;
-    attribute CharacteristicResult2 response;
+    attribute CharacteristicResult response;
+};
+callback ReadCallback = void (unsigned long offset,
+                              FulfillReadCallback fulfillReadCallback);
+[ExternalInterface=(Buffer)]
+callback WriteCallback = void (Buffer data, unsigned long offset,
+                               boolean withoutResponse,
+                               FulfillWriteCallback fulfillWriteCallback);
+callback SubscribeCallback = void (unsigned long maxValueSize,
+                                   FulfillSubscribeCallback fullfillSubscribeCallback);
+callback FulfillReadCallback = void (CharacteristicResult result, Buffer data);
+callback FulfillWriteCallback = void (CharacteristicResult result);
+callback FulfillSubscribeCallback = void (Buffer data);
+callback NotifyCallback = void (any... params);
+callback UnsubscribeCallback = void (any... params);
+enum CharacteristicResult { "RESULT_SUCCESS", "RESULT_INVALID_OFFSET",
+                            "RESULT_INVALID_ATTRIBUTE_LENGTH", "RESULT_UNLIKELY_ERROR" };
+dictionary DescriptorInit {
+    string uuid;
+    string value;
 };

@@ -27,6 +27,12 @@ under the License.
 {{#header}}
 #ifndef {{{interfaceName}}}_H_
 #define {{{interfaceName}}}_H_
+
+{{! We have to make sure that the type is defined before any
+    composites that use it are #include'd... }}
+/* defined in {{{interfaceName}}}_stubs.h */
+typedef Interpreter_Type {{{interfaceName}}};
+
 {{#externalTypes}}
 #include "{{{type}}}.h"
 {{/externalTypes}}
@@ -52,25 +58,11 @@ under the License.
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{interfaceName}}}_uid;
-{{#header}}
-{{#typedefs.length}}
-
-{{/typedefs.length}}
-{{#typedefs}}
-typedef {{{type}}} {{{name}}};
-{{/typedefs}}
-{{/header}}
 
 {{^repress_stubs}}
 {{#header}}
-/* defined in {{{interfaceName}}}_stubs.h */
 struct Native_Object_{{{interfaceName}}};
-typedef Interpreter_Type {{{interfaceName}}};
-
-{{! TODO: IS THIS STILL TRUE?
-    we need to have the interfaceName struct defined for
-   interfaceName_stubs.h, so first we define it, and then we include
-   the interfaceName_stubs.h file }}
+{{! TODO: why do we need to include the stubs.h in this .h?!? }}
 #include "{{{interfaceName}}}_stubs.h"
 
 /********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
@@ -372,7 +364,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {
     /* first, make sure that this prototype doesn't already exist */
     Interpreter_Type existing_prototype = get_prototype((char *)"{{{interfaceName}}}");
-    if (!jerry_value_has_error_flag(existing_prototype) &&
+    if (!jerry_value_is_error(existing_prototype) &&
         !jerry_value_is_undefined(existing_prototype))
     {
         jerry_release_value(existing_prototype);

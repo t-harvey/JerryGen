@@ -15,25 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Buffer is a global object constructor that is always available
-// in WebIDL, "char" == "byte", whereas "unsigned char" == "octet"
-
-// Note that we ignore the"Constructor" external attribute; what it
-// means, here, is that when the user "new"s a Buffer, he must give
-// a length argument (normally, passing in attribute settings to the
-//constructor is fully optional)
-[Constructor(unsigned long length)]
+[ Constructor(sequence < Uint8 > initialValues),
+  Constructor(unsigned long size),
+  Constructor(ByteString initialString), ]
 interface Buffer {
-    octet readUInt8(unsigned long offset);
-    void writeUInt8(octet value, unsigned long offset);
-    unsigned short readUInt16BE(unsigned long offset);
-    void writeUInt16BE(unsigned short value, unsigned long offset);
-    unsigned short readUInt16LE(unsigned long offset);
-    void writeUInt16LE(unsigned short value, unsigned long offset);
-    unsigned long readUInt32BE(unsigned long offset);
-    void writeUInt32BE(unsigned long value, unsigned long offset);
-    unsigned long readUInt32LE(unsigned long offset);
-    void writeUInt32LE(unsigned long value, unsigned long offset);
-    string toString(string encoding);
     readonly attribute unsigned long length;
+    attribute ArrayBuffer buffer;
+    unsigned long copy(Buffer target, optional unsigned long targetStart = 0,
+                                      optional unsigned long sourceStart = 0,
+                                      optional unsigned long sourceEnd);
+    this fill((string or Buffer or long) value, optional long offset = 0,
+                                                optional long end,
+                                                optional string encoding = "utf8");
+    octet readUInt8(optional unsigned long offset = 0);
+    short readUInt16BE(optional unsigned long offset = 0);
+    short readUInt16LE(optional unsigned long offset = 0);
+    long readUInt32BE(optional unsigned long offset = 0);
+    long readUInt32LE(optional unsigned long offset = 0);
+    string toString(string encoding);
+    long write(string value, optional long offset = 0,
+                             optional long length = 0,
+                             optional string encoding = "utf8");
+    long writeUInt8(octet value, unsigned long offset);
+    long writeUInt16BE(unsigned short value, unsigned long offset);
+    long writeUInt16LE(unsigned short value, unsigned long offset);
+    long writeUInt32BE(unsigned long value, unsigned long offset);
+    long writeUInt32LE(unsigned long value, unsigned long offset);
 };
+
+typedef long int;
+typedef sequence < byte > ArrayBuffer;

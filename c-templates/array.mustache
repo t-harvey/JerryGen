@@ -35,7 +35,7 @@ under the License.
 
 {{#header}}
 #include "jerryscript.h"
-#include "{{{elementType}}}.h"
+{{#needs_include}}#include "{{{elementType}}}.h"{{/needs_include}}
 
 typedef struct
 {
@@ -48,10 +48,18 @@ typedef struct
 #include "{{{typeName}}}.h"
 
 {{/body}}
+#define sequence_of_{{{elementType}}}s_constructor {{{typeName}}}_constructor
+{{{typeName}}} {{{typeName}}}_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    typeName return_array = {0, NULL};
+    
+} /* {{{typeName}}}_constructor */
+{{/body}}
 {{{typeName}}} interpreter_get_{{{typeName}}}_value(Interpreter_Type value){{#header}};{{/header}}
 {{#body}}
 {
-    {{{typeName}}} return_value = {0, 0};
+    {{{typeName}}} return_array = {0, 0};
 
     unsigned int array_length = jerry_get_array_length(value);
     if (array_length == 0)
@@ -66,9 +74,9 @@ typedef struct
     }
 
     for(int i = 0; i < array_length; i++)
-        return_value.elements[i] = interpreter_get_{{{elementType}}}_value(jerry_get_property_by_index(value, i));
+        return_array.elements[i] = interpreter_get_{{{elementType}}}_value(jerry_get_property_by_index(value, i));
 
-    return return_value;
+    return return_array;
 } /* interpreter_get_{{{typeName}}}_value */
 
 {{/body}}

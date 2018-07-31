@@ -27,7 +27,7 @@ register_js_function (const char *name_p, /**< name of the function */
 {
   jerry_value_t result_val = jerryx_handler_register_global ((const jerry_char_t *) name_p, handler_p);
 
-  if (jerry_value_has_error_flag (result_val))
+  if (jerry_value_is_error (result_val))
   {
     jerry_port_log (JERRY_LOG_LEVEL_WARNING, "Warning: failed to register '%s' method.", name_p);
     //print_unhandled_exception (result_val);
@@ -41,7 +41,7 @@ static jerry_value_t evaluate_script(jerry_char_t jerry_script[])
 {
     size_t jerry_script_size = strlen ((const char *) jerry_script);
     jerry_value_t eval_ret = jerry_eval (jerry_script, jerry_script_size, false);
-    if (jerry_value_has_error_flag (eval_ret))
+    if (jerry_value_is_error (eval_ret))
     {
 	fprintf(stderr, "ERROR parsing script!\n");
 	fprintf(stderr, "\t>%s<\n", (const char *)jerry_script);
@@ -85,7 +85,7 @@ int main()
 		    var float_sum = anything.do_something("FLOAT_T", float_1, "FLOAT_T", float_2);
 		    print("sum of floats " + float_1 + " and " + float_2 + " = " + float_sum);
 	       );
-  if (jerry_value_has_error_flag(evaluate_script(get_new_any_type)))
+  if (jerry_value_is_error(evaluate_script(get_new_any_type)))
 	fprintf(stdout, "ERROR!!!\n");
 
     jerry_cleanup();

@@ -17,27 +17,22 @@
 
 // require returns a UART object
 // var uart = require('uart');
-
-enum UARTParity { "none", "event", "odd" };
-
-[ReturnFromRequire]
 interface UART {
     UARTConnection init(UARTOptions options);
 };
 
 dictionary UARTOptions {
     string port;
-    // number baud = 115200;
-    // number dataBits = 8;
-    // number stopBits = 1;
+    // long baud = 115200;
+    // long dataBits = 8;
+    // long stopBits = 1;
     // UARTParity parity = "none";
     // boolean flowControl = false;
 };
-
-[NoInterfaceObject, ExternalInterface=(buffer, Buffer)]
-interface UARTConnection {
-    Promise<void> init(UARTOptions options);
+[ExternalInterface=(Buffer),ExternalInterface=(EventEmitter)]
+interface UARTConnection: EventEmitter {
     // void close();
-    Promise<void> write(Buffer data);
-    void setReadRange(unsigned long min, unsigned long max);
+    void write(Buffer data);
+    void setReadRange(long min, long max);
 };
+enum UARTParity { "none", "event", "odd" };

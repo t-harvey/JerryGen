@@ -212,6 +212,11 @@ AugmentedAST.prototype.checkType = function (t)
 	// check argument types
 	this.addToTypeCheckQueue(t.arguments);
     }
+    else if (t.type === 'typedef')
+    {
+	this.addToTypeCheckQueue(t.name);
+	this.addToTypeCheckQueue(t.idlType);
+    }
     else if (t.type === 'attribute')
     {
 	this.addToTypeCheckQueue(t.idlType);
@@ -276,7 +281,6 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 			       "USVString": "\"\"" ,
 			       bool:     false,
 			       boolean: false,
-			       ArrayBuffer: "NULL",
 			    };
 
     if (Object.keys(intrinsic_C_Types).indexOf(C_Type) >= 0)
@@ -400,8 +404,16 @@ AugmentedAST.prototype.record_typedefs = function(ast)
         {
 	    this.set_external_types(ast[i]);
 
+	    /* this sets the "name" field in the idlType structure so
+	       that we can save it -- we send in an empty mapping array,
+	       b/c we are just going to record the WebIDL type */
+	    let base_type = this.idlTypeToOtherType(ast[i].idlType, []);
+
 	    this.typedefs[ast[i].name] = {name: ast[i].name,
-				          type: ast[i].idlType.idlType};
+				          type: base_type};
+
+
+	    this.addToTypeCheckQueue(ast[i]);
 	}
 
     /* second, build a tree of typedefs and figure out what type they're
@@ -557,9 +569,15 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     {
 	if (type in this_ptr.typedefs)
 	{
-	    typedefs_list[type] = type; /* this restricts duplicates */
+	    if (typedefs_list[type] === undefined)
+	    {
+		typedefs_list[type] = type; /* this restricts duplicates */
+		intrinsics_list.push({type_name: type});
+	    }
 	    type = this_ptr.typedefs[type].ultimate_typename;
 	}
+	else if (type === "ArrayBuffer")
+	    type = "byte_array";
 
 	if (!(this_ptr.isPrimitiveType(type)))
 	    intrinsics_list.push({type_name: type});
@@ -2130,8 +2148,10 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 					         list_of_array_types)+"_array";
 
 	return_typename = element_typename+"_array";
+	let needs_include = !self.isPrimitiveType(element_typename);
 	list_of_array_types[return_typename] = {"typeName":   return_typename,
-						"elementType":element_typename};
+						"elementType":element_typename,
+					        "needs_include": needs_include};
 	return return_typename;
     } /* create_array_type */
 
@@ -2228,10 +2248,15 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 	    throw new Error("Error in Sequence type.");
     }
     else
+    {
 	/* we need to store a string that is the idlType's name; the
 	   easiest way to do this is to just call the helper again
 	   with no type_mapper, as that will return this string */
-	   idlType.name = this.idlTypeToOtherType_helper(idlType, {});
+	idlType.name = this.idlTypeToOtherType_helper(idlType, {});
+
+	if (idlType.name === "ArrayBuffer")
+	    create_array_type({"items": "byte"}, this.array_types);
+    }
 
     return new_type;
 } /* AugmentedAST.idlTypeToOtherType */
@@ -2406,15 +2431,23 @@ AugmentedAST.prototype.turn_object_into_array = function(x)
     return out;
 }; /* turn_object_into_array */
 
-
-AugmentedAST.prototype.getDictionaryArray = function(){
+AugmentedAST.prototype.getDictionaryArray = function()
+{
   var out = [];
   for(var key in this.dictionaries){
     out.push(this.dictionaries[key]);
   }
-
   return out;
 };
+
+AugmentedAST.prototype.getTypedefArray = function()
+{
+  var out = [];
+  for(var key in this.typedefs){
+    out.push(this.typedefs[key]);
+  }
+  return out;
+}; /* getTypedefArray */
 
 AugmentedAST.prototype.getEnumsArray = function(){
   var out = [];

@@ -17,9 +17,8 @@
 
 // require returns the Board API object
 // var board = require('board');
-
-[NoInterfaceObject, ReturnFromRequire]
+[ReturnFromRequire]
 interface Board {
-    attribute string name;
+    attribute string name5;
     attribute string version;
-}; /* Board */
+};

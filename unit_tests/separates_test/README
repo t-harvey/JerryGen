@@ -5,3 +5,26 @@ defined in different objects in the same .idl file.
 Compile each of the separate[1-4].idl files into their own directory,
 and then combine them all with separate_demo.c, the main routine for
 this test.
+
+From the "examples" directory inside of the Jerryscript top-level
+directory:
+
+rm -r separate[1-4] ; ~/work/generator/generate.js --debug_printing --package=separate1 ~/work/generator/unit_tests/separates_test/separate1.idl ; ~/work/generator/generate.js --debug_printing --package=separate2 ~/work/generator/unit_tests/separates_test/separate2.idl ; ~/work/generator/generate.js --debug_printing --package=separate3 ~/work/generator/unit_tests/separates_test/separate3.idl ; ~/work/generator/generate.js --debug_printing --output_utility_files --package=separate4 ~/work/generator/unit_tests/separates_test/separate4.idl ;  gcc -g --std=c99 -I. -I../jerry-port/default/include/ -I../jerry-core/include -I../jerry-ext/include -I../jerry-main -Iseparate1 -Iseparate2 -Iseparate3 -Iseparate4 ~/work/generator/unit_tests/separates_test/separate_demo.c ../buffer/*.c separate[1-4]/*.c ../build/lib/libjerry-core.a ../build/lib/libjerry-ext.a ../build/lib/libjerry-port-default.a -lm && a.out
+
+Expected Output:
+
+PARAMETERS TO "show_object" :
+   x :  1
+   y :  2
+   separate4_dict:
+      separate3_field:
+         separate1_field:
+            separate1_int :  0
+            separate1_octet :  1
+         separate2_field:
+            separate1_field:
+               separate1_int :  0
+               separate1_octet :  1
+            separate2_octet :  3
+         separate3_octet :  7
+      separate4_octet :  15

@@ -59,13 +59,17 @@ module.exports = {
 	    augAST[object_type] = 
 		        {[object_name] : object_list[object_name]};
 
-	    let header_or_body =     ["generate_header", "generate_body"];
-	    let filename_extension = [      ".h"       ,      ".c"      ];
+	    let number_of_files_to_create = 2;	    
+	    if (object_type === "typedefs") /* only needs a .h file */
+		number_of_files_to_create = 1;
 
 	    /* this loop handles creating both the .h and .c files -- the
 	       Hogan scripts are set up to take the "header_or_body" value
 	       to create one or the other */
-	    for (var index = 0; index < 2; index++)
+	    let header_or_body =     ["generate_header", "generate_body"];
+	    let filename_extension = [      ".h"       ,      ".c"      ];
+
+	    for (var index = 0; index < number_of_files_to_create; index++)
 	    {
 		let kind_of_file = header_or_body[index];
 		let extension = filename_extension[index];
@@ -131,6 +135,12 @@ module.exports = {
 	this.generate_C_files(augAST, parameters, "dictionaries",
 			      Generator.genDictionaryString);
     } /* dictionaries */,
+
+    typedefs: function(augAST, parameters)
+    {
+	this.generate_C_files(augAST, parameters, "typedefs",
+			      Generator.genTypedefString);
+    } /* typedefs */,
     
 
     enums: function(augAST, parameters)

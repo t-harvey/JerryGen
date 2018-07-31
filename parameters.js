@@ -38,6 +38,7 @@ let command_line_parms = {
    something not on the list, but the first item in each list of values
    is the default, which gets set just succeeding... */
 let acceptable_inputs = {
+    include:              ["any filename ending with .idl"],
     fix_type_errors:      [true, false],
     stubs:                ["on", "off", "overwrite"],
     debug_printing:       ["off", "on"],
@@ -147,13 +148,16 @@ module.exports = Object.assign(
 
     validate: function()
     {
-	let ensure_all_files_have_idl_as_an_extension = function(filename_list)
+	let ensure_all_files_have_idl_as_an_extension = function(filename_list,
+								 include_files)
 	{
+	    let kind_of_file = (include_files == true)?"include filename":"filename";
 	    for(var j=0; j < filename_list.length; j++)
 		{
 		    if (!filename_list[j].endsWith(".idl"))
 		    {
-			console.log("ERROR: The filename >" + filename_list[j] +
+			console.log("ERROR: The " + kind_of_file +
+				    " >" + filename_list[j] +
 				    "< does not have the \"idl\" extension.");
 			found_an_error = true;
 		    }
@@ -184,9 +188,9 @@ module.exports = Object.assign(
 	{
 	    /* all of the input WebIDL files have to end in .idl */
 	    if (i === "files")
-		ensure_all_files_have_idl_as_an_extension(this.files);
+		ensure_all_files_have_idl_as_an_extension(this.files, false);
 	    else if (i === "include_files" && typeof this.include_files != "undefined")
-		ensure_all_files_have_idl_as_an_extension(this.include_files);
+		ensure_all_files_have_idl_as_an_extension(this.include_files, true);
 
 	    /* we're going to arbitrarily enforce the rule that the
 	       package name cannot end in ".idl" -- this lets us catch

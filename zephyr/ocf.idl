@@ -21,12 +21,11 @@
 [ReturnFromRequire]
 interface OCFObject {
     attribute OCFServer server;         // OCF server object
-    attribute Client client;         // OCF client object
-    attribute Platform platform;     // OCF platform info
-    attribute Device device;         // OCF device info
+    attribute OCFClient client;         // OCF client object
+    attribute Platform platform;        // OCF platform info
+    attribute Device device;            // OCF device info
     void start();
 };
-
 dictionary Platform {
     string id;
     string osVersion;
@@ -38,124 +37,59 @@ dictionary Platform {
     string firmwareVersion;
     string supportURL;
 };
-
 dictionary Device {
     string uuid;
     string name;
     string dataModels;
     string coreSpecVersion;
 };
-
-
-// OCF SERVER
-
-
-/* TODO: this originally included a type called "OCFResource", which isn't defined
-   anywhere -- I changed it to Resource, which is defined below */
-[ExternalInterface=(events, EventEmitter)]
+///////////////////////////////////////////
+// OCF Server
+///////////////////////////////////////////
+[ExternalInterface=(EventEmitter)]
 interface OCFServer: EventEmitter {
-    /* ORIGINAL: Promise<OCFResource> register(ResourceInit init);*/
-    Promise<Resource> register(ResourceInit init);
-}; /* OCFServer */
-
+    Promise<OCFResource> register(ResourceInit init);
+};
 dictionary ResourceInit {
-    string resourcePath;           // OCF resource path
-    string[] resourceTypes;        // List of resource types
-    string[] interfaces;           // List of interfaces for resource types
-    boolean discoverable;          // Is resource discoverable
-    boolean observable;            // Is resource observable
-    boolean secure;                // Is resource security enabled
-    boolean slow;                  // Is resource a slow reader
-    ResourceProperties properties; // Dictionary of resource properties
+    string resourcePath;      // OCF resource path
+    string[] resourceTypes;   // List of resource types
+    string[] interfaces;      // List of interfaces for resource types
+    boolean discoverable;     // Is resource discoverable
+    boolean observable;       // Is resource observable
+    boolean secure;           // Is resource security enabled
+    boolean slow;             // Is resource a slow reader
+    object properties;        // Dictionary of resource properties
 };
-
-/* (unspecified in zephyr's webidl; added to make the idl compile) */
-dictionary ResourceProperties {
-}; /* ResourceProperties */
-
-interface Resource {
-    attribute string resourcePath;         // Path for this resource
-    attribute ResourceObject properties;   // Application specific resource properties
+dictionary Resource {
+    string resourcePath;      // Path for this resource
+    object properties;        // Application specific resource properties
 };
-
-/* (this is undefined in zerphy's webidl; added to make the idl compile) */
-dictionary ResourceObject {
-}; /* ResourceObject */
-
-/* TODO: this originally included a type called "OCFResource", which isn't defined
-   anywhere -- I changed it to Resource, which is defined immediately above */
 interface Request {
-    /* ORIGIANL:
-       attribute OCFResource target;       // Target/destination resource
-       attribute OCFResource source;       // Source/origin resource
-    */
-    attribute Resource target;       // Target/destination resource
-    attribute Resource source;       // Source/origin resource
-    attribute ObjectData data;              // resource representation
-    Promise<void> respond(ObjectData data);
+    attribute OCFResource target;       // Target/destination resource
+    attribute OCFResource source;       // Source/origin resource
+    attribute object data;              // resource representation
+    Promise<void> respond(object data);
 };
-
-/* (this is undefined in zephyr's webidl; added to make the idl compile) */
-dictionary ObjectData {
-}; /* ObjectData */
-
-
-//OCF CLIENT
-
-[ExtenalInterface=(events,EventEmitter)]
-interface Client: EventEmitter {
+///////////////////////////////////////////
+// OCF Client
+///////////////////////////////////////////
+[ExternalInterface=(EventEmitter)]
+interface OCFClient: EventEmitter {
     Promise<Resource> findResources(ClientOptions options, optional FoundListener listener);
-    Promise<Resource> retrieve(string deviceId, ObjectOptions options);
+    Promise<Resource> retrieve(string deviceId, object options);
     Promise<Resource> update(Resource resource);
     Promise<Platform> getPlatformInfo(string deviceId);
     Promise<Device> getDeviceInfo(string deviceId);
 };
-
 dictionary ClientOptions {
     string deviceId;
     string resourceType;
     string resourcePath;
 };
-
-/* in zephyr's WebIDL, the type of the "options" parameter in the retrieve operation
-   is object -- but look at the docs and the zephyr code show that this should be
-   a collection of flags that are, essentially, a subset of the ResourceInit dictionary */
-dictionary ObjectOptions {
-    boolean discoverable;          // Is resource discoverable
-    boolean observable;            // Is resource observable
-    boolean secure;                // Is resource security enabled
-    boolean slow;                  // Is resource a slow reader
-}; /* ObjectOptions */
-
-
-callback FoundListener = void (ClientResource x);
-
-
-
-/* cribbed from zjs_ocf_client, from zephyr.js on github */
-
-/* TODO: figure out what this type is supposed to be (esp. the
-   jerry_value_t's!) */
+callback FoundListener = void (ClientResource resource);
 dictionary ClientResource {
-    string device_id;
-    string resource_path;
-    string resource_type;
-    /* jerry_value_t types_array; */
-    /* jerry_value_t iface_array; */
-    /* oc_endpoint_t *endpoint; */  /* NOTE: this is not defined in
-                                        zephyr.js (it is referenced in
-                                        zjs_ocf_client.c, but "grep
-                                        -r" did not find its
-                                        definition) */
-    ResourceState state;
-    unsigned long flags;
-    unsigned long error_code;
-    ClientResource next;
-}; /* ClientResource */
-
-enum ResourceState {
-    "RES_STATE_SEARCHING",
-    "RES_STATE_FOUND"
+    string deviceId;
+    string resourceType;
+    string resourcePath;
 };
-
-
+typedef long OCFResource; /* may be some other type/object */

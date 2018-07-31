@@ -15,33 +15,30 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// require returns a GPIO object
+// var gpio = require('gpio');
 [ReturnFromRequire]
 interface GPIO {
-    GPIOPin open(GPIOInit init);
-    Promise<GPIOPin> openAsync(GPIOInit init);
+    GPIOPin open( (long or string or GPIOInit) init);
 };
 
 dictionary GPIOInit {
-    unsigned long pin; // Zephyr has this as "number of string" --
-                       // but there is no "number" in WebIDL, and the
-                       // "or" construct doesn't appear to work in the parser
+    (long or string) pin;
     boolean activeLow = false;
-    string direction = "out";  // in, out
-    string edge = "any";       // none, rising, falling, any
-    string pull = "none";      // none, up, down
+    GPIOMode  mode =  "out";
+    GPIOEdge  edge =  "none";
+    GPIOState state = "none";
 };
-
-[NoInterfaceObject]
 interface GPIOPin {
-    boolean read();
-    void write(boolean value);
+    long read();
+    void write(long value);
     void close();
     attribute ChangeCallback onchange;
 };
-
-callback ChangeCallback = void (GPIOEvent x);
-
+callback ChangeCallback = void (GPIOEvent event);
 dictionary GPIOEvent {
-    // TODO: probably should add event type here, or else return value directly
-    boolean value;
+    long value;
 };
+enum GPIOMode  { "out", "in" };
+enum GPIOEdge  { "none", "rising", "falling", "any" };
+enum GPIOState { "none", "up", "down" };
