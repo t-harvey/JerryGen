@@ -281,7 +281,10 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 			       "USVString": "\"\"" ,
 			       bool:     false,
 			       boolean: false,
+			       Error: "\"\"" ,
 			    };
+    if (this.typedefs[C_Type] != undefined)
+	C_Type = this.typedefs[C_Type].ultimate_typename;
 
     if (Object.keys(intrinsic_C_Types).indexOf(C_Type) >= 0)
 	return intrinsic_C_Types[C_Type];
@@ -292,24 +295,25 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 
 AugmentedAST.prototype.WebIDL_to_Jerryscript_TypeMap = {
 	"any": "any",
-	"ArrayBuffer": "ArrayBuffer",
-	"boolean" : "boolean",
-	"byte" : "number",
-	"octet" : "number",
-	"short" : "number",
-	"unsigned short" : "number",
-	"long" : "number",
-	"unsigned long" : "number",
-	"long long" : "number",
-	"unsigned long long" : "number",
-	"float" : "number",
-	"unrestricted float" : "number",
-	"double" : "number",
+	"ArrayBuffer"         : "ArrayBuffer",
+	"boolean"             : "boolean",
+	"byte"                : "number",
+	"octet"               : "number",
+	"short"               : "number",
+	"unsigned short"      : "number",
+	"long"                : "number",
+	"unsigned long"       : "number",
+	"long long"           : "number",
+	"unsigned long long"  : "number",
+	"float"               : "number",
+	"unrestricted float"  : "number",
+	"double"              : "number",
 	"unrestricted double" : "number",
-	"DOMString" : "string",
-	"ByteString" : "string",
-	"USVString" : "string",
-	"this" : "this"
+    "DOMString"               : "string",
+	"ByteString"          : "string",
+	"USVString"           : "string",
+        "Error"               : "Error",
+	"this"                : "this"
     }; /* WebIDL_to_Jerryscript_TypeMap */
 
 AugmentedAST.prototype.WebIDL_to_C_TypeMap = {
@@ -332,6 +336,7 @@ AugmentedAST.prototype.WebIDL_to_C_TypeMap = {
 	"ByteString" : "ByteString",
 	"USVString" : "USVString",
 	"string" : "string",
+        "Error" : "Error",
 	"this" : "this"
     }; /* WebIDL_to_C_TypeMap */
 
@@ -355,6 +360,7 @@ AugmentedAST.prototype.WebIDL_to_C_TypeMap2 = {
 	"ByteString" : "string",
 	"USVString" : "string",
 	"string" : "string",
+        "Error": "Error",
 	"this" : "jerry_value_t"
     }; /* WebIDL_to_C_TypeMap2 */
 
@@ -429,15 +435,18 @@ AugmentedAST.prototype.record_typedefs = function(ast)
 
 /* return a struct with the C and Jerryscript types for the WebIDL type
    passed in */
-AugmentedAST.prototype.getConversionTypes = function(idlType)
+AugmentedAST.prototype.getConversionTypes = function(idlType,
+						     is_variadic = false)
 {
     let return_types = {};
 
     return_types.Jerryscript_Type =
 	                this.idlTypeToOtherType(idlType,
-						this.WebIDL_to_Jerryscript_TypeMap);
+				            this.WebIDL_to_Jerryscript_TypeMap,
+				            is_variadic);
     return_types.C_Type = this.idlTypeToOtherType(idlType,
-						  this.WebIDL_to_C_TypeMap);
+					    this.WebIDL_to_C_TypeMap,
+					    is_variadic);
 
     /* the "this" pointer can only occur (in the WebIDL) as the return
        type of a function; mark it here for easy identification */
@@ -567,12 +576,16 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     let add_to_lists_if_not_primitive =
 	               function(this_ptr, type, intrinsics_list, typedefs_list)
     {
+	/* typedefs need both their own name and their (non-primitive) ultimate-
+	   type added to the list */
 	if (type in this_ptr.typedefs)
 	{
+	    /* keep track of what we've seen */
 	    if (typedefs_list[type] === undefined)
 	    {
-		typedefs_list[type] = type; /* this restricts duplicates */
-		intrinsics_list.push({type_name: type});
+		typedefs_list[type] = type;
+		intrinsics_list.push({type_name: type,
+				      needs_initialization: false});
 	    }
 	    type = this_ptr.typedefs[type].ultimate_typename;
 	}
@@ -580,7 +593,8 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	    type = "byte_array";
 
 	if (!(this_ptr.isPrimitiveType(type)))
-	    intrinsics_list.push({type_name: type});
+	    intrinsics_list.push({type_name: type,
+				  needs_initialization: true});
     }; /* add_to_lists_if_not_primitive */
 
     /* look at the return type and the arguments to the call */
@@ -663,7 +677,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	}
     }
 
-    /* calbacks work the same way as an interface's operations */
+    /* callbacks work the same way as an interface's operations */
     else if (thing.type == "callback")
 	process_call(this, intrinsics_list, thing, typedefs_seen);
 
@@ -737,9 +751,168 @@ AugmentedAST.prototype.find_default_string_values = function(d)
 {
     for (var index in d.members)
 	if (d.members[index].default &&
-	    d.members[index].default.type === "string")
+	    d.members[index].default.type === "string") 
 	    d.members[index].default.is_string = true;
 } /* AugmentedAST.find_default_string_values */
+
+
+/* if a WebIDL variable name is a C reserved word, the code won't
+   compile -- to fix this, we'll check every parameter, struct field,
+   etc. to make sure that it is not a reserved word, and if it is,
+   then we'll add a trailing underscore to make the code compilable;
+   we'll do the same for WebIDL names (necessary?) and we'll skip
+   Javascript reserved words, for now */
+/* NOTE: this function should never be called for typedefs! */
+/* this function returns either the name passed in or the name with a '_'
+   appended to it */
+/* TODO: it was only after this infrastructure was built that I
+   realized that I need to also "reserve" any type name in the .idl
+   also -- this should be done with a single global pass instead of
+   the kludge of building the "local" list of reserved words the first
+   time this function is called -- note that external types whose
+   files are not included could have name conflicts, too: the docs
+   should have an explanation of the problem and an example of the
+   error message from the compiler */
+AugmentedAST.prototype.local_reserved_words = [];
+AugmentedAST.prototype.fix_names = function(thing)
+{
+
+    /* kludge: build the list of local type names the first time this
+       function is called */
+    if (this.local_reserved_words.length == 0)
+    {
+	/* we want to put a meaningless string onto the list so this
+	   code is called exactly once; we'll use a string that can't be
+	   a WebIDL type name so that this entry will never match */
+	this.local_reserved_words.push("2");
+
+	/* the ast the parser builds is really, really simple -- each
+	   construct has a "name" field... */
+	for(let i = 0; i < this.ast.length; i++)
+	    this.local_reserved_words.push(this.ast[i].name);
+    }
+
+    /* TODO: is it ineffecient not to make this and the next array global? */
+    let C_reserved_words = [ "auto", "break", "case", "char", "const",
+			     "continue", "default", "do", "double",
+			     "else", "enum", "extern", "float", "for",
+			     "goto", "if", "inline", "int", "long",
+			     "register", "restrict", "return", "short",
+			     "signed", "sizeof", "static", "struct",
+			     "switch", "typedef", "union", "unsigned",
+			     "void", "volatile", "while" ];
+
+    /* I think the only WebIDL words we care about are those that
+       describe types", since some of the WebIDL type names propagate
+       through to the C code */
+    let WebIDL_reserved_words = [ "any", "boolean", "byte", "octet",
+				  "short", "unsignedshort", "long",
+				  "unsignedlong", "longlong",
+				  "unsignedlonglong", "float",
+				  "unrestrictedfloat", "double",
+				  "unrestricteddouble", "DOMString",
+				  "ByteString", "USVString", "object",
+				  "symbol", "Promise", "Error" ];
+
+    let local_reserved_words = this.local_reserved_words;
+
+    /* this is the fixer for every name in the file... */
+    let fix_name = function(name, variable_name = true)
+    {
+	/* a "while" loop is probably overkill, but it should still be done */
+	while (C_reserved_words.indexOf(name) >= 0 ||
+	       WebIDL_reserved_words.indexOf(name) >= 0 ||
+	       (variable_name && local_reserved_words.indexOf(name) >= 0))
+	    name += "_";
+
+	return name;
+    } /* fix_name */
+
+    /* b/c enums are sets of strings, it's perfectly okay to have enum
+       values that are restricted in any of our three languages; this
+       routine will rewrite disallowed enum values to slightly altered
+       strings that will be legal in all three languages */
+    let fix_enum = function(enum_string)
+    {
+	let return_string = enum_string;
+
+	/* this is the list of special characters and the string
+	   replacements for each */
+	/* TODO: the current implementation is only a partial list: */
+	/* TODO: document these! */
+	let replacements = [ {"target": "+", "replace_with": "_plus" },
+			     {"target": "-", "replace_with": "_minus" },
+			     {"target": "*", "replace_with": "_mult" },
+			     {"target": "/", "replace_with": "_slash" },
+			   ];
+
+	/* replace spaces with underscores */
+	return_string = return_string.replace(/\s+/g, '_');
+
+	/* convert special characters to words */
+	/* note: this comes before looking for reserved words, b/c some of
+	   the special characters are interpreted as regular-expression
+	   characters, which match when they shouldn't */
+	for (let i = 0; i < replacements.length; i++)
+	    return_string = return_string.split(replacements[i].target).
+	                                  join(replacements[i].replace_with);
+
+	/* concatenate a "_" onto reserved words */
+	return fix_name(return_string);
+    } /* fix_enum */
+
+    /* callbacks and operations work the same way, so we've abstracted out
+       their code */
+    let process_call_arguments = function(call)
+    {
+	// fix argument names
+	for (let j = 0; j < call.arguments.length; j++)
+	    call.arguments[j].name = fix_name(call.arguments[j].name);
+    }; /* process_call_arguments */
+
+    thing.name = fix_name(thing.name,
+			  false /* don't compare thing names
+				  against type names defined in the
+				  file (since that list is made up of
+				  just these names, and they'll get
+				  (incorrectly) modified) */ );
+    /* for interfaces, we have to look at each attribute's type and at
+       each operation's return type and parameter types */
+    if (thing.type == "interface")
+	for (let i = 0; i < thing.members.length; i++)
+	{
+	    let member = thing.members[i];
+
+	    member.name = fix_name(member.name);
+	    if (member.type === "operation")
+		process_call_arguments(member);
+	    else /* member.type === "attribute" */
+		; /* nothing more to be done for attributes */
+	}
+
+    /* callbacks work the same way as an interface's operations */
+    else if (thing.type == "callback")
+	process_call_arguments(thing);
+
+    else if (thing.type === "dictionary")
+	for (let i = 0; i<thing.members.length; i++)
+	    thing.members[i].name = fix_name(thing.members[i].name);
+
+    else if (thing.type === "typedef")
+	throw "ERROR: CALL TO fix_names FOR TYPEDEF DECLARATION.";
+
+    else if (thing.type === "enum")
+	for(let i = 0; i <  thing.values.length; i++)
+	    thing.values[i] = fix_enum(thing.values[i]);
+
+    else
+	/* TODO: throw an actual exception; not really all that important
+	   right now, as this can only happen (?) during development; once
+	   we're parsing WebIDL files, this clause won't ever get hit */
+	console.log("ERROR in call to fix_names.");
+
+} /* fix_names */
+
 
 
 /**
@@ -765,6 +938,7 @@ AugmentedAST.prototype.addDictionary = function (d, index)
       inheritance: null, 
       extAttrs: [] }
  */
+    this.fix_names(d);
     record_name(d.name, "dictionary");
 
     this.set_external_types(d);
@@ -840,6 +1014,7 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 AugmentedAST.prototype.addEnum = function (new_enum, index) {
   //A enumeration declaration looks like this:
   //{ type: 'enum', name: 'name', values: [ [string], [string], ... ], extAttrs: [] }
+    this.fix_names(new_enum);
 
   // does the enum name already exist?
   var existingEnum = this.enums[new_enum.name];
@@ -855,19 +1030,20 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
 
     // augment and add members
     new_enum.number_of_members = new_enum.values.length; // needed for mustache'ing
-    if (new_enum.values.length == 0)
+    if (new_enum.number_of_members == 0)
 	throw "Enumeration type with no values is not allowed";
-    else if (new_enum.values.length == 1)
+    else if (new_enum.number_of_members == 1)
 	  new_enum.onlyOneMember = true;
 
     new_enum.members = [];
-    for(var i = 0 ; i < new_enum.values.length; i++){
-	let new_object = {name: new_enum.values[i], new_line: "\n"};
-	if (i == 0)
+    for(var i = 0 ; i < new_enum.number_of_members; i++){
+	let new_object = {name    : new_enum.values[i],
+			  new_line: "\n"};
+	if (i === 0)
 	    new_object.indentation = "";
 	else
 	    new_object.indentation = new Array("typedef enum {  ".length).join( " " );
-	if (i+1 == new_enum.values.length)
+	if (i+1 === new_enum.number_of_members)
 	    new_object.finalMember = true;
 	    
 	new_enum.members.push(new_object);
@@ -891,6 +1067,7 @@ AugmentedAST.prototype.addCallback = function (callback, index) {
   //	             extAttrs: [], idlType, name: ' ' } ],
   //  extAttrs: [] }
 
+    this.fix_names(callback);
     record_name(callback.name, "callback");
 
   // does the callback already exist?...if so, throw an exception
@@ -925,8 +1102,7 @@ AugmentedAST.prototype.addCallback = function (callback, index) {
     // arguments with type info
     for(var i = 0 ; i < callback.arguments.length; i++)
     {
-      callback.arguments[i].C_and_Jerryscript_Types = this.getConversionTypes(callback.arguments[i].idlType);
-/*      callback.arguments[i].C_and_Jerryscript_Types.is_variadic = callback.arguments[i].variadic;*/
+      callback.arguments[i].C_and_Jerryscript_Types = this.getConversionTypes(callback.arguments[i].idlType, callback.arguments[i].variadic);
 
       callback.arguments[i].paramIndex = i;
       if (i+1 === callback.arguments.length)
@@ -1003,7 +1179,8 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
 	for(i = 0; i < interfaceMember.arguments.length; i++)
 	{
 	    interfaceMember.arguments[i].C_and_Jerryscript_Types =
-		 this.getConversionTypes(interfaceMember.arguments[i].idlType);
+		 this.getConversionTypes(interfaceMember.arguments[i].idlType, 
+					 interfaceMember.arguments[i].variadic);
 	    interfaceMember.arguments[i].paramIndex = i;
 	    if(i == interfaceMember.arguments.length-1)
 		/* only the last item in a list is marked with this
@@ -1126,11 +1303,12 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
   //An interface looks like this:
   //{type:'interface', name:'In', partial:false, members:[ [Object],[Object] ], inheritance:null, extAttrs:[] }
 
+  this.fix_names(theInterface);
   record_name(theInterface.name, "interface");
 
   // zephyr's idl contains operations with no preceding type, which is
   // incorrect WebIDL -- should we complain and exit, or convert the
-  // operation to returning a void (plus tell user that's what we did)?
+  // operation to returning a void (plus tell the user that's what we did)?
   // The pattern when the parser hits this error is to put the operation's
   // name in the idlType->idlType field, so that's where we look for it.
     // TODO: this doesn't work for "Promise", as that adds an extra layer
@@ -1400,11 +1578,16 @@ AugmentedAST.prototype.report_reused_names = function()
  */
 AugmentedAST.prototype.processTypeCheckQueue = function ()
 {
+    if (0)
     while (this.typeCheckQueue.length !== 0)
     {
 	if (!this.checkType(this.typeCheckQueue.pop()))
 	    throw "Type error";
     }
+    else
+	for(let i = 0; i < this.typeCheckQueue.length; i++)
+	if (!this.checkType(this.typeCheckQueue[i]))
+	    throw "Type error";
 
     return true;
 }; /* processTypeCheckQueue */
@@ -1764,9 +1947,11 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	var webidl_type_list = composite["webidl_type_list"];
 	var getConversionTypes = this.getConversionTypes;
 
-	composite["c_and_j_type_list"] =
-	               webidl_type_list.map(getConversionTypes,
-					    this /* stay in current context */);
+	let new_c_and_j_type_list = [];
+	for (let i = 0 ; i < webidl_type_list.length; i++)
+	    new_c_and_j_type_list.push(
+		                this.getConversionTypes(webidl_type_list[i]));
+	composite["c_and_j_type_list"] = new_c_and_j_type_list;
 
 	/* we'll need to name each field by its webidl name, so record that
 	   in each type's entry */
@@ -2047,7 +2232,7 @@ AugmentedAST.prototype.augment = function (ast) {
        has a field of type B, we need to make sure that B gets outputted
        in the .h file before A */
     /* this function builds a list of types called sorted_types_list */
-    this.sort_types();
+/*    this.sort_types();*/
 
     /* annotate all variables that are callbacks */
     this.find_and_mark_callbacks();
@@ -2116,7 +2301,9 @@ AugmentedAST.prototype.getCTypeName = function (obj)
    types will need, so we need a wrapper to notice when we've found
    a composite and to do the extra work... */
 /* SIDE EFFECT: sets the "name", "composite", and "array" fields in idlType */
-AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
+AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
+						     type_mapper,
+						     is_variadic = false)
 {
     var self = this;
     /* the whole purpose of this wrapping function is to grab the
@@ -2256,6 +2443,19 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType, type_mapper)
 
 	if (idlType.name === "ArrayBuffer")
 	    create_array_type({"items": "byte"}, this.array_types);
+    }
+
+    /* as a last complication: now we know the type; if it's a variadic
+       parameter, then it's an array of that type; we'll just copy the
+       code, above, that handles an explicit array type */
+    if (is_variadic)
+    {
+	/* create_array_type wants a particular data struture, so we'll
+	   build one just to make it do what we want... */
+	new_type = create_array_type({"items":new_type}, this.array_types);
+
+	idlType.name = new_type;
+	idlType.array = true;
     }
 
     return new_type;

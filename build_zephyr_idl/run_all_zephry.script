@@ -31,6 +31,7 @@ else
     	then
 	    generator_directory=`dirname $0`/../
             name=`basename $i`
+            echo "************************************ " $name
             events_file=`grep "interface EventEmitter" $temp_file`
 	    includes_events=`grep "EventEmitter" $temp_file | grep "interface" `
 	    if [[ -n $events_file ]]

@@ -39,6 +39,11 @@ under the License.
 #include "jerryscript.h"
 
 {{#header}}
+struct {{{compositeName}}}_struct;
+typedef struct {{{compositeName}}}_struct {{{compositeName}}};
+
+{{/header}}
+{{#header}}
 #include "{{{utilities_filename}}}.h"
 {{#externalTypes}}
 #include "{{{type}}}.h"
@@ -52,11 +57,11 @@ under the License.
 {{/body}}
 
 /* this variable is used in composite types to denote a field of type
-   {{{interfaceName}}} -- this should be considered a read-only value */
+   {{{compositeName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{compositeName}}}_uid;
 
 {{#header}}
-typedef struct {
+struct {{{compositeName}}}_struct {
     int union_type;
     union {
 {{! TODO: add arrays of composites}}
@@ -64,7 +69,7 @@ typedef struct {
         {{{C_Type}}} {{{webidl_name}}}_field;
 {{/c_and_j_type_list}}
     } value;
-} {{{compositeName}}};
+};
 {{/header}}
 
 /* all WebIDL constructs have a constructor function, so that C code

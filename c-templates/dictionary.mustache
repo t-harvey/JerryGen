@@ -38,18 +38,6 @@ under the License.
 #include "jerryscript.h"
 #include "{{{utilities_filename}}}.h"
 
-{{! we need to define the type before any of the external includes,
-    which might need to use this type }}
-{{#header}}
-typedef struct {
-	{{#members}}
-    {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}{{#is_array_object}}{{#is_array}} *{{/is_array}}{{/is_array_object}} {{{memberName}}};
-    {{/C_and_Jerryscript_Types}}
-	{{/members}}
-} {{{dictionaryName}}};
-{{/header}}
-
 {{#header}}
 {{#externalTypes}}
 #include "{{{type}}}.h"
@@ -61,6 +49,18 @@ typedef struct {
 {{#body}}
 #include "{{{dictionaryName}}}.h"
 {{/body}}
+
+{{! we need to define the type before any of the external includes,
+    which might need to use this type }}
+{{#header}}
+typedef struct {
+	{{#members}}
+    {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}}{{#is_array_object}}{{#is_array}} *{{/is_array}}{{/is_array_object}} {{{memberName}}};
+    {{/C_and_Jerryscript_Types}}
+	{{/members}}
+} {{{dictionaryName}}};
+{{/header}}
 
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
@@ -312,7 +312,11 @@ void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
     initialize_{{{type}}}_();
 {{/externalTypes}}
 {{#non_intrinsic_types}}
+  {{! typedef'd types don't need an initialization if their ultimate
+      type is a primitive type (since those don't have initializors) }}
+  {{#needs_initialization}}
     initialize_{{{type_name}}}_();
+  {{/needs_initialization}}
 {{/non_intrinsic_types}}
 
 } /* initialize_{{{dictionaryName}}}_ */

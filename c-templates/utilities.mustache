@@ -47,6 +47,16 @@ typedef jerry_value_t Interpreter_Type;
 typedef Interpreter_Type object;
 typedef string Error;
 
+#define interpreter_get_Error_value interpreter_get_string_value
+#define interpreter_create_Error interpreter_create_string
+#define interpreter_value_is_Error interpreter_value_is_string
+#define debug_print_Error debug_print_string
+
+#define interpreter_get_object_value jerry_value_to_object
+#define interpreter_create_object jerry_value_to_object
+#define interpreter_value_is_object jerry_value_is_object
+#define object_constructor jerry_create_object
+
 /* each type needs to have its own unique id (uid) so that we can
    build union types out of multiple types and differentiate between
    them; at creation of a type, we'll call this bookkeeper to give
@@ -115,6 +125,14 @@ typedef jerry_value_t this;
 #define initialize_ArrayBuffer_ initialize_byte_array_
 #define debug_print_ArrayBuffer debug_print_byte_array
 
+/* for now, we'll implement WebIDL's Json type as an Any */
+#define interpreter_get_Json_value interpreter_get_any_value
+#define interpreter_create_Json interpreter_create_any
+#define interpreter_value_is_Json interpreter_value_is_any
+#define Json_constructor any_constructor
+#define initialize_Json_ initialize_any_
+#define debug_print_Json debug_print_any
+
 
 /* WebIDL's "any" type: */
 typedef struct
@@ -136,7 +154,7 @@ typedef struct
     } value;
 } any;
 /* TODO: JSON types are not really equivalent to the "any" type... */
-typedef any JSON;
+typedef any Json;
 
 {{/header}}
 /* for the any type, we'll aribtrarily make the default value a long
@@ -456,6 +474,8 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_get_unsignedlonglong_value (unsignedlonglong)jerry_get_number_value
 #define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
 
+#define interpreter_get_this_value(x) (x);
+
 /* we check value types using their C-type names, although the checks
    translate into checking for synonymous Javascript types */
 // #define interpreter_value_is_int8_t (bool)jerry_value_is_number
@@ -490,7 +510,7 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_create_boolean   jerry_create_boolean
 #define interpreter_create_number    jerry_create_number
 #define interpreter_create_null      jerry_create_null
-#define interpreter_create_string    jerry_create_string
+#define interpreter_create_string(s) jerry_create_string((jerry_char_t *)(s))
 #define interpreter_create_undefined jerry_create_undefined
 
 #define interpreter_create_float jerry_create_number
@@ -503,6 +523,7 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_create_unsignedlong (bool)jerry_create_number
 #define interpreter_create_longlong (bool)jerry_create_number
 #define interpreter_create_unsignedlonglong (bool)jerry_create_number
+#define interpreter_create_double (bool)jerry_create_number
 
 
 #ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
@@ -870,12 +891,14 @@ void debug_print_bool(char *variable_name, bool value, unsigned int indentation)
 {
     printf("%*s%s :  %s\n", indentation, "", variable_name, (value)?"TRUE":"FALSE");
 } /* debug_print_bool */
+
 {{/body}}
 void debug_print_string(char *variable_name, char * value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s%s :  \"%s\"\n", indentation, "", variable_name, value);
 } /* debug_print_string */
+
 {{/body}}
 {{#body}}
 static jerry_value_t debug_evaluate_script(jerry_char_t jerry_script[])
@@ -889,6 +912,7 @@ static jerry_value_t debug_evaluate_script(jerry_char_t jerry_script[])
     }
     return eval_ret;
 } /* debug_evaluate_script */
+
 {{/body}}
 void debug_print_message(char *message){{#header}};{{/header}}
 {{#body}}
@@ -903,6 +927,21 @@ void debug_print_message(char *message){{#header}};{{/header}}
     jerry_release_value(prop_name);
     jerry_release_value(global_object);
 } /* debug_print_message */
+
+{{/body}}
+void debug_print_object(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+	printf("%*s<object> :  \"%s\"\n", indentation, "", variable_name);
+} /* debug_print_object */
+
+{{/body}}
+void debug_print_this(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s<this pointer>\n", indentation, "");
+} /* debug_print_object */
+
 {{/body}}
 void debug_print_object_fields(Interpreter_Type thing){{#header}};{{/header}}
 {{#body}}
@@ -929,6 +968,7 @@ void debug_print_object_fields(Interpreter_Type thing){{#header}};{{/header}}
     jerry_release_value(prop_name);
     jerry_release_value(global_object);
 } /* debug_print_object_fields */
+
 {{/body}}
 void debug_print_any(char *variable_name, any value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
@@ -972,8 +1012,8 @@ void debug_print_any(char *variable_name, any value, unsigned int indentation){{
 	   break;
     }
 } /* debug_print_any */
-{{/body}}
 
+{{/body}}
 void debug_typeof(Interpreter_Type thing, string thing_name){{#header}};{{/header}}
 {{#body}}
 {
@@ -1030,6 +1070,7 @@ void debug_list_all_objects(void){{#header}};{{/header}}
     debug_print_object_fields(prototypes_holder);
     jerry_release_value(prototypes_holder);
 } /* debug_list_all_objects */
+
 {{/body}}
 {{/debug_printing}}
 {{#header}}

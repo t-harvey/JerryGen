@@ -186,16 +186,9 @@ Interpreter_Type
 {{! TODO: the "this_val" passed in to a function parameter: should it be
     this_val, or should we gen up a value_t for the global object? }}
     {{#arguments}}
-        {{#variadic}}
-   	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}} {{{name}}} = interpreter_get_array_of_{{{C_Type}}}(args_p, args_cnt, {{{paramIndex}}});
-   	     {{/C_and_Jerryscript_Types}}
-        {{/variadic}}
-        {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
     {{{C_Type}}} {{{name}}} = interpreter_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
              {{/C_and_Jerryscript_Types}}	
-        {{/variadic}}
     {{/arguments}}
 {{#repress_stubs}}
     Native_Object_{{{interfaceName}}} *native_object;
@@ -425,7 +418,11 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     initialize_{{{type}}}_();
 {{/externalTypes}}
 {{#non_intrinsic_types}}
+  {{! typedef'd types don't need an initialization if their ultimate
+      type is a primitive type (since those don't have initializors) }}
+  {{#needs_initialization}}
     initialize_{{{type_name}}}_();
+  {{/needs_initialization}}
 {{/non_intrinsic_types}}
 {{#prototype_chain}}
     initialize_{{{parentName}}}_();
@@ -450,7 +447,11 @@ static Interpreter_Type {{{interfaceName}}}_require_function_(void)
     initialize_{{{type}}}_();
 {{/externalTypes}}
 {{#non_intrinsic_types}}
+  {{! typedef'd types don't need an initialization if their ultimate
+      type is a primitive type (since those don't have initializors) }}
+  {{#needs_initialization}}
     initialize_{{{type_name}}}_();
+  {{/needs_initialization}}
 {{/non_intrinsic_types}}
 {{! TODO: handle repress_stubs }}
 

@@ -121,7 +121,7 @@ void debug_print_{{{enumName}}} (char *variable_name,
                                       unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
-    if (value < 0 || value >= number_of_{{{enumName}}})
+    if (!(/* ALWAYS TRUE: value >= 0 && */value < number_of_{{{enumName}}}))
     	printf("%*s%s: the value passed in is not a valid {{{enumName}}} value\n",
                                       indentation, "", variable_name);
     else

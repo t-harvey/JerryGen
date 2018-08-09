@@ -75,15 +75,6 @@ under the License.
 #include <string.h>
 #include "jerryscript.h"
 
-{{! all types need to be defined before an include files, since those
-    might use the type (e.g., in a composite type) }}
-{{#header}}
-typedef Interpreter_Type {{{callbackName}}};
-/* this is the type signature of functions that can be assigned
-   to a {{{callbackName}}} */
-typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
-
-{{/header}}
 {{#header}}
 #include "{{{utilities_filename}}}.h"
 {{#externalTypes}}
@@ -97,6 +88,15 @@ typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callb
 #include "{{{callbackName}}}.h"
 {{/body}}
 
+{{! all types need to be defined before an include files, since those
+    might use the type (e.g., in a composite type) }}
+{{#header}}
+typedef Interpreter_Type {{{callbackName}}};
+/* this is the type signature of functions that can be assigned
+   to a {{{callbackName}}} */
+typedef {{#return_type}}{{{C_Type}}}{{/return_type}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
+
+{{/header}}
 /* this variable is used in composite types to denote a field of type
    {{{callbackName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{callbackName}}}_uid;
@@ -131,16 +131,9 @@ run_{{{callbackName}}}_function_handler(
     ********************************************************************  }}
     /* demarshal the arguments */
     {{#arguments}}
-        {{#variadic}}
-   	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}}_Array {{{name}}} = interpreter_get_array_of_{{{C_Type}}}(args_p, args_cnt, {{{paramIndex}}});
-   	     {{/C_and_Jerryscript_Types}}
-        {{/variadic}}
-        {{^variadic}}
    	     {{#C_and_Jerryscript_Types}}
     {{{C_Type}}} {{{name}}} = interpreter_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
              {{/C_and_Jerryscript_Types}}	
-        {{/variadic}}
     {{/arguments}}
 
 {{#return_type}}
@@ -363,7 +356,11 @@ void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
     initialize_{{{type}}}_();
 {{/externalTypes}}
 {{#non_intrinsic_types}}
+  {{! typedef'd types don't need an initialization if their ultimate
+      type is a primitive type (since those don't have initializors) }}
+  {{#needs_initialization}}
     initialize_{{{type_name}}}_();
+  {{/needs_initialization}}
 {{/non_intrinsic_types}}
 
 } /* initialize_{{{callbackName}}}_ */
