@@ -23,7 +23,9 @@ under the License.
 {{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .h and the .c
     *_Types files -- look for the "body" and "header" markers }}
+{{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{/print_generation_message}}
 {{#dictionaries}}
 {{#header}}
 #ifndef {{{dictionaryName}}}_H_
@@ -110,31 +112,38 @@ typedef struct {
     {{#is_array_object}}
     {
 	unsigned int array_length = jerry_get_array_length(value);
-    {{#members}}
-    {{#C_and_Jerryscript_Types}}
-    {{^is_array}}
-	return_struct.length = array_length;
-    {{/is_array}}
-    {{#is_array}}
-    return_struct.items = ({{{C_Type}}} *)malloc(sizeof({{{C_Type}}})*array_length);
-    for(int i = 0; i < array_length; i++)
-        return_struct.items[i] = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(jerry_get_property_by_index(value, i));
-    {{/is_array}}
-    {{/C_and_Jerryscript_Types}}
-    {{/members}}
+        {{! we're not really looping through the members, here, b/c we know
+	    that this is an array type, so the first member will be the
+	    length value, and the second member will be the actual array,
+	    and the way to differentiate the two fields will be by looking
+	    for the is_array flag in the C_and_Jerryscript_Types value }}
+        {{#members}}
+            {{#C_and_Jerryscript_Types}}
+                {{^is_array}}
+	return_struct.length = array_length; /* we know the field names of this
+                                               dictionary (b/c it's an array) */
+                {{/is_array}}
+                {{#is_array}}
+        return_struct.items = ({{{C_Type}}} *)malloc(sizeof({{{C_Type}}})*array_length);
+        for(int i = 0; i < array_length; i++)
+            return_struct.items[i] = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(jerry_get_property_by_index(value, i));
+                {{/is_array}}
+            {{/C_and_Jerryscript_Types}}
+
+         {{/members}}
     }
     {{/is_array_object}}
     {{^is_array_object}}
-    {{#members}}
+        {{#members}}
     Interpreter_Type {{{memberName}}}_prop_name = jerry_create_string((const jerry_char_t *) "{{{memberName}}}");
     Interpreter_Type {{{memberName}}}_value = jerry_get_property(object_value, {{{memberName}}}_prop_name);
-    {{#C_and_Jerryscript_Types}}
+            {{#C_and_Jerryscript_Types}}
     return_struct.{{{memberName}}} = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value({{{memberName}}}_value);
-    {{/C_and_Jerryscript_Types}}
+            {{/C_and_Jerryscript_Types}}
     jerry_release_value({{{memberName}}}_prop_name);
     jerry_release_value({{{memberName}}}_value);
 
-    {{/members}}
+         {{/members}}
     {{/is_array_object}}
 
     jerry_release_value(object_value);
@@ -143,7 +152,48 @@ typedef struct {
 } /* interpreter_get_{{{dictionaryName}}}_value */
 
 {{/body}}
+{{#is_array_object}}
+{{{dictionaryName}}} interpreter_get_{{{dictionaryName}}}_value_from_args(
+		                              int starting_index,
+	             			      const Interpreter_Type *args_p,
+	                                      const jerry_length_t args_cnt){{#header}};{{/header}}
+{{#body}}
+{
+    {{{dictionaryName}}} return_array = {0, 0};
 
+    {{! we're not really looping through the members, here, b/c we know
+	that this is an array type, so the first member will be the
+	length value, and the second member will be the actual array,
+	and the way to differentiate the two fields will be by looking
+	for the is_array flag in the C_and_Jerryscript_Types value }}
+{{#members}}
+ {{#C_and_Jerryscript_Types}}
+  {{^is_array}}              {{! array length}}
+    unsigned int array_length = args_cnt-starting_index;
+    return_array.length = array_length;
+
+  {{/is_array}}
+  {{#is_array}}              {{! array values }}
+    if (array_length > 0)
+    {
+        return_array.items = ({{{C_Type}}} *)malloc(sizeof({{{C_Type}}})*array_length);
+	/* TODO: check that malloc succeeded */
+    }
+
+    /* i is the index in the new array, loop_counter walks the args array */
+    for(int i = 0, loop_counter = starting_index;
+	loop_counter < args_cnt;
+	i++, loop_counter++)
+	return_array.items[i] = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(args_p[loop_counter]);
+
+  {{/is_array}}
+ {{/C_and_Jerryscript_Types}}
+{{/members}}
+    return return_array;
+} /* interpreter_get_{{{dictionaryName}}}_value_from_args */
+
+{{/body}}
+{{/is_array_object}}
 /* like all the interpreter_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
 Interpreter_Type interpreter_create_{{{dictionaryName}}}({{{dictionaryName}}} x){{#header}};{{/header}}

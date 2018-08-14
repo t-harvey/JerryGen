@@ -6,4 +6,5 @@ temp
 .DS_Store
 *~
 my_tests
-#*
+\#*
+.\#*

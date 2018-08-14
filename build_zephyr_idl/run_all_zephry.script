@@ -10,42 +10,45 @@ else
    else
        correctness=""
    fi
-   bob=`ls -d $1/*.md`
-   for i in $bob
+   target_dir=$2
+   zephyr_docs=`ls -d $1/*.md`
+   for i in $zephyr_docs
    do
 	# skip directories
     	if [[ ! -f $i ]]
     	then
 	    continue;
     	fi
-	temp_file=$2/temp_for_checking_zephyr.idl
-    	awk -f `dirname $0`/filter_webild.awk $i > $temp_file
+
+	idl_filename=`basename -s .md $i`.idl
+    	awk -f `dirname $0`/filter_webild.awk $i > $idl_filename
 	if [ -z "$correctness" ]
 	then
-	    basename_i=`basename -s .md $i`.idl
-    	    if [[ -s $temp_file ]]
+    	    if [[ -s $idl_filename ]]
     	    then
-	        cat `dirname $0`/apache_license $temp_file > $2/$basename_i
+	        cat `dirname $0`/apache_license $idl_filename > $target_dir/$idl_filename
 	    fi
-    	elif [[ -s $temp_file ]]
+    	elif [[ -s $idl_filename ]]
     	then
 	    generator_directory=`dirname $0`/../
             name=`basename $i`
             echo "************************************ " $name
-            events_file=`grep "interface EventEmitter" $temp_file`
-	    includes_events=`grep "EventEmitter" $temp_file | grep "interface" `
+            events_file=`grep "interface EventEmitter" $idl_filename`
+	    includes_events=`grep "EventEmitter" $idl_filename | grep "interface" `
 	    if [[ -n $events_file ]]
 	    then
-                $generator_directory/generate.js --debug_printing=on --package=$name $temp_file
+                $generator_directory/generate.js --print_generation_message=false --output_utility_files --debug_printing=on --package=$name $idl_filename
 	    elif [[ -n $includes_events ]]
 	    then
 	        awk -f `dirname $0`/filter_webild.awk /Users/a0179262/work/forked_zephyr.js/docs/events.md > events.idl
-                $generator_directory/generate.js --debug_printing=on --package=$name --include=`pwd`/events.idl $temp_file
+                $generator_directory/generate.js --print_generation_message=false --output_utility_files --debug_printing=on --package=$name --include=`pwd`/events.idl $idl_filename
+		rm events.idl
 	    else
-                $generator_directory/generate.js --debug_printing=on --package=$name $temp_file
+                $generator_directory/generate.js --print_generation_message=false --debug_printing=on --package=$name $idl_filename
 	    fi
+	    cp $idl_filename $name/.
             echo "************************************"
         fi
-	rm -f $temp_file
-    done
+	rm $idl_filename
+   done
 fi

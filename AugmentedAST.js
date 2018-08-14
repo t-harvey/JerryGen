@@ -47,12 +47,13 @@ AugmentedAST.error_codes = error_codes;
 /* processes the given AST for errors, and produces an augmented
    version of the ast with easy access to the defined dictionaries,
    interfaces, types, and other definitions in the idl */
-function AugmentedAST(ast, fix_type_errors, moduleName)
+function AugmentedAST(ast, fix_type_errors, leave_enums_alone, moduleName)
 {
     this.ast = ast;
     this.moduleName = moduleName;
     this.isAugmented = false;
     this.fix_type_errors = fix_type_errors;
+    this.leave_enums_alone = leave_enums_alone;
 
     this.dictionaries = Object.create(null);
     this.callbacks = Object.create(null);
@@ -1005,6 +1006,18 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 }; /* addDictionary */
 
 
+/* enum strings can be the same across multiple enum declarations, so
+   we need a way to unique'ify them; as a start, we'll add the name of
+   the enumeration type onto each enum value */
+AugmentedAST.prototype.expand_enums = function(new_enum)
+{
+    let enum_name = new_enum.name;
+
+    for(let i = 0; i < new_enum.values.length; i++)
+	new_enum.values[i] = enum_name + "_" + new_enum.values[i];
+} /* expand_enums */
+
+
 /**
  * Adds an enum object to our map of enums
  * @param d The original ast dictionary object
@@ -1014,6 +1027,9 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 AugmentedAST.prototype.addEnum = function (new_enum, index) {
   //A enumeration declaration looks like this:
   //{ type: 'enum', name: 'name', values: [ [string], [string], ... ], extAttrs: [] }
+
+    if (!this.leave_enums_alone)
+	this.expand_enums(new_enum);
     this.fix_names(new_enum);
 
   // does the enum name already exist?

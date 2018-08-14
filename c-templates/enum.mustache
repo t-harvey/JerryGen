@@ -23,7 +23,9 @@ under the License.
 {{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .h and the .c
     *_Types files -- look for the "body" and "header" markers }}
+{{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{/print_generation_message}}
 {{#enums}}
 {{#header}}
 #ifndef {{{enumName}}}_ENUM_H_

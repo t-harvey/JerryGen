@@ -23,7 +23,9 @@ under the License.
 {{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .c and the .h
     *_Types files -- look for the "body" and "header" markers }}
+{{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{/print_generation_message}}
 {{#header}}
 #ifndef UTILITY_FUNCTIONS_H_
 #define UTILITY_FUNCTIONS_H_
@@ -474,7 +476,8 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_get_unsignedlonglong_value (unsignedlonglong)jerry_get_number_value
 #define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
 
-#define interpreter_get_this_value(x) (x);
+#define interpreter_get_this_value(x) (x)
+#define this_constructor() 0
 
 /* we check value types using their C-type names, although the checks
    translate into checking for synonymous Javascript types */

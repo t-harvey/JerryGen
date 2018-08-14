@@ -21,7 +21,9 @@ under the License.
     to the output file }}
 {{^OBEYFORMATTING}}
 {{#interfaces}}
+{{#print_generation_message}}
 /*# AUTOMATICALLY GENERATED ON {{timestamp}} #*/
+{{/print_generation_message}}
 {{#header}}
 #ifndef {{{interfaceName}}}_STUBS_HEADER_FILE
 #define {{{interfaceName}}}_STUBS_HEADER_FILE 1
@@ -158,12 +160,9 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 {{#arguments.length}}
    printf("PARAMETERS TO \"{{{operationName}}}\" :\n");
  {{#arguments}}
-	{{! TODO: VARIADIC AND ARRAY PARAMETER PRINTING! }}
-        {{^variadic}}{{^is_array}}
-   	     {{#C_and_Jerryscript_Types}}
+   {{#C_and_Jerryscript_Types}}
     debug_print_{{{C_Type}}}("{{{name}}}", {{{name}}}, DEBUG_INDENTATION_WIDTH);
-             {{/C_and_Jerryscript_Types}}	
-        {{/is_array}}{{/variadic}}
+   {{/C_and_Jerryscript_Types}}	
  {{/arguments}}
 {{/arguments.length}}
 {{^arguments.length}}
@@ -186,7 +185,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
     /* CAUTION: this is undefined; it is used to allow us to compile the code
        without warnings */
     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}} undefined_return_value;
+    {{{C_Type}}} undefined_return_value = {{{default_value}}};
     debug_print_{{{C_Type}}}("RETURN_VALUE", undefined_return_value, 0);
     return undefined_return_value;
     {{/C_and_Jerryscript_Types}}

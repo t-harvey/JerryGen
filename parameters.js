@@ -22,15 +22,17 @@ under the License.
    "node" and the name of the script (in that order) */
 let argv = require('minimist')(process.argv.slice(2));
 let command_line_parms = {
-    files:                argv['_'],
-    include_files:        argv['include'],
-    package:              argv['package'],
-    stubs:                argv['stubs'],
-    fix_type_errors:      argv['fix_type_errors'],
-    debug_printing:       argv['debug_printing'],
-    output_utility_files: argv['output_utility_files'],
-    quiet:                argv['quiet'],
-    help:                 argv['help']
+    files:                    argv['_'],
+    include_files:            argv['include'],
+    package:                  argv['package'],
+    stubs:                    argv['stubs'],
+    fix_type_errors:          argv['fix_type_errors'],
+    debug_printing:           argv['debug_printing'],
+    leave_enums_alone:        argv['leave_enums_alone'],
+    print_generation_message: argv['print_generation_message'],
+    output_utility_files:     argv['output_utility_files'],
+    quiet:                    argv['quiet'],
+    help:                     argv['help']
 };
 
 /* these are the sets of values that are acceptable for each of the flags --
@@ -38,13 +40,15 @@ let command_line_parms = {
    something not on the list, but the first item in each list of values
    is the default, which gets set just succeeding... */
 let acceptable_inputs = {
-    include:              ["any filename ending with .idl"],
-    fix_type_errors:      [true, false],
-    stubs:                ["on", "off", "overwrite"],
-    debug_printing:       ["off", "on"],
-    output_utility_files: [false, true],
-    quiet:                [false, true],
-    help:                 []
+    include:                  ["any filename ending with .idl"],
+    fix_type_errors:          [true, false],
+    stubs:                    ["on", "off", "overwrite"],
+    debug_printing:           ["off", "on"],
+    output_utility_files:     [false, true],
+    leave_enums_alone:        [false, true],
+    print_generation_message: [true, false],
+    quiet:                    [false, true],
+    help:                     []
 }; /* acceptable_inputs */
 
 /* give default values for undefined command-line parameters */

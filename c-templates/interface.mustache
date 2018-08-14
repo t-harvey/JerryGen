@@ -22,7 +22,9 @@ under the License.
     that shouldn't(?)(!) be in the input file }}
 {{^OBEYFORMATTING}}
 {{#interfaces}}
+{{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{/print_generation_message}}
 
 {{#header}}
 #ifndef {{{interfaceName}}}_H_
@@ -186,9 +188,28 @@ Interpreter_Type
 {{! TODO: the "this_val" passed in to a function parameter: should it be
     this_val, or should we gen up a value_t for the global object? }}
     {{#arguments}}
+	 {{#variadic}}
    	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}} {{{name}}} = interpreter_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
-             {{/C_and_Jerryscript_Types}}	
+    {{{C_Type}}} {{{name}}} = interpreter_get_{{{C_Type}}}_value_from_args({{{paramIndex}}}, args_p, args_cnt);
+   	     {{/C_and_Jerryscript_Types}}
+	 {{/variadic}}
+	 {{^variadic}}
+   	     {{#C_and_Jerryscript_Types}}
+    {{{C_Type}}} {{{name}}};
+    if ({{{paramIndex}}} < args_cnt)
+        {{{name}}} = interpreter_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
+    else
+                 {{^optional}}
+    {
+	fprintf(stderr, "Too few parameters to function {{{name}}}\n");
+	/* return; TODO: we should jump to the return code (?) */
+    }
+		 {{/optional}}
+                 {{#optional}}
+        {{{name}}} = {{{default_value}}};
+		 {{/optional}}
+             {{/C_and_Jerryscript_Types}}
+    	 {{/variadic}}
     {{/arguments}}
 {{#repress_stubs}}
     Native_Object_{{{interfaceName}}} *native_object;
@@ -231,7 +252,8 @@ declaration with an assignment from the stub }}
 	        {{#is_string}}
 		{{! TODO: free array of strings! }}
 		{{^is_array}}
-    if ({{{name}}} != NULL) free({{{name}}});
+    /*if ({{{name}}} != NULL) free({{{name}}});*/
+    if (strlen({{{name}}}) != 0) free({{{name}}});
 		{{/is_array}}
        		{{/is_string}}
         {{/C_and_Jerryscript_Types}}
@@ -239,8 +261,11 @@ declaration with an assignment from the stub }}
 {{! ^repress_stubs}}
     {{#C_and_Jerryscript_Types}}
         {{#return_is_this}}
+{{! return values get free'd by the interpreter, so if you don't
+    return a copy of the "this" pointer, the _2nd_ (nth?) time you return
+    the this pointer, the interpreter will raise an exception... }}
     /* return a reference back to this interface */
-    return this_val;
+    return jerry_acquire_value(this_val);
         {{/return_is_this}}
         {{^return_is_this}}
             {{#voidReturnType}}

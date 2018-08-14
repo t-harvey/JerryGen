@@ -22,6 +22,9 @@ under the License.
     that shouldn't(?)(!) be in the input file }}
 {{^OBEYFORMATTING}}
 {{#typedefs}}
+{{#print_generation_message}}
+/* AUTOMATICALLY GENERATED ON {{timestamp}} */
+{{/print_generation_message}}
 #ifndef TYPEDEF_DEFINES_FOR_{{{name}}}_H_
 #define TYPEDEF_DEFINES_FOR_{{{name}}}_H_
 {{! to simplify the handling of typedefs' usage, we let all of the

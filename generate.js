@@ -50,10 +50,13 @@ if (typeof parameters.include_files != "undefined")
 }
 
 var augAST = new AugmentedAST(parsed_file,
-			      parameters.fix_type_errors, parameters.package);
+			      parameters.fix_type_errors,
+			      parameters.leave_enums_alone,
+			      parameters.package);
 
 augAST.utilities_filename = "webidl_compiler_utilities";
 augAST.debug_printing     = (parameters.debug_printing === "on");
+augAST.print_generation_message = (parameters.print_generation_message === "true");
 
 // NOTE: THIS COMMENT WAS IN THE ORIGINAL CODE; IT SEEMS LIKE A GOOD IDEA(?)
 // TODO, use cross-platform paths (using '/' is bad...)

@@ -59,6 +59,8 @@ module.exports.getContext = function(ast, moduleName){
 
     debug_printing: ast.debug_printing,
 
+    print_generation_message: ast.print_generation_message,
+
     array_types: ast.turn_object_into_array(ast.array_types),
 
     variadic_types: ast.turn_object_into_array(ast.variadic_types),
