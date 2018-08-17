@@ -1,0 +1,36 @@
+#! /bin/sh
+if [ "$#" -lt  2 ]
+then
+echo "USAGE:"
+echo "   "`basename $0`" <dir with zephry .idl docs> <dir to compile into>"
+else
+   target_dir=$2
+   zephyr_docs=`ls -d $1/*.idl`
+   for i in $zephyr_docs
+   do
+	# skip directories
+    	if [[ ! -f $i ]]
+    	then
+	    continue;
+    	fi
+
+	idl_filename=$i
+
+	generator_directory=`dirname $0`/../
+        name=`basename -s .idl $i`
+        echo "************************************ " $name
+        events_file=`grep "interface EventEmitter" $idl_filename`
+	includes_events=`grep "EventEmitter" $idl_filename | grep "interface" `
+	if [[ -n $events_file ]]
+	then
+            $generator_directory/generate.js --print_generation_message=false --output_utility_files --debug_printing=on --package=$name $idl_filename
+	elif [[ -n $includes_events ]]
+	then
+            $generator_directory/generate.js --print_generation_message=false --output_utility_files --debug_printing=on --package=$name --include=$1/events.idl $idl_filename
+	else
+            $generator_directory/generate.js --print_generation_message=false --debug_printing=on --package=$name $idl_filename
+	fi
+	cp $idl_filename $name/.
+        echo "************************************"
+   done
+fi
