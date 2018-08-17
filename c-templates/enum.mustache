@@ -45,7 +45,7 @@ under the License.
 
 {{#header}}
 #include "jerryscript.h"
-typedef enum { {{#members}}{{{indentation}}}{{{name}}}{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} }{{/onlyOneMember}}{{/members}}
+typedef enum { {{#members}}{{{indentation}}}{{{C_name}}}{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} }{{/onlyOneMember}}{{/members}}
 {{^onlyOneMember}}} {{/onlyOneMember}}{{{enumName}}};
 {{/header}}
 {{#body}}
@@ -63,13 +63,16 @@ static int number_of_{{{enumName}}} = {{{members.length}}};
 {{{enumName}}} {{{enumName}}}_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
-    return {{{members.0.name}}};
+    return {{{members.0.C_name}}};
 } /* {{{enumName}}}_constructor */
 {{/body}}
 
 {{! we first need strings that match the enumeration values }}
 {{#body}}
-static char *{{{enumName}}}_strings[] = { {{#members}}{{{indentation}}}{{{indentation}}}[{{{name}}}] = "{{{name}}}"{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} };{{/onlyOneMember}}{{/members}}
+static char *{{{enumName}}}_C_strings[] = { {{#members}}{{{indentation}}}{{{indentation}}}[{{{C_name}}}] = "{{{C_name}}}"{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} };{{/onlyOneMember}}{{/members}}
+{{^onlyOneMember}}};{{/onlyOneMember}}
+
+static char *{{{enumName}}}_Javascript_strings[] = { {{#members}}{{{indentation}}}{{{indentation}}}[{{{C_name}}}] = "{{{Javascript_name}}}"{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} };{{/onlyOneMember}}{{/members}}
 {{^onlyOneMember}}};{{/onlyOneMember}}
 
 {{/body}}
@@ -77,14 +80,15 @@ static char *{{{enumName}}}_strings[] = { {{#members}}{{{indentation}}}{{{indent
 {{#body}}
 {
 {{! TODO: check that enum_index doesn't return -1! }}
-    return ({{{enumName}}})enum_index(interpreter_get_string_value(value), {{{enumName}}}_strings, number_of_{{{enumName}}});
+{{! TODO: do we have to explicitly deallocate interpreter_get_string_value's? }}
+    return ({{{enumName}}})enum_index(interpreter_get_string_value(value), {{{enumName}}}_Javascript_strings, number_of_{{{enumName}}});
 } /* interpreter_get_{{{enumName}}}_value */
 {{/body}}
 
 Interpreter_Type interpreter_create_{{{enumName}}}({{{enumName}}} x){{#header}};{{/header}}
 {{#body}}
 {
-    return interpreter_create_string ((const jerry_char_t *) {{{enumName}}}_strings[x]);
+    return interpreter_create_string ((const jerry_char_t *) {{{enumName}}}_Javascript_strings[x]);
 } /* interpreter_create_{{{enumName}}} */
 
 {{/body}}
@@ -96,15 +100,13 @@ bool interpreter_value_is_{{{enumName}}}(Interpreter_Type thing_value){{#header}
     else
     {
         char *enum_string = interpreter_get_string_value(thing_value);
-
-        {{! TODO: this is gross -- use a (perfect)hash, maybe? }}
-        for (int i = 0; i < number_of_{{{enumName}}}; i++)
-            if (!strcmp({{{enumName}}}_strings[i], enum_string))
-                return true;
+	if (enum_index(enum_string,
+	               {{{enumName}}}_Javascript_strings,
+	   	       number_of_{{{enumName}}}) != -1)
+	    return true;
+	else
+	    return false;
     }
-
-    /* fall-through indicates we didn't find the name in this enumeration */
-    return false;
 } /* interpreter_value_is_{{{enumName}}} */
 
 {{/body}}
@@ -123,11 +125,11 @@ void debug_print_{{{enumName}}} (char *variable_name,
                                       unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
-    if (!(/* ALWAYS TRUE: value >= 0 && */value < number_of_{{{enumName}}}))
+    if (!(value < number_of_{{{enumName}}}))
     	printf("%*s%s: the value passed in is not a valid {{{enumName}}} value\n",
                                       indentation, "", variable_name);
     else
-        printf("%*s%s: %s\n", indentation, "", variable_name, {{{enumName}}}_strings[value]);
+        printf("%*s%s: %s\n", indentation, "", variable_name, {{{enumName}}}_C_strings[value]);
 } /* debug_print_{{{enumName}}} */
 {{/body}}
 {{/debug_printing}}

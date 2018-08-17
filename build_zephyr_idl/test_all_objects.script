@@ -1,0 +1,395 @@
+var new_AIO = require("AIO");
+var new_AIOInit = new AIOInit("new aIOINIT");
+var new_AIOPin = new_AIO.open(new_AIOInit);
+var new_callback = function(int) { print("int = " + int);};
+print("call to AIOPin.read: ");
+var read_result = new_AIOPin.read();
+print("call to AIOPin.readAsync: " + new_AIOPin.readAsync(new_callback));
+print("call to AIOPin.on: " + new_AIOPin.on("event", new_callback));
+print("call to AIOPin.close: " + new_AIOPin.close());
+
+print("****************** BLE *****************************");
+
+var new_BLE = require("BLE");
+var listener_callback = function() { print("inside listener_callback with params: " + arguments); };
+var on_result = new_BLE.on("event", listener_callback);
+print("on == new\n     ");
+if (on_result == new_BLE) print("TRUE"); else print("FALSE");
+var addListener_result = new_BLE.addListener("addListener_event", listener_callback);
+var emit_result = new_BLE.emit("call_to_emit", 1, "two", 3);
+if (emit_result) print("emit: TRUE"); else print("emit: FALSE");
+var removeListener_result = new_BLE.removeListener("remove_event", listener_callback);
+var removeAllListeners_result = new_BLE.removeAllListeners("remove_event");
+var getMaxListeners_result = new_BLE.getMaxListeners();
+print("getMaxListeners_result = " + getMaxListeners_result);
+var listener_list = new_BLE.listeners("listeners");
+print("listener_list = " + listener_list);
+var setMaxListeners_result = new_BLE.setMaxListeners(5);
+
+var disconnect_result = new_BLE.disconnect("string address");
+var uuids = [ 1, "two", 3.0, 4 ];
+var startAdvertising_result1 = new_BLE.startAdvertising("string name", uuids, "optional string url");
+var startAdvertising_result2 = new_BLE.startAdvertising("string name", uuids);
+var stopAdvertising_result = new_BLE.stopAdvertising();
+
+var CharacteristicResult = "RESULT_UNLIKELY_ERROR";
+var Buffer_var = [ 00, 01, 10, 11 ];
+var FulfillReadCallback = function(CharacteristicResult, Buffer_var){    print(CharacteristicResult);    print(Buffer_var);}; /* FulfillReadCallback */
+
+var ReadCallback = function(offset, fulfillreadcallback){     print(offset);     print(fulfillreadcallback); }; /* ReadCallback */
+
+var WriteCallback = function(data, offset, withoutResponse, fulfillWriteCallback){    print(data);    print(offset);    print(withoutResponse);    print(fulfillWriteCallback);}; /* WriteCallback */
+
+var SubscribeCallback = function(maxValueSize, fullfillSubscribeCallback){    print(maxValueSize);    print(fullfillSubscribeCallback);}; /* SubscribeCallback */
+
+var FulfillWriteCallback = function(result){    print(result);}; /* FulfillWriteCallback */
+
+var FulfillSubscribeCallback = function(data){    print(data);}; /* FulfillSubscribeCallback */
+
+var NotifyCallback = function(params){ print(params);};
+
+var UnsubscribeCallback = function(params){    print(params);}; /* UnsubscribeCallback */
+
+var characteristic = new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback);
+
+var primary_service = new PrimaryService("uuid1", [ characteristic ] );
+var primary_service2 = new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback) ] );
+var services = [ primary_service ];
+
+var services2 = [new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback) ] ) ,new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback) ] ) , new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback) ] ) ];
+
+var setServices_result = new_BLE.setServices(services);
+
+var setServices_result2 = new_BLE.setServices( [new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback) ] ) ,new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback) ] ) , new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, function(x) { print (x);}) ] ) ]);
+
+var newPrimaryService_result = new_BLE.newPrimaryService(new PrimaryService("uuid1", [new Characteristic(ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback)]));
+
+
+var nc_init = new CharacteristicInit("uuid_string", ["read", "write"], [new DescriptorInit("d1_uuid", "d1_value"), new DescriptorInit("d2_uuid", "d2_value")], ReadCallback, WriteCallback, SubscribeCallback, UnsubscribeCallback, NotifyCallback);
+
+var newCharacteristic_result = new_BLE.newCharacteristic(nc_init);
+
+var nd_init = new DescriptorInit(new DescriptorInit("di_uuid", "d1_value"));
+
+var newDescriptor_result = new_BLE.newDescriptor(nd_init);
+
+print("**************** Board *****************************");
+
+var new_Board = require("Board");
+print(new_Board);
+
+print("*************** Buffer *****************************");
+
+/*var byte_array = new ArrayBuffer(10);*/
+
+var new_Buffer = new Buffer(4, [1, 2, 1, 2]);
+print("new_Buffer.length = " + new_Buffer.length);
+print("new_Buffer.buffer = " + new_Buffer.buffer);
+
+print(new_Buffer);
+
+var copy_result = new_Buffer.copy(new_Buffer, 17, 19, 21);
+/* call it again to test that default parameters work correctly... */
+var copy_result2 = new_Buffer.copy(new_Buffer);
+
+var readUInt8_result = new_Buffer.readUInt8();
+var readUInt16BE_result = new_Buffer.readUInt16BE();
+var readUInt16LE_result = new_Buffer.readUInt16LE();
+var readUInt32BE_result = new_Buffer.readUInt32BE();
+var readUInt32LE_result = new_Buffer.readUInt32LE();
+var toStr_result = new_Buffer.to_string("utf8");
+var write_result = new_Buffer.write("string value");
+var writeUInt8_result = new_Buffer.writeUInt8(4, 2);
+var writeUInt16BE_result = new_Buffer.writeUInt16BE(8, 4);
+var writeUInt16LE_result = new_Buffer.writeUInt16LE(16, 8);
+var writeUInt32BE_result = new_Buffer.writeUInt32BE(32, 16);
+var writeUInt32LE_result = new_Buffer.writeUInt32LE(64, 32);
+
+
+print("*************** Console *****************************");
+
+var new_Console = require("Console");
+var assert_result = new_Console.assert("true", "sent in true");
+var new_error = new_Console.error("error message");
+var new_warn = new_Console.warn("warning message");
+var new_log = new_Console.log("console message");
+var new_info = new_Console.info();
+var new_time = new_Console.time("4:33:23");
+var new_timeEnd = new_Console.timeEnd("ending time:");
+
+
+print("***************** Dgram *****************************");
+
+var new_Dgram = require("Dgram");
+var new_DgramSocket = new_Dgram.createSocket("string udp4_or_udp6");
+var RecvCallback = function(msg, rinfo) { print(msg); print(rinfo); };
+var SendCallback = function(err) { print(err); };
+var EventCallback = function(any) {print(any);};
+var on_result = new_DgramSocket.on("string event", RecvCallback);
+var bind_result = new_DgramSocket.bind(9, "string ip_addr");
+var send_result = new_DgramSocket.send(new_Buffer, 10, 11, 12, "string ip_addr");
+var close_result = new_DgramSocket.close();
+
+
+print("************* EventEmitter *************************");
+
+var ListenerCallback = function(params) { print(params);};
+var new_EventEmitter = new EventEmitter;
+
+var on_result = new_EventEmitter.on("string event", ListenerCallback);
+var addListener_result = new_EventEmitter.addListener("string event", ListenerCallback);
+var emit_result = new_EventEmitter.emit("string event", 1, 2, 3);
+var removeListener_result = new_EventEmitter.removeListener("string event", ListenerCallback);
+var removeAllListeners_result = new_EventEmitter.removeAllListeners("string event");
+var eventNames_result = new_EventEmitter.eventNames();
+var getMaxListeners_result = new_EventEmitter.getMaxListeners();
+var listeners_result = new_EventEmitter.listeners("string event");
+var setMaxListeners_result = new_EventEmitter.setMaxListeners(10);
+
+
+
+print("******************* FS *****************************");
+
+
+var new_FS = require("FS");
+
+var new_openSync = new_FS.openSync("string path", "r+");
+var closeSync_result = new_FS.closeSync(new FileDescriptor());
+var unlinkSync_result = new_FS.unlinkSync("string path");
+var rmdirSync_result = new_FS.rmdirSync("string path");
+var writeSync_result = new_FS.writeSync(new FileDescriptor(), "(string or Buffer) data", 10, 20, 30);
+var writeSync_result2 = new_FS.writeSync(new FileDescriptor(), new_Buffer, 10, 20, 30);
+var readSync_result = new_FS.readSync(new FileDescriptor, new Buffer(10), 10, 10, 10);
+var truncateSync_result = new_FS.truncateSync("string path", 43);
+var mkdirSync_result = new_FS.mkdirSync("string path");
+var readdirSync_result = new_FS.readdirSync("string path");
+var statSync_result = new_FS.statSync("string path");
+var writeFileSync_result = new_FS.writeFileSync("string file", "(string or Buffer) data");
+
+var new_Stat = new Stat;
+print("new_Stat.isFile() = " + new_Stat.isFile());
+print("new_Stat.isDirectory() = " + new_Stat.isDirectory());
+
+print("****************** GFX *****************************");
+
+var  new_GFX = require("GFX");
+var InitCallback = function(x) {print(x);};
+var DrawingCallback = function(x) { print(x);};
+var new_GFXContext = new_GFX.init(640, 480, InitCallback, DrawingCallback);
+var new_GFXContext2 = new_GFX.init(640, 480, InitCallback, DrawingCallback, new_GFX);
+var fillRect_result = new_GFXContext.fillRect(64, 48, 10, 20, [1, 2, 3]);
+var drawPixel_result = new_GFXContext.drawPixel(34, 33, [3, 4, 5]);
+var drawLine_result = new_GFXContext.drawLine(45, 46, 47, 48, [ 5, 6, 8 ]);
+var drawVLine_result = new_GFXContext.drawVLine(24, 25, 26, [ 3, 5, 7 ], 8);
+var drawHLine_result = new_GFXContext.drawHLine(1, 2, 3, [ 3, 5, 7 ], 8);
+var drawRect_result = new_GFXContext.drawRect(5, 6, 7, 8, [ 3, 5, 7 ], 8);
+var drawChar_result = new_GFXContext.drawChar(99, 33, 97, [ 3, 5, 7 ], 8);
+var drawString_result = new_GFXContext.drawString(52, 53, "string str", [4,6,8], 8);
+
+print("****************** GPIO ****************************");
+
+var new_GPIO = require("GPIO");
+var new_GPIOPin =  new_GPIO.open( new GPIOPin("new pin", false, "in"));
+
+var read_result = new_GPIOPin.read();
+var write_result = new_GPIOPin.write(10);
+var close_result = new_GPIOPin.close();
+
+var gpio_ChangeCallback = function(x) { print(x);};
+
+print("**************** GroveLCD **************************");
+
+var new_GroveLCD = require("GroveLCD");
+var new_GroveLCDDevice =  new_GroveLCD.init();
+
+var print_result = new_GroveLCDDevice.print("string text");
+var clear_result = new_GroveLCDDevice.clear();
+var setCursorPos_result = new_GroveLCDDevice.setCursorPos( 17,  19);
+var selectColor_result = new_GroveLCDDevice.selectColor( 19);
+var setColor_result = new_GroveLCDDevice.setColor( 17,  17,  19);
+var setFunction_result = new_GroveLCDDevice.setFunction( 19);
+var getFunction_result = new_GroveLCDDevice.getFunction();
+var setDisplayState_result = new_GroveLCDDevice.setDisplayState( 19);
+var getDisplayState_result = new_GroveLCDDevice.getDisplayState();
+
+print("****************** I2C *****************************");
+
+var new_I2C = require("I2C");
+var new_I2CBus =  new_I2C.open(new I2CInit(7, 9));
+
+var write_result = new_I2CBus.write(5, new_Buffer);
+var read_result = new_I2CBus.read(5,  17, 5);
+var burstRead_result = new_I2CBus.burstRead(5,  17, 5);
+
+print("************** MathStubs ***************************");
+
+var new_MathStubs = require("MathStubs");
+var new_double =  new_MathStubs.random();
+
+print("************** NetConfig ***************************");
+
+var DHCPCallback = function(x) { print(x);};
+var new_NetConfig = require("NetConfig");
+var new_boolean =  new_NetConfig.setStaticIP("string ip");
+var dhcp_result = new_NetConfig.dhcp(DHCPCallback);
+var setBleAddress_result = new_NetConfig.setBleAddress("string address");
+
+print("************** Net *********************************");
+
+var new_Net = require("Net");
+var new_Server =  new_Net.createServer(ListenerCallback);
+var Socket_result = new_Net.Socket();
+var isIP_result = new_Net.isIP("string input");
+var isIPv4_result = new_Net.isIPv4("string input");
+var isIPv6_result = new_Net.isIPv6("string input");
+
+print("************** Socket ******************************");
+
+var new_Socket = new Socket(10, 11, 12, "localAddress", 13, "remoteAddress", "remoteFamily", 14);
+
+var options = { "field1" : 7, "field2": 8};
+var connect_result = new_Socket.connect(options, ListenerCallback);
+var pause_result = new_Socket.pause();
+var resume_result = new_Socket.resume();
+var setTimeout_result = new_Socket.setTimeout(17, ListenerCallback);
+var write_result = new_Socket.write(new_Buffer, ListenerCallback);
+
+var new_Server = new Server(true, 7);
+
+var address_result = new_Server.address();
+var close_result = new_Server.close();
+var getConnections_result = new_Server.getConnections(ListenerCallback);
+var listen_result = new_Server.listen(options, ListenerCallback);
+
+print("************* OCFObject ****************************");
+
+var new_OCFObject = require("OCFObject");
+var start_result =  new_OCFObject.start();
+
+var new_OCFServer = new OCFServer;
+
+var resourcePath = "string resourcePath";
+var resourceTypes = [ "string1", "string2", "string3"];
+var interfaces = [ "string4", "string5", "string6"];
+var discoverable = true;
+var observable = false;
+var secure = true;
+var slow = false;
+var register_properties = {"field1": 1, "field2":2 };
+var new_Resource_Init = new ResourceInit(resourcePath, resourceTypes, interfaces, discoverable, observable, secure, slow, register_properties);
+
+print(typeof new_OCFServer);
+print(typeof new_OCFServer.register);
+
+var register_result = new_OCFServer.register(new ResourceInit(resourcePath, resourceTypes, interfaces, discoverable, observable, secure, slow, register_properties));
+var register_result2 = new_OCFServer.register(new_Resource_Init);
+
+var request_data = {"field7": 7, "field8": 8};
+var new_Request = new Request(1, 2, request_data);
+var respond_result = new_Request.respond(request_data);
+
+var FoundListener = function(x) { print(x);};
+var new_OCFClient = new OCFClient;
+var findResources_result = new_OCFClient.findResources(new ClientOptions("deviceID", "resourceType", "resourcePath"), FoundListener);
+var retrieve_result = new_OCFClient.retrieve("string deviceId", new ClientOptions("deviceID", "resourceType", "resourcePath"));
+var update_result = new_OCFClient.update(new Resource("resourcePath", {"field9": 9, "field10": 10}));
+var getPlatformInfo_result = new_OCFClient.getPlatformInfo("string deviceId");
+var getDeviceInfo_result = new_OCFClient.getDeviceInfo("string deviceId");
+
+print("*************** Performance ************************");
+
+var new_Performance = require("Performance");
+var new_double =  new_Performance.now();
+
+print("****************** PME *****************************");
+
+var new_PME = require("PME");
+var begin_result =  new_PME.begin();
+var forget_result = new_PME.forget();
+var configure_result = new_PME.configure( 23, 23, 23, 23, 23);
+var learn_result = new_PME.learn([ 1, 2, 3, 5 ],  19);
+var classify_result = new_PME.classify([ 2, 3, 5, 7 ]);
+var readNeuron_result = new_PME.readNeuron( 19);
+var writeVector_result = new_PME.writeVector([ 1, 4, 9, 16 ]);
+var getCommittedCount_result = new_PME.getCommittedCount();
+var getGlobalContext_result = new_PME.getGlobalContext();
+var getClassifierMode_result = new_PME.getClassifierMode();
+var setClassifierMode_result = new_PME.setClassifierMode(23);
+var getDistanceMode_result = new_PME.getDistanceMode();
+var setDistanceMode_result = new_PME.setDistanceMode(23);
+var saveNeurons_result = new_PME.saveNeurons();
+var restoreNeurons_result = new_PME.restoreNeurons([ 1, "one", 1.0 ]);
+
+print("***************** PWM ******************************");
+
+var new_PWM = require("PWM");
+var new_PWMPin =   new_PWM.open("first call, with string");
+var new_PWMPin2 =  new_PWM.open(new PWMInit("PWMInit", true));
+var setCycles_result = new_PWMPin.setCycles( 17,  19);
+var setMilliseconds_result = new_PWMPin.setMilliseconds(5.0, 5.1);
+
+print("**************** Sensor ****************************");
+
+var ChangeCallback = function(x) { print(x);};
+var ActivateCallback = function(x) { print(x);};
+var ErrorCallback = function(x) { print(x);};
+
+var new_Sensor = new Sensor(true, false, 1.0, 2.0, ChangeCallback, ActivateCallback, ErrorCallback);
+
+var start_result = new_Sensor.start();
+var stop_result = new_Sensor.stop();
+
+var new_SensorErrorEvent = new SensorErrorEvent;
+
+var new_Accelerometer = new Accelerometer(1.0, 1.0, 1.0);
+
+
+var new_GyroscopeSensor = new GyroscopeSensor(1.0, 1.0, 1.0);
+
+var new_AmbientLightSensor = new AmbientLightSensor(1, 1.0);
+
+var new_TemperatureSensor = new TemperatureSensor(0.0);
+
+print("***************** SPI ******************************");
+
+var new_SPI = require("SPI");
+var new_SPIBus =  new_SPI.open(new SPIOptions(5, 4, false, 3, 2, 1, "topology"));
+var transceive_result = new_SPIBus.transceive(5, new_Buffer, "string direction");
+var close_result = new_SPIBus.close();
+
+print("*************** Timers *****************************");
+
+var TimerCallback = function(x) { print(x);};
+var args_for_func = {x: 5};
+var new_Timers = require("Timers");
+var setInterval_result = new_Timers.setInterval(TimerCallback,  17, args_for_func);
+var setTimeout_result = new_Timers.setTimeout(TimerCallback,  17, args_for_func);
+var clearInterval_result = new_Timers.clearInterval(19);
+var clearTimeout_result = new_Timers.clearTimeout(19);
+
+print("*************** UART *******************************");
+
+var new_UART = new UART;
+var init_result = new_UART.init(new UARTOptions("string port"));
+
+var new_UARTConnection = new UARTConnection;
+var write_result = new_UARTConnection.write(new_Buffer);
+var setReadRange_result = new_UARTConnection.setReadRange(17, 19);
+
+print("************ WebSocket *****************************");
+
+var new_WebSocket = require("WebSocket");
+var new_WebSocketServer =  new_WebSocket.Server(new OptionsObject(1.0, false, true, 2.0, "string acceptHandler"));
+
+var new_WebSocketConnection = new WebSocketConnection;
+var send_result = new_WebSocketConnection.send(new_Buffer, false);
+var ping_result = new_WebSocketConnection.ping(new_Buffer, false);
+var pong_result = new_WebSocketConnection.pong(new_Buffer, false);
+
+print("*************** webusb *****************************");
+
+var new_webusb = require("webusb");
+var setURL_result = new_webusb.setURL("string url");
+var write_result = new_webusb.write(new_Buffer);
+
+print("****************** LAST CALL ***********************");

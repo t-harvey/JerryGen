@@ -33,9 +33,9 @@ interface GPIOPin {
     long read();
     void write(long value);
     void close();
-    attribute ChangeCallback onchange;
+    attribute gpio_ChangeCallback onchange;
 };
-callback ChangeCallback = void (GPIOEvent event);
+callback gpio_ChangeCallback = void (GPIOEvent event);
 dictionary GPIOEvent {
     long value;
 };

@@ -310,6 +310,7 @@ main (int argc,
       {
         /* Evaluate the line */
         jerry_value_t ret_val_eval = jerry_eval (buffer, len, false);
+	fflush(stdout);
 
         if (!jerry_value_is_error (ret_val_eval))
         {

@@ -32,7 +32,7 @@ interface Buffer {
     short readUInt16LE(optional unsigned long offset = 0);
     long readUInt32BE(optional unsigned long offset = 0);
     long readUInt32LE(optional unsigned long offset = 0);
-    string toString(string encoding);
+    string to_string(optional string encoding = "utf8");
     long write(string value, optional long offset = 0,
                              optional long length = 0,
                              optional string encoding = "utf8");
@@ -42,6 +42,3 @@ interface Buffer {
     long writeUInt32BE(unsigned long value, unsigned long offset);
     long writeUInt32LE(unsigned long value, unsigned long offset);
 };
-
-typedef long int;
-typedef sequence < byte > ArrayBuffer;

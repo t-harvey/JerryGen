@@ -26,8 +26,8 @@ dictionary AIOInit {
 };
 interface AIOPin {
     unsigned long read();
-    void readAsync(ReadCallback callback);  // TODO: change to return a promise
-    void on(string eventType, ReadCallback callback);
+    void readAsync(aio_ReadCallback callback);  // TODO: change to return a promise
+    void on(string eventType, aio_ReadCallback callback);
     void close();
 };
-callback ReadCallback = void (unsigned long value);
+callback aio_ReadCallback = void (unsigned long value);

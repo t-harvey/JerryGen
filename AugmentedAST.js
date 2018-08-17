@@ -884,11 +884,17 @@ AugmentedAST.prototype.fix_names = function(thing)
 	{
 	    let member = thing.members[i];
 
-	    member.name = fix_name(member.name);
 	    if (member.type === "operation")
+		/* don't change the name of the operation, b/c: a) the
+		   name is used by the Javascript'er, and b) the names
+		   on the C side get concatenated with the interface
+		   name, so there's no way it'd be a reserved word */
 		process_call_arguments(member);
 	    else /* member.type === "attribute" */
-		; /* nothing more to be done for attributes */
+	    {
+		member.name = fix_name(member.name);
+		/* TODO: what about the attribute's type name?!? */
+	    }
 	}
 
     /* callbacks work the same way as an interface's operations */
@@ -904,7 +910,7 @@ AugmentedAST.prototype.fix_names = function(thing)
 
     else if (thing.type === "enum")
 	for(let i = 0; i <  thing.values.length; i++)
-	    thing.values[i] = fix_enum(thing.values[i]);
+	    thing.values[i].C_value=fix_enum(thing.values[i].Javascript_value);
 
     else
 	/* TODO: throw an actual exception; not really all that important
@@ -1014,7 +1020,7 @@ AugmentedAST.prototype.expand_enums = function(new_enum)
     let enum_name = new_enum.name;
 
     for(let i = 0; i < new_enum.values.length; i++)
-	new_enum.values[i] = enum_name + "_" + new_enum.values[i];
+	new_enum.values[i].C_value = enum_name + "_" + new_enum.values[i].C_value;
 } /* expand_enums */
 
 
@@ -1027,10 +1033,18 @@ AugmentedAST.prototype.expand_enums = function(new_enum)
 AugmentedAST.prototype.addEnum = function (new_enum, index) {
   //A enumeration declaration looks like this:
   //{ type: 'enum', name: 'name', values: [ [string], [string], ... ], extAttrs: [] }
+    /* enum values can be different between C and Javascript, so we'll
+       need to keep a version of each value for each language -- expand
+       each member to an object so that we can store both values */
+    for(i = 0 ; i < new_enum.values.length; i++)
+	new_enum.values[i] = {"Javascript_value": new_enum.values[i]};
 
+    this.fix_names(new_enum);
+
+    /* to ensure that enum values are unique, we'll concatenate onto each
+       value the name of its enum */
     if (!this.leave_enums_alone)
 	this.expand_enums(new_enum);
-    this.fix_names(new_enum);
 
   // does the enum name already exist?
   var existingEnum = this.enums[new_enum.name];
@@ -1053,8 +1067,9 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
 
     new_enum.members = [];
     for(var i = 0 ; i < new_enum.number_of_members; i++){
-	let new_object = {name    : new_enum.values[i],
-			  new_line: "\n"};
+	let new_object = {C_name    : new_enum.values[i].C_value,
+		 Javascript_name    : new_enum.values[i].Javascript_value,
+			  new_line  : "\n"};
 	if (i === 0)
 	    new_object.indentation = "";
 	else
@@ -1169,13 +1184,24 @@ Array.prototype.remove = function(from, to) {
 AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMember)
 {
     if (this.interfaces[interfaceName] === undefined)
-	throw "The interface does not exist: " + interfaceName;
+	throw "The interface does not exist: " + interfaceName
+
+	/* objects in Javascript have a function called "toString"
+	   that is called when the user tries to print out the object;
+	   if the WebIDL specifies an operation called "toString",
+	   this will supercede the default, and strange things happen;
+	   on the other hand, the user may have intended to overwrite
+	   this function, so we'll just print a warning to alert the user */
+	/* TODO: what other function names should we warn about? */
+	if (interfaceMember.name === "toString")
+	    console.log("CAUTION: having an interface member named \"toString\" overwrites Javascript's own \"toString\", resulting in unexpected behavior.");
 
     if (interfaceMember.type === 'operation')
     {
 	interfaceMember.operationName = interfaceMember.name;
 	delete interfaceMember.name;/* this avoids confusion in the
 					     Hogan compiler */
+
 	// we add schema type info to the operation first
 	interfaceMember.C_and_Jerryscript_Types =
 	                     this.getConversionTypes(interfaceMember.idlType);
@@ -2240,9 +2266,6 @@ AugmentedAST.prototype.augment = function (ast) {
        we'll just have a little special-case code in the
        dictionary-handling code */
     this.convert_list_of_array_types_to_dictionaries(this.array_types);
-
-    /* TODO: fix enumeration values if they overlap (b/c this won't
-       translate into C correctly) */
 
     /* types need to be put out in the correct order -- e.g., if type A
        has a field of type B, we need to make sure that B gets outputted

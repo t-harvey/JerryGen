@@ -367,7 +367,7 @@ void register_require_function(string module_name,
        holds all these values -- only the last line of this routine is
        important */
     if (mapping_for_require == NULL) /* first call; get some memory */
-        mapping_for_require = malloc(sizeof(Module_Creation_Function) *
+        mapping_for_require = malloc(sizeof(Require_Table_Entry) *
 	 		             table_capacity);
     else if (require_table_entry_count == table_capacity) /* need to grow the list */
     {
