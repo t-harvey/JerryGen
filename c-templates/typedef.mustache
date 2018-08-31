@@ -25,11 +25,11 @@ under the License.
 {{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
-#ifndef TYPEDEF_DEFINES_FOR_{{{name}}}_H_
-#define TYPEDEF_DEFINES_FOR_{{{name}}}_H_
+#ifndef TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_
+#define TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_
 {{! to simplify the handling of typedefs' usage, we let all of the
     code that uses some typedefs use the standard calls (like
-    "<name>_constructor") as if the type actually existed, and then we
+    "<typedefName>_constructor") as if the type actually existed, and then we
     just make sure that this file gets included -- the alternative
     would be to check every time before we put out a type to see if
     it's a typedef'd type and then put out the other name, which
@@ -38,14 +38,15 @@ under the License.
     as all of the rest of the code will take care of their own
     includes... }}
 
-#define {{{name}}} {{{ultimate_typename}}}
-#define interpreter_get_{{{name}}}_value interpreter_get_{{{ultimate_typename}}}_value
-#define interpreter_create_{{{name}}} interpreter_create_{{{ultimate_typename}}}
-#define interpreter_value_is_{{{name}}} interpreter_value_is_{{{ultimate_typename}}}
-#define {{{name}}}_constructor {{{ultimate_typename}}}_constructor 
-#define initialize_{{{name}}}_ initialize_{{{ultimate_typename}}}_
-#define debug_print_{{{name}}} debug_print_{{{ultimate_typename}}}
 
-#endif /* TYPEDEF_DEFINES_FOR_{{{name}}}_H_ */
+#define {{{typedefName}}} {{{ultimate_typename}}}
+#define interpreter_get_{{{typedefName}}}_value interpreter_get_{{{ultimate_typename}}}_value
+#define interpreter_create_{{{typedefName}}} interpreter_create_{{{ultimate_typename}}}
+#define interpreter_value_is_{{{typedefName}}} interpreter_value_is_{{{ultimate_typename}}}
+#define {{{typedefName}}}_constructor {{{ultimate_typename}}}_constructor 
+#define initialize_{{{typedefName}}}_ initialize_{{{ultimate_typename}}}_
+#define debug_print_{{{typedefName}}} debug_print_{{{ultimate_typename}}}
+
+#endif /* TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_ */
 {{/typedefs}}
 {{/OBEYFORMATTING}}

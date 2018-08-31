@@ -1,0 +1,18 @@
+The purpose of this test is to make sure that we catch recursive data
+structures and report them correctly.
+
+An example of recursive data structure is: type a has a field of type
+b and type b has a field of type a.
+
+To test this, run the following compile command (which should fail) :
+ ~/work/generator/generate.js --package=nothing recursive_structs.idl
+
+Expected output:
+
+ERROR: there is a cycle in structure definitions:
+    >int1<  is a field of  >int3<
+    >int3<  is a field of  >dict3<
+    >dict3<  is a field of  >dict2<
+    >dict2<  is a field of  >int2<
+    >int2<  is a field of  >dict1<
+    >dict1<  is a field of  >int1<

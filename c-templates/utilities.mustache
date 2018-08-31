@@ -54,8 +54,8 @@ typedef string Error;
 #define interpreter_value_is_Error interpreter_value_is_string
 #define debug_print_Error debug_print_string
 
-#define interpreter_get_object_value jerry_value_to_object
-#define interpreter_create_object jerry_value_to_object
+#define interpreter_get_object_value(x) (x)
+#define interpreter_create_object(x) (x)
 #define interpreter_value_is_object jerry_value_is_object
 #define object_constructor jerry_create_object
 
@@ -127,15 +127,6 @@ typedef jerry_value_t this;
 #define initialize_ArrayBuffer_ initialize_byte_array_
 #define debug_print_ArrayBuffer debug_print_byte_array
 
-/* for now, we'll implement WebIDL's Json type as an Any */
-#define interpreter_get_Json_value interpreter_get_any_value
-#define interpreter_create_Json interpreter_create_any
-#define interpreter_value_is_Json interpreter_value_is_any
-#define Json_constructor any_constructor
-#define initialize_Json_ initialize_any_
-#define debug_print_Json debug_print_any
-
-
 /* WebIDL's "any" type: */
 typedef struct
 {
@@ -155,8 +146,17 @@ typedef struct
 	string   string_field;
     } value;
 } any;
+
+/* for now, we'll implement WebIDL's JSON type as an Any */
 /* TODO: JSON types are not really equivalent to the "any" type... */
-typedef any Json;
+typedef any JSON;
+#define interpreter_get_JSON_value interpreter_get_any_value
+#define interpreter_create_JSON interpreter_create_any
+#define interpreter_value_is_JSON interpreter_value_is_any
+#define JSON_constructor any_constructor
+#define initialize_JSON_ initialize_any_
+#define debug_print_JSON debug_print_any
+
 
 {{/header}}
 /* for the any type, we'll aribtrarily make the default value a long
@@ -528,6 +528,11 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_create_unsignedlonglong (bool)jerry_create_number
 #define interpreter_create_double (bool)jerry_create_number
 
+#define double_constructor() (0.0)
+#define float_constructor() (0.0)
+#define long_constructor() (0) 
+#define short_constructor() (0) 
+#define void_constructor() (0) 
 
 #ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
 #define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
@@ -1048,6 +1053,12 @@ void debug_typeof(Interpreter_Type thing, string thing_name){{#header}};{{/heade
 	    break;
 	case JERRY_TYPE_FUNCTION:
 	    fprintf(stdout, "function\n");
+	    break;
+	case JERRY_TYPE_ERROR:
+	    fprintf(stdout, "error\n");
+	    break;
+	default:
+	    fprintf(stdout, "ERROR: unknown type of jerry_value_t.\n");
 	    break;
     }
 } /* debug_typeof */

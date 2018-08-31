@@ -1,0 +1,70 @@
+The purpose of this test is to ensure that functions with variadic
+parameters work correctly.
+
+We use a script to create an instance of the variadic_interface object
+and then send one of its methods a series of arrays and another a
+series of the any type.
+
+Then, we look at the parameters sent into the stubs by looking at the
+debugging routines that are automatically generated.
+
+To compile the program from the examples directory off of the main
+Jerryscript directory (assume: generator directory and Jerryscript
+directory are at the same level in the file hierarchy) :
+
+../../generator//generate.js --package=variadic_parameters --output_utility_files --debug_printing=on ../../generator/unit_tests/variadic_parameters/variadic.idl
+
+...cd into the variadic_parameters directory just created and run:
+
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I ../../jerry-port/default/include -I../..//jerry-core/include -I../..//jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
+
+...this creates an a.out file, which can be run thusly:
+
+a.out ../../../generator/unit_tests/variadic_parameters/test_variadic_script.js
+
+(all of the above can be run with the following command:
+../../generator//generate.js --package=variadic_parameters --output_utility_files --debug_printing=on ../../generator/unit_tests/variadic_parameters/variadic.idl && cd variadic_parameters &&  gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm && a.out ../../../generator/unit_tests/variadic_parameters/test_variadic_script.js
+)
+
+
+
+The expected output:
+
+PARAMETERS TO "check_variadic_arrays" :
+   arrays:
+   [
+      0:
+      [
+         0 with union type >float<:
+             :  1.000000
+         1 with union type >float<:
+             :  2.000000
+         2 with union type >float<:
+             :  3.000000
+      ]
+      1:
+      [
+         0 with union type >float<:
+             :  4.000000
+         1 with union type >float<:
+             :  5.000000
+         2 with union type >float<:
+             :  6.000000
+      ]
+      2:
+      [
+         0 with union type >string<:
+             :  "seven"
+         1 with union type >string<:
+             :  "eight"
+      ]
+   ]
+undefined
+PARAMETERS TO "check_any_array" :
+   any_params:
+   [
+      0 :  1.000000
+      1 :  2.000000
+      2 :  "three"
+   ]
+undefined

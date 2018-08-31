@@ -1,0 +1,40 @@
+[ExternalInterface=(even_farther_interface_ancestor)]
+interface farthest_interface_ancestor : even_farther_interface_ancestor {
+    attribute long c;
+    attribute long d;
+    void print_my_name();
+};
+
+interface middle_interface_ancestor : farthest_interface_ancestor {
+    attribute string d;
+    attribute string e;
+    void print_my_name();
+};
+
+interface nearest_interface_ancestor : middle_interface_ancestor {
+    attribute boolean e;
+    attribute boolean f;
+    void print_my_name();
+};
+
+interface interface_compilation : nearest_interface_ancestor
+{};
+
+
+[ExternalDictionary=(even_farther_dictionary_ancestor)]
+dictionary farthest_dictionary_ancestor : even_farther_dictionary_ancestor {
+    long c;
+    long d;
+};
+
+dictionary middle_dictionary_ancestor : farthest_dictionary_ancestor {
+    string d;
+    string e;
+};
+
+dictionary nearest_dictionary_ancestor : middle_dictionary_ancestor {
+    boolean e;
+    boolean f;
+};
+
+dictionary dictionary_compilation : nearest_dictionary_ancestor{};

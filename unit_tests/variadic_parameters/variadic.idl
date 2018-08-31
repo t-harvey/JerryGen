@@ -1,0 +1,4 @@
+interface variadic_interface {
+    void check_variadic_arrays(sequence < (long or float or string) >... arrays);
+    void check_any_array(any... any_params);
+};

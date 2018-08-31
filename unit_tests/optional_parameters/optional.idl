@@ -1,0 +1,3 @@
+interface optional_interface {
+    void check_optional_parameters(optional long param1, optional float param2, optional string param3);
+};

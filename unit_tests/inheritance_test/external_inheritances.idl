@@ -1,0 +1,13 @@
+
+interface even_farther_interface_ancestor {
+    attribute boolean a;
+    attribute boolean b;
+    attribute boolean c;
+    void print_my_name();
+};
+
+dictionary even_farther_dictionary_ancestor {
+    boolean a;
+    boolean b;
+    boolean c;
+};

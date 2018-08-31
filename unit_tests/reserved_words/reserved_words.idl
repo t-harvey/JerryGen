@@ -1,0 +1,36 @@
+interface int {
+    attribute bool auto;
+    for volatile(restrict return, default continue);
+    if else(sizeof union, while break);
+    case const(double do, extern goto);
+    inline static(struct switch, register char);
+    long bob(any any);
+};
+
+[ExternalInterface=(octet)]
+interface interface {
+    attribute long any;
+    attribute any long;
+    void void(byte byte, octet octet);
+};
+
+interface javascript {
+    attribute export delete;
+    try yield(class continue);
+};
+
+typedef long bool;
+typedef long for;
+typedef long restrict;
+typedef long default;
+typedef long if;
+typedef long sizeof;
+typedef long while;
+typedef long case;
+typedef long extern;
+typedef long inline;
+typedef long struct;
+typedef long register;
+typedef long export;
+typedef long try;
+typedef long class;

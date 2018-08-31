@@ -1,0 +1,3 @@
+typedef chain1 chain2;
+typedef chain2 chain3;
+typedef chain3 chain1;

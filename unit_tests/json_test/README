@@ -1,0 +1,40 @@
+The purpose of this test is to ensure that we correctly handle the
+"JSON" type.  We currently implement the JSON type as the any type, as
+this seems to be sufficient for zephyr.
+
+This test, then, creates an interface with a single operation that
+takes a JSON object and prints it out.  The script will send it
+multiple different types to ensure that it works.
+
+For the following commands, we assume that the user is in the examples
+directory inside the Jerryscript directory, with the generator
+directory at the same level in the file hierarchy as Jerryscript.
+
+To compile json_test.idl:
+../../generator/generate.js --output_utility_files --package=json_test ../../generator/unit_tests/json_test/json_test.idl
+
+...now, cd into the new json_test directory, copy the stubs file, and run the compile command:
+cd json_test && cp ../../../generator/unit_tests/json_test/call_callback_stubs.c . && gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
+
+...the result should be an a.out executable and no warnings or error
+messages.  Run it as follows:
+a.out ~/work/generator/unit_tests/json_test/json_test_script.js
+
+
+The full set of commands:
+
+ ../../generator/generate.js --output_utility_files --package=json_test ../../generator/unit_tests/json_test/json_test.idl && cd json_test/ && gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm && a.out ~/work/generator/unit_tests/json_test/json_test_script.js
+
+
+Expected output:
+
+undefined
+undefined
+JSON value: 1
+undefined
+JSON value: 2
+undefined
+JSON value: three
+undefined
+************************ LAST CALL ******************
+undefined

@@ -362,7 +362,7 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
 
 {{/body}}
 /* we need this when we want to create a structure with the
-   interface's operations, but we don't (yet?) have an values for the
+   interface's operations, but we don't (yet?) have any values for the
    attributes */
 Interpreter_Type create_empty_{{{interfaceName}}}(){{#header}};{{/header}}
 {{#body}}
@@ -539,11 +539,11 @@ Interpreter_Type interpreter_create_{{{interfaceName}}}({{{interfaceName}}} x){{
 } /* interpreter_create_{{{interfaceName}}} */
 
 {{/body}}
-{{#header}}
-{{#typedefs}}
+{{#AAAheader}}
+{{#AAAtypedefs}}
 #define interpreter_create_{{{name}}} interpreter_create_{{{type}}}
-{{/typedefs}}
-{{/header}}
+{{/AAAtypedefs}}
+{{/AAAheader}}
 bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
 {{#body}}
 {

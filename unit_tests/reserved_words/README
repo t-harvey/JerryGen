@@ -1,0 +1,42 @@
+The point of this test is to make sure that all of the reserved words
+in our supported languages are caught in the WebIDL and altered so
+that the resulting code will compile.  A second concern is that the
+Javascripter can still use the reserved words unchanged, since they
+don't care if C restricts words.
+
+For example, perfectly legal/useable WebIDL:
+
+interface int {
+    attribute bool auto;
+    for volatile(restrict return, default continue);
+    if else(sizeof union, while break);
+    case const(double do, extern goto);
+    inline static(struct switch, register char);
+};
+
+
+...also, reserved words in WebIDL can be simultaneously used as
+variable names, so this is legal:
+
+interface interface {
+    attribute long any;
+    attribute any long;
+    void void(byte byte, octet octet);
+};
+
+...finally, Javascript has its own set of reserved words, but they
+only impact the names of types (i.e., field names can include reserved
+words), so this is legal WebIDL:
+
+interface javascript {
+    attribute export delete;
+    try yield(class continue);
+};
+
+...but calling the above interface "await", for example, would be illegal.
+
+For Javascript, we need to throw an exception if we encounter a name of an interface or dictionary.
+
+
+
+For the first version of this test, we are only going to support/test variable names; we need to someday implement changing type names, too.

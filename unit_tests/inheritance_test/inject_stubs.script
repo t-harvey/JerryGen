@@ -1,0 +1,14 @@
+#! /bin/sh
+bob=$1
+bob2="a"
+#! /bin/sh
+if [ ! $# -eq 2 ]
+then
+    echo "Usage: "`basename $0`" <directory of stubs files> <awk filename>"
+else
+    stubs_files=`ls $1/*_stubs.c`
+    for i in $stubs_files
+    do
+        awk -f $2 $i > temp && mv temp $i
+    done
+fi

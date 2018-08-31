@@ -1,0 +1,52 @@
+The purpose of this test is to ensure that functions with optional
+parameters work correctly.
+
+We use a script to create an instance of the optional_interface object
+and then send its method a series of progressively shorter sets of parameters.
+
+Then, we look at the parameters sent into the stubs by looking at the
+debugging routines that are automatically generated.
+
+To compile the program from the examples directory off of the main
+Jerryscript directory (assume: generator directory and Jerryscript
+directory are at the same level in the file hierarchy) :
+
+../../generator//generate.js --package=optional_parameters --output_utility_files --debug_printing=on ../../generator/unit_tests/optional_parameters/optional.idl
+
+...cd into the optional_parameters directory just created and run:
+
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I ../../jerry-port/default/include -I../..//jerry-core/include -I../..//jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
+
+...this creates an a.out file, which can be run thusly:
+
+a.out ../../../generator/unit_tests/optional_parameters/test_optional_script.js
+
+(all of the above can be run with the following command:
+../../generator//generate.js --package=optional_parameters --output_utility_files --debug_printing=on ../../generator/unit_tests/optional_parameters/optional.idl && cd optional_parameters &&  gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm && a.out ../../../generator/unit_tests/optional_parameters/test_optional_script.js
+)
+
+
+
+The expected output:
+
+undefined
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  1
+   param2 :  2.000000
+   param3 :  "three"
+undefined
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  1
+   param2 :  2.000000
+   param3 :  ""
+undefined
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  1
+   param2 :  0.000000
+   param3 :  ""
+undefined
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  0
+   param2 :  0.000000
+   param3 :  ""
+undefined

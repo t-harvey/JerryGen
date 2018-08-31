@@ -1,0 +1,11 @@
+interface typedef_test_object{
+    long_typedef foo(any x);
+    long_typedef_typedef foo2(Buffer_typedef x);
+};
+
+
+typedef long long_typedef;
+typedef long_typedef long_typedef_typedef;
+
+[ExternalInterface=(Buffer)]
+typedef Buffer Buffer_typedef;

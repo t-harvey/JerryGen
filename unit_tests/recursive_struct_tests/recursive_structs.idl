@@ -1,0 +1,29 @@
+interface int1 {
+    attribute innocuous x;
+    attribute dict1 z;
+};
+
+interface int3 {
+    attribute int1 z;
+    int1 foo();
+};
+
+interface int2 {
+    attribute dict2 z;
+};
+
+dictionary dict1 {
+    int2 z;
+};
+
+dictionary dict2 {
+    dict3 z;
+};
+
+dictionary dict3 {
+    int3 z;
+};
+
+interface innocuous {
+    dict1 z();
+};

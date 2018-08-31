@@ -147,7 +147,8 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
     {{#arguments}}
         {{#C_and_Jerryscript_Types}}
 	{{#callback}}
-#define {{{name}}}(...) (run_{{{C_Type}}}_function({{{name}}}_context, __VA_ARGS__))
+	{{{C_Type}}} _temp__for_{{{name}}} = {{{name}}};
+#define {{{name}}}(...) (run_{{{C_Type}}}_function(_temp__for_{{{name}}}, self, __VA_ARGS__))
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}

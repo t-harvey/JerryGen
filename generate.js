@@ -132,6 +132,41 @@ catch(error_code)
 	for(var i = 0; i < messages.length; i++)
 	    console.log("\t" + messages[i]);
     }
+    else if (error_code.message == AugmentedAST.error_codes.cyclic_inheritance)
+    {
+	/* when this is thrown, we only have a list of objects the name of
+	   the object that is the first repeat (forming the cycle) -- so we
+	   have to run through the list to figure out the cycle... */
+	let objects_list = error_code.objects_list;
+	let first_in_chain = error_code.first_in_chain;
+	let current = first_in_chain;
+	console.log("ERROR: there is a cycle in inheritance:");
+	do
+	{
+	    next = objects_list[current].inheritance;
+	    console.log("    >" + current + "<  inherits from  >" + next + "<");
+	    current = next;
+	}
+	while (current != first_in_chain);
+    }
+    else if (error_code.message == AugmentedAST.error_codes.cyclic_structs)
+    {
+	/* when this is thrown, we only have a list of objects the name of
+	   the object that is the first repeat (forming the cycle) -- so we
+	   have to run through the list to figure out the cycle... */
+	let objects_list = error_code.objects_list;
+	let first_in_chain = error_code.first_in_chain;
+	let current = first_in_chain;
+	console.log("ERROR: there is a cycle in structure definitions:");
+	let i = objects_list.length-1;
+        do
+	{
+	    next = objects_list[i--];
+	    console.log("    >" + current + "<  is a field of  >" + next + "<");
+	    current = next;
+	}
+	while (current != first_in_chain);
+    }
     else
     {
 	if (error_code.message === undefined)

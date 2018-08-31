@@ -1,0 +1,17 @@
+
+dictionary farthest_dictionary_ancestor : middle_dictionary_ancestor {
+    long c;
+    long d;
+};
+
+dictionary middle_dictionary_ancestor : farthest_dictionary_ancestor {
+    string d;
+    string e;
+};
+
+dictionary nearest_dictionary_ancestor : middle_dictionary_ancestor {
+    boolean e;
+    boolean f;
+};
+
+dictionary dictionary_compilation : nearest_dictionary_ancestor{};

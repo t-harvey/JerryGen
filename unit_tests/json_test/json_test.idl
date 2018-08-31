@@ -1,0 +1,5 @@
+interface call_callback {
+    void call_it(JSON thing, print_it callback);
+};
+
+callback print_it = void(JSON x);
