@@ -162,7 +162,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
     set up the checksum here, but also give it to the stubs file }}
 {{#body}}
 {{#repress_stubs}}static {{/repress_stubs}}{{^repress_stubs}}extern {{/repress_stubs}}
-jerry_object_native_info_t {{{interfaceName}}}_checksum{{^repress_stubs}};{{/repress_stubs}}{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator};{{/repress_stubs}}
+Interpreter_Checksum_Type {{{interfaceName}}}_checksum{{^repress_stubs}};{{/repress_stubs}}{{#repress_stubs}} = {Native_Object_{{{interfaceName}}}_deallocator};{{/repress_stubs}}
 
 {{/body}}
 {{#body}}
@@ -221,7 +221,7 @@ Interpreter_Type
 {{^repress_stubs}}
 
 {{#C_and_Jerryscript_Types}}
-extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}Interpreter_Type);
+extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}_body(Interpreter_Type{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}});
 {{/C_and_Jerryscript_Types}}
 {{/repress_stubs}}
 {{! for the "return_value", the logic is as follows: 1) don't put out
@@ -232,7 +232,7 @@ declaration with an assignment from the stub }}
 {{#repress_stubs}}{{^voidReturnType}}
 /* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
 {{#C_and_Jerryscript_Types}}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}_body({{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}{{#arguments.length}}, {{/arguments.length}}this_val);{{/repress_stubs}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}_body(this_val{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}});{{/repress_stubs}}
 {{/C_and_Jerryscript_Types}}
 
     {{! if the return value is a string (or array of strings), we want

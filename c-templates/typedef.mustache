@@ -39,13 +39,13 @@ under the License.
     includes... }}
 
 
-#define {{{typedefName}}} {{{ultimate_typename}}}
-#define interpreter_get_{{{typedefName}}}_value interpreter_get_{{{ultimate_typename}}}_value
-#define interpreter_create_{{{typedefName}}} interpreter_create_{{{ultimate_typename}}}
-#define interpreter_value_is_{{{typedefName}}} interpreter_value_is_{{{ultimate_typename}}}
-#define {{{typedefName}}}_constructor {{{ultimate_typename}}}_constructor 
-#define initialize_{{{typedefName}}}_ initialize_{{{ultimate_typename}}}_
-#define debug_print_{{{typedefName}}} debug_print_{{{ultimate_typename}}}
+#define {{{typedefName}}} {{{ultimate_typename_C_type}}}
+#define interpreter_get_{{{typedefName}}}_value interpreter_get_{{{ultimate_typename_C_type}}}_value
+#define interpreter_create_{{{typedefName}}} interpreter_create_{{{ultimate_typename_C_type}}}
+#define interpreter_value_is_{{{typedefName}}} interpreter_value_is_{{{ultimate_typename_C_type}}}
+#define {{{typedefName}}}_constructor {{{ultimate_typename_C_type}}}_constructor 
+#define initialize_{{{typedefName}}}_ initialize_{{{ultimate_typename_C_type}}}_
+#define debug_print_{{{typedefName}}} debug_print_{{{ultimate_typename_C_type}}}
 
 #endif /* TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_ */
 {{/typedefs}}

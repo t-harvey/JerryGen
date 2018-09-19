@@ -228,7 +228,7 @@ interpreter_get_{{{callbackName}}}_value(Interpreter_Type value){{#header}};{{/h
     Interpreter_Type new_function = jerry_create_external_function(
                                        run_{{{callbackName}}}_function_handler);
 
-    jerry_object_native_info_t checksum = {};
+    Interpreter_Checksum_Type checksum = {};
     Native_Object_set(callback_function, new_function, &checksum);
 
     return new_function;
@@ -287,8 +287,8 @@ bool interpreter_value_is_{{{callbackName}}}(Interpreter_Type thing_value){{#hea
 {
     /* check to see if the Jerryscript value has an underlying C-function
        pointer attached to it (hidden in the Native_Object field) */
-    static jerry_object_native_info_t checksum = {};
-    jerry_error_t error_value;
+    static Interpreter_Checksum_Type checksum = {};
+    Interpreter_Error_Type error_value;
     {{{callbackName}}}_callback native_c_function;
 
     native_c_function =
@@ -393,8 +393,8 @@ void debug_print_{{{callbackName}}} (char *variable_name,
     /* check to see if the calling_context has an underlying
        C-function pointer attached to the Jerryscript object (hidden in
        the Native_Object field) */
-    static jerry_object_native_info_t checksum = {};
-    jerry_error_t error_value;
+    static Interpreter_Checksum_Type checksum = {};
+    Interpreter_Error_Type error_value;
     {{{callbackName}}}_callback native_c_function;
 
     native_c_function =

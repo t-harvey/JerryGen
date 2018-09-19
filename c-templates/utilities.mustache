@@ -46,6 +46,8 @@ under the License.
 {{#header}}
 typedef char * string;
 typedef jerry_value_t Interpreter_Type;
+typedef jerry_error_t Interpreter_Error_Type;
+typedef jerry_object_native_info_t Interpreter_Checksum_Type;
 typedef Interpreter_Type object;
 typedef string Error;
 
@@ -454,55 +456,57 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 /* we don't check the type of each thing while outputting code -> we
    assume that there'll be a "_create/get_thing/is_of_type" function for
    every type, so for the atomic types, we'll need a name mapping */
-// #define interpreter_get_int8_t_value (int8_t)jerry_get_number_value
-// #define interpreter_get_uint8_t_value (uint8_t)jerry_get_number_value
-// #define interpreter_get_int16_t_value (int16_t)jerry_get_number_value
-// #define interpreter_get_uint16_t_value (uint16_t)jerry_get_number_value
-// #define interpreter_get_int32_t_value (int32_t)jerry_get_number_value
-// #define interpreter_get_uint32_t_value (uint32_t)jerry_get_number_value
-// #define interpreter_get_int64_t_value (int64_t)jerry_get_number_value
-// #define interpreter_get_uint64_t_value (uint64_t)jerry_get_number_value
+#define interpreter_get_int8_t_value (int8_t)jerry_get_number_value
+#define interpreter_get_uint8_t_value (uint8_t)jerry_get_number_value
+#define interpreter_get_int16_t_value (int16_t)jerry_get_number_value
+#define interpreter_get_uint16_t_value (uint16_t)jerry_get_number_value
+#define interpreter_get_int32_t_value (int32_t)jerry_get_number_value
+#define interpreter_get_uint32_t_value (uint32_t)jerry_get_number_value
+#define interpreter_get_int64_t_value (int64_t)jerry_get_number_value
+#define interpreter_get_uint64_t_value (uint64_t)jerry_get_number_value
 #define interpreter_get_float_value (float)jerry_get_number_value
 #define interpreter_get_double_value (double)jerry_get_number_value
-// #define interpreter_get_bool_value (bool)jerry_get_boolean_value
+#define interpreter_get_bool_value (bool)jerry_get_boolean_value
 
+/* "byte" is the type of the ArrayBuffer type */
 #define interpreter_get_byte_value (byte)jerry_get_number_value
-#define interpreter_get_octet_value (octet)jerry_get_number_value
-#define interpreter_get_short_value (short)jerry_get_number_value
-#define interpreter_get_unsignedshort_value (unsignedshort)jerry_get_number_value
-#define interpreter_get_long_value (long)jerry_get_number_value
-#define interpreter_get_unsignedlong_value (unsignedlong)jerry_get_number_value
-#define interpreter_get_longlong_value (longlong)jerry_get_number_value
-#define interpreter_get_unsignedlonglong_value (unsignedlonglong)jerry_get_number_value
-#define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
+//#define interpreter_get_octet_value (octet)jerry_get_number_value
+//#define interpreter_get_short_value (short)jerry_get_number_value
+//#define interpreter_get_unsignedshort_value (unsignedshort)jerry_get_number_value
+//#define interpreter_get_long_value (long)jerry_get_number_value
+//#define interpreter_get_unsignedlong_value (unsignedlong)jerry_get_number_value
+//#define interpreter_get_longlong_value (longlong)jerry_get_number_value
+//#define interpreter_get_unsignedlonglong_value (unsignedlonglong)jerry_get_number_value
+//#define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
 
 #define interpreter_get_this_value(x) (x)
 #define this_constructor() 0
 
 /* we check value types using their C-type names, although the checks
    translate into checking for synonymous Javascript types */
-// #define interpreter_value_is_int8_t (bool)jerry_value_is_number
-// #define interpreter_value_is_uint8_t (bool)jerry_value_is_number
-// #define interpreter_value_is_int16_t (bool)jerry_value_is_number
-// #define interpreter_value_is_uint16_t (bool)jerry_value_is_number
-// #define interpreter_value_is_int32_t (bool)jerry_value_is_number
-// #define interpreter_value_is_uint32_t (bool)jerry_value_is_number
-// #define interpreter_value_is_int64_t (bool)jerry_value_is_number
-// #define interpreter_value_is_uint64_t (bool)jerry_value_is_number
-// #define interpreter_value_is_float (bool)jerry_value_is_number
+#define interpreter_value_is_int8_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint8_t (bool)jerry_value_is_number
+#define interpreter_value_is_int16_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint16_t (bool)jerry_value_is_number
+#define interpreter_value_is_int32_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint32_t (bool)jerry_value_is_number
+#define interpreter_value_is_int64_t (bool)jerry_value_is_number
+#define interpreter_value_is_uint64_t (bool)jerry_value_is_number
+#define interpreter_value_is_float (bool)jerry_value_is_number
 #define interpreter_value_is_double (bool)jerry_value_is_number
-// #define interpreter_value_is_bool (bool)jerry_value_is_boolean
+#define interpreter_value_is_bool (bool)jerry_value_is_boolean
 #define interpreter_value_is_string (bool)jerry_value_is_string
 
+/* "byte" is the type of the ArrayBuffer type */
 #define interpreter_value_is_byte (bool)jerry_value_is_number
-#define interpreter_value_is_octet (bool)jerry_value_is_number
-#define interpreter_value_is_short (bool)jerry_value_is_number
-#define interpreter_value_is_unsignedshort (bool)jerry_value_is_number
-#define interpreter_value_is_long (bool)jerry_value_is_number
-#define interpreter_value_is_unsignedlong (bool)jerry_value_is_number
-#define interpreter_value_is_longlong (bool)jerry_value_is_number
-#define interpreter_value_is_unsignedlonglong (bool)jerry_value_is_number
-#define interpreter_value_is_boolean (bool)jerry_value_is_boolean
+//#define interpreter_value_is_octet (bool)jerry_value_is_number
+//#define interpreter_value_is_short (bool)jerry_value_is_number
+//#define interpreter_value_is_unsignedshort (bool)jerry_value_is_number
+//#define interpreter_value_is_long (bool)jerry_value_is_number
+//#define interpreter_value_is_unsignedlong (bool)jerry_value_is_number
+//#define interpreter_value_is_longlong (bool)jerry_value_is_number
+//#define interpreter_value_is_unsignedlonglong (bool)jerry_value_is_number
+//#define interpreter_value_is_boolean (bool)jerry_value_is_boolean
 
 #define interpreter_value_is_float (bool)jerry_value_is_number
 
@@ -516,17 +520,31 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_create_string(s) jerry_create_string((jerry_char_t *)(s))
 #define interpreter_create_undefined jerry_create_undefined
 
-#define interpreter_create_float jerry_create_number
 
+/* "byte" is the type of the ArrayBuffer type */
 #define interpreter_create_byte (bool)jerry_create_number
-#define interpreter_create_octet (bool)jerry_create_number
-#define interpreter_create_short (bool)jerry_create_number
-#define interpreter_create_unsignedshort (bool)jerry_create_number
-#define interpreter_create_long (bool)jerry_create_number
-#define interpreter_create_unsignedlong (bool)jerry_create_number
-#define interpreter_create_longlong (bool)jerry_create_number
-#define interpreter_create_unsignedlonglong (bool)jerry_create_number
+//#define interpreter_create_octet (bool)jerry_create_number
+// #define interpreter_create_short (bool)jerry_create_number
+// #define interpreter_create_unsignedshort (bool)jerry_create_number
+// #define interpreter_create_long (bool)jerry_create_number
+// #define interpreter_create_unsignedlong (bool)jerry_create_number
+// #define interpreter_create_longlong (bool)jerry_create_number
+// #define interpreter_create_unsignedlonglong (bool)jerry_create_number
+
+#define interpreter_create_float jerry_create_number
 #define interpreter_create_double (bool)jerry_create_number
+
+
+#define interpreter_create_int8_t (bool)jerry_create_number
+#define interpreter_create_uint8_t (bool)jerry_create_number
+#define interpreter_create_int16_t (bool)jerry_create_number
+#define interpreter_create_uint16_t (bool)jerry_create_number
+#define interpreter_create_int32_t (bool)jerry_create_number
+#define interpreter_create_uint32_t (bool)jerry_create_number
+#define interpreter_create_int64_t (bool)jerry_create_number
+#define interpreter_create_uint64_t (bool)jerry_create_number
+
+#define interpreter_create_bool   jerry_create_boolean
 
 #define double_constructor() (0.0)
 #define float_constructor() (0.0)
@@ -569,7 +587,7 @@ void interpreter_set_property(Interpreter_Type thing, string property, Interpret
 } /* interpreter_set_property */
 {{/body}}
 
-void Native_Object_set(void *thing, Interpreter_Type object, jerry_object_native_info_t *checksum){{#header}};{{/header}}
+void Native_Object_set(void *thing, Interpreter_Type object, Interpreter_Checksum_Type *checksum){{#header}};{{/header}}
 {{#body}}
 {
     jerry_set_object_native_pointer(object, thing, checksum);
@@ -577,7 +595,7 @@ void Native_Object_set(void *thing, Interpreter_Type object, jerry_object_native
 
 {{/body}}
 void *Native_Object_get(Interpreter_Type object,
-                        jerry_object_native_info_t *checksum,
+                        Interpreter_Checksum_Type *checksum,
 			jerry_error_t *error_value){{#header}};{{/header}}
 {{#body}}
 {
@@ -586,7 +604,7 @@ void *Native_Object_get(Interpreter_Type object,
     /* used for error checking; this value, upon return from
                         jerry_get_object_native_pointer, has to equal
                         the passed-in checksum */
-    const jerry_object_native_info_t *stored_checksum;
+    const Interpreter_Checksum_Type *stored_checksum;
     bool object_contains_native_object;
 
     *error_value = 0; /* when there are no errors, we want to return
