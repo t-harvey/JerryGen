@@ -138,7 +138,7 @@ var new_EventEmitter = new EventEmitter;
 
 var on_result = new_EventEmitter.on("string event", ListenerCallback);
 var addListener_result = new_EventEmitter.addListener("string event", ListenerCallback);
-var emit_result = new_EventEmitter.emit("string event", 1, 2, 3);
+var emit_result = new_EventEmitter.emit("string event", 1, "Two", true);
 var removeListener_result = new_EventEmitter.removeListener("string event", ListenerCallback);
 var removeAllListeners_result = new_EventEmitter.removeAllListeners("string event");
 var eventNames_result = new_EventEmitter.eventNames();

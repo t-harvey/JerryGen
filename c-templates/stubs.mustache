@@ -156,8 +156,8 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 
 {{#debug_printing}}
 #ifdef DEBUG_PRINTING
-{{#arguments.length}}
    printf("PARAMETERS TO \"{{{operationName}}}\" :\n");
+{{#arguments.length}}
  {{#arguments}}
    {{#C_and_Jerryscript_Types}}
     debug_print_{{{C_Type}}}("{{{name}}}", {{{name}}}, DEBUG_INDENTATION_WIDTH);

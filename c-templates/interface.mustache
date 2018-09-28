@@ -67,8 +67,6 @@ struct Native_Object_{{{interfaceName}}};
 {{! TODO: why do we need to include the stubs.h in this .h?!? }}
 #include "{{{interfaceName}}}_stubs.h"
 
-/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
-
 {{/header}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
@@ -97,7 +95,7 @@ struct Native_Object_{{{interfaceName}}};
 {{#hasAttributes}}
 
 {{#attributes.length}}
-/* attribute GETTERS */
+/* attribute GETTERS/SETTERS */
 {{/attributes.length}}
 {{#attributes}}
 {{#C_and_Jerryscript_Types}}
@@ -126,6 +124,8 @@ struct Native_Object_{{{interfaceName}}};
 {{/body}}
 {{/C_and_Jerryscript_Types}}
 {{/attributes}} {{! ATTRIBUTE GETTERS/SETTERS}}
+
+/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
 
 {{/hasAttributes}}
 {{#repress_stubs}}

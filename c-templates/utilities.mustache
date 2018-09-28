@@ -120,15 +120,170 @@ typedef string ByteString;
 typedef string USVString;
 typedef jerry_value_t this;
 
-/* WebIDL's ArrayBuffer type is just a char array */
-#define ArrayBuffer byte_array
-#define interpreter_get_ArrayBuffer_value interpreter_get_byte_array_value
-#define interpreter_create_ArrayBuffer interpreter_create_byte_array
-#define interpreter_value_is_ArrayBuffer interpreter_value_is_byte_array
-#define ArrayBuffer_constructor byte_array_constructor
-#define initialize_ArrayBuffer_ initialize_byte_array_
-#define debug_print_ArrayBuffer debug_print_byte_array
 
+/* we currently don't provide an interface for overlays (typedarray) of
+   ArrayBuffer's... */
+typedef struct {
+    uint32_t length;
+    uint8_t *data;
+} ArrayBuffer;
+
+{{/header}}
+/* write values from a C ArrayBuffer into a Javascript ArrayBuffer */
+int ArrayBuffer_write(ArrayBuffer source, Interpreter_Type target){{#header}};{{/header}}
+{{#body}}
+{
+    if (!jerry_value_is_arraybuffer(target))
+    {
+	fprintf(stderr, "Trying to write to a Javascript value that is not an ArrayBuffer.\n");
+	return 0;
+    }
+    else
+    {
+	int target_size = jerry_get_arraybuffer_byte_length(target);
+
+	if (target_size < source.length)
+	{
+	    fprintf(stderr, "Javascript ArrayBuffer is too small.\n");
+	    return 0;
+	}
+	else
+	{
+	    int bytes_written = jerry_arraybuffer_write(target,
+						  0 /* starting offset */,
+						  source.data,
+						  source.length);
+	    if (bytes_written < source.length)
+	    {
+		fprintf(stderr, "Error on writing ArrayBuffer.\n");
+		return 0;
+	    }
+	    else
+		return bytes_written;
+	}
+    }
+
+} /* ArrayBuffer_write */
+
+{{/body}}
+
+/* read values from a Javascript ArrayBuffer into a C ArrayBuffer */
+/* SIDE EFFECT: calls malloc */
+int ArrayBuffer_read(Interpreter_Type source, ArrayBuffer *target){{#header}};{{/header}}
+{{#body}}
+{
+    if (target->data == NULL)
+	target->data = (unsigned char *)malloc(target->length*sizeof(uint8_t));
+
+    if (target->data == NULL)
+    {
+	fprintf(stderr, "out of memory.\n");
+	return 0;
+    }
+    else
+    {
+	int source_size = jerry_get_arraybuffer_byte_length(source);
+
+	if (source_size < target->length)
+	{
+	    fprintf(stderr, "ArrayBuffer size mismatch on read.\n");
+	    return 0;
+	}
+	else
+	{
+	    int bytes_read = jerry_arraybuffer_read(source,
+						 0 /* starting offset */,
+						 target->data,
+						 target->length);
+	    if (bytes_read != target->length)
+		fprintf(stderr, "incorrect ArrayBuffer read.\n");
+
+	    return bytes_read;
+	}
+    }
+} /* ArrayBuffer_read */
+
+{{/body}}
+
+/* creates a new ArrayBuffer, copies "value"'s data into it, and returns
+   the struct */
+ArrayBuffer interpreter_get_ArrayBuffer_value(Interpreter_Type value){{#header}};{{/header}}
+{{#body}}
+{
+    ArrayBuffer new_ArrayBuffer = {0, NULL};
+
+    new_ArrayBuffer.length = jerry_get_arraybuffer_byte_length(value);
+
+    if (new_ArrayBuffer.length == 0)
+	fprintf(stderr, "zero-length buffer passed in to get_ArrayBuffer_value.\n");
+    else
+	ArrayBuffer_read(value, &new_ArrayBuffer);
+
+    return new_ArrayBuffer;
+}; /* interpreter_get_ArrayBuffer_value */
+
+{{/body}}
+
+/* NOTE: cannot pass in a zero-length ArrayBuffer! */
+Interpreter_Type interpreter_create_ArrayBuffer(ArrayBuffer ArrayBuffer_value){{#header}};{{/header}}
+{{#body}}
+{
+    return jerry_create_arraybuffer_external(ArrayBuffer_value.length,
+				      (uint8_t *)ArrayBuffer_value.data,
+				      free);
+}; /* interpreter_create_ArrayBuffer */
+
+{{/body}}
+
+bool interpreter_value_is_ArrayBuffer(Interpreter_Type ArrayBuffer_value){{#header}};{{/header}}
+{{#body}}
+{
+    return jerry_value_is_arraybuffer(ArrayBuffer_value);
+}; /* interpreter_value_is_ArrayBuffer */
+
+{{/body}}
+
+ArrayBuffer ArrayBuffer_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    return (ArrayBuffer){0, NULL};
+}; /* ArrayBuffer_constructor */
+
+{{/body}}
+
+/* this is a null call, since ArrayBuffer exists on the Javascript side */
+void initialize_ArrayBuffer_(void){{#header}};{{/header}}
+{{#body}}
+{
+}; /* initialize_Array_Buffer_ */
+
+{{/body}}
+
+void debug_print_ArrayBuffer(char *variable_name,
+                             ArrayBuffer value,
+                             unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    debug_print_uint32_t(variable_name, value.length, indentation);
+
+    int data_indent = indentation + strlen(variable_name) + 3;
+    int ENTRIES_PER_ROW = 8;
+#define LAST_IN_ROW !((j+1)%ENTRIES_PER_ROW)
+    int j = 0;
+    printf("%*s", data_indent, "");
+    for (j = 0; j < value.length; j++)
+	printf("0x%02X%s%*s", value.data[j],
+	                    (LAST_IN_ROW)?"\n":"  ",
+	                    (LAST_IN_ROW && j+1 != value.length)?data_indent:0,
+	                    "");
+
+    if (j%ENTRIES_PER_ROW)
+        printf("\n");
+}; /* debug_print_ArrayBuffer */
+
+{{/body}}
+
+{{#header}}
 /* WebIDL's "any" type: */
 typedef struct
 {
