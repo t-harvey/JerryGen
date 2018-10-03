@@ -1,0 +1,10 @@
+var x = new ArrayBuffer(12);
+var y = new Int32Array(x);
+y[0] = 134481669;
+y[1] = 84345864;
+var ab1 = new arraybuffer(x);
+var ab2 = new arraybuffer(new ArrayBuffer(8));
+ab1.print_arraybuffer(ab1.arraybuffer_value);
+ab2.print_arraybuffer(ab2.arraybuffer_value);
+ab2.set_arraybuffer_value(ab1.get_arraybuffer_value());
+ab2.print_arraybuffer(ab2.arraybuffer_value);

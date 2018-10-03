@@ -1,0 +1,58 @@
+This test is designed to test the infrastructure used to build
+the ArrayBuffer type.  The script we use initializes a couple of
+"arraybuffer" structures, manipulates them a little, and then relies
+on the debugging routines to print out what's going on.
+
+To generate C code:
+(From the "examples" directory underneath a Jerryscript installation:
+
+GENERATOR/generate.js --debug_printing --output_utility_files --package=arraybuffer_test GENERATOR/unit_tests/arraybuffer_test/arraybuffer_test.idl
+
+cd arraybuffer_test 
+
+cp GENERATOR/unit_tests/arraybuffer_test/arraybuffer_stubs.c .
+
+ gcc -g --std=c99 -I. -I../../jerry-port/default/include/ -I../../jerry-core/include -I../../jerry-ext/include -I../buffer -I../../jerry-main GENERATOR/unit_tests/template/main_jerrygen.c *.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm && a.out GENERATOR/unit_tests/arraybuffer_test/arraybuffer_test.script
+
+a.out GENERATOR/unit_tests/arraybuffer_test/arraybuffer_test.script
+
+
+Expected Results:
+
+undefined
+undefined
+134481669
+84345864
+undefined
+undefined
+PARAMETERS TO "print_arraybuffer" :
+   ab_param :  12
+              0x05  0x07  0x04  0x08  0x08  0x04  0x07  0x05
+              0x00  0x00  0x00  0x00  
+undefined
+PARAMETERS TO "print_arraybuffer" :
+   ab_param :  8
+              0x00  0x00  0x00  0x00  0x00  0x00  0x00  0x00
+undefined
+PARAMETERS TO "get_arraybuffer_value" :
+        The function "get_arraybuffer_value" takes no parameters.
+RETURN_VALUE :  12
+               0x05  0x07  0x04  0x08  0x08  0x04  0x07  0x05
+               0x00  0x00  0x00  0x00  
+undefined
+PARAMETERS TO "get_arraybuffer_value" :
+        The function "get_arraybuffer_value" takes no parameters.
+RETURN_VALUE :  12
+               0x05  0x07  0x04  0x08  0x08  0x04  0x07  0x05
+               0x00  0x00  0x00  0x00  
+PARAMETERS TO "set_arraybuffer_value" :
+   new_ab :  12
+            0x05  0x07  0x04  0x08  0x08  0x04  0x07  0x05
+            0x00  0x00  0x00  0x00  
+undefined
+PARAMETERS TO "print_arraybuffer" :
+   ab_param :  12
+              0x05  0x07  0x04  0x08  0x08  0x04  0x07  0x05
+              0x00  0x00  0x00  0x00  
+undefined
+	

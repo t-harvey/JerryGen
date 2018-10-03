@@ -1,0 +1,6 @@
+interface arraybuffer {
+    attribute ArrayBuffer arraybuffer_value;
+    void set_arraybuffer_value(ArrayBuffer new_ab);
+    ArrayBuffer get_arraybuffer_value();
+    void print_arraybuffer(ArrayBuffer ab_param);
+};
