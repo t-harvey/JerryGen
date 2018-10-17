@@ -54,8 +54,9 @@ var augAST = new AugmentedAST(parsed_file,
 			      parameters.leave_enums_alone,
 			      parameters.package);
 
-augAST.utilities_filename = "webidl_compiler_utilities";
-augAST.debug_printing     = (parameters.debug_printing === "on");
+augAST.utilities_filename       = "webidl_compiler_utilities";
+augAST.debug_printing           = (parameters.debug_printing === "on");
+augAST.original_arg_handling    = (parameters.arg_handling === "original");
 augAST.print_generation_message = (parameters.print_generation_message === "true");
 
 // NOTE: THIS COMMENT WAS IN THE ORIGINAL CODE; IT SEEMS LIKE A GOOD IDEA(?)

@@ -75,6 +75,8 @@ module.exports.getContext = function(ast, moduleName){
 
     repress_stubs: ast.repress_stubs,
 
+    original_arg_handling: ast.original_arg_handling,
+
     is_enum: function() { return this.type === "enum" },
     is_interface: function() { return this.type === "interface" },
     is_dictionary: function() { return this.type === "dictionary" },

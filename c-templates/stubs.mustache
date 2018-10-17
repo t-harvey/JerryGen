@@ -31,11 +31,10 @@ under the License.
 #include "{{{interfaceName}}}.h"
 {{/header}}
 {{#body}}
+#include "{{{utilities_filename}}}.h"
+#include "{{{interfaceName}}}.h"
 #include "{{{interfaceName}}}_stubs.h"
 {{/body}}
-{{#debug_printing}}
-#include <stdio.h>
-{{/debug_printing}}
 
 {{#header}}
 {{#externalTypes}}
@@ -45,6 +44,14 @@ under the License.
 #include "{{{type_name}}}.h"
 {{/non_intrinsic_types}}
 
+{{#inheritance}}
+/* because the {{{interfaceName}}} inherits from the {{{inheritance}}}
+   interface, the Native Object for both of these interfaces has to be
+   the same -- the definition of the {{{inheritance}}}_Native_Object
+   is in the {{{inheritance}}}_stubs.h file */
+#define {{{interfaceName}}}_Native_Object {{{inheritance}}}_Native_Object
+{{/inheritance}}
+{{^inheritance}}
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these
    Native_Objects are attached to their objects by the interpreter, and
@@ -58,8 +65,9 @@ under the License.
 typedef struct {
     /* USER CODE GOES HERE */
 
-} Native_Object_{{{interfaceName}}};
+} {{{interfaceName}}}_Native_Object;
 
+{{/inheritance}}
 {{/header}}
 {{#body}}
 {{#debug_printing}}
@@ -76,30 +84,38 @@ typedef struct {
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
 {{/body}}
-void Native_Object_{{{interfaceName}}}_deallocator(void *native_object){{#header}};{{/header}}
+{{#inheritance}}
+  {{#body}}
+/* because the {{{interfaceName}}} inherits from the {{{inheritance}}}
+   interface, the Native Object for both of these interfaces has to be
+   the same -- the definition of the {{{inheritnace}}}_Native_Object is in the
+   {{{inheritance}}}_stubs.h file */
+  {{/body}}
+  {{#header}}
+#define {{{interfaceName}}}_Native_Object_deallocator {{{inheritance}}}_Native_Object_deallocator
+#define {{{interfaceName}}}_Native_Object_create {{{inheritance}}}_Native_Object_create
+  {{/header}}
+{{/inheritance}}
+{{^inheritance}}
+void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header}};{{/header}}
 {{#body}}
 {
 	/* USER CODE GOES HERE */
 
-} /* Native_Object_{{{interfaceName}}}_deallocator */
+} /* {{{interfaceName}}}_Native_Object_deallocator */
 
 {{/body}}
-Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void){{#header}};{{/header}}
+{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_create(void){{#header}};{{/header}}
 {{#body}}
 {
-    Native_Object_{{{interfaceName}}} *new_object = (Native_Object_{{{interfaceName}}} *)malloc(sizeof(Native_Object_{{{interfaceName}}}));
+    {{{interfaceName}}}_Native_Object *new_object = ({{{interfaceName}}}_Native_Object *)malloc(sizeof({{{interfaceName}}}_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* Native_Object_{{{interfaceName}}}_create */
-
+} /* {{{interfaceName}}}_Native_Object_create */
 {{/body}}
-{{! the checksum is used by the interpreter to ensure that the
-    Native_Object is still valid; note that this has a global linkage,
-    since the support routines need this value }}
-{{#header}}/* this should never be touched by the user */{{/header}}
-{{#header}}extern {{/header}}Interpreter_Checksum_Type {{{interfaceName}}}_checksum{{#body}} = {Native_Object_{{{interfaceName}}}_deallocator}{{/body}};
+{{/inheritance}}
 {{#body}}
 
 /******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
@@ -113,10 +129,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
  * is, a module)
  */
 {{/body}}
-{{#header}}
-#include "{{{interfaceName}}}.h"
-{{/header}}
-{{{interfaceName}}} require_{{{interfaceName}}}_body(void){{#header}};{{/header}}
+{{{interfaceName}}} require_{{{interfaceName}}}(void){{#header}};{{/header}}
 {{#body}}
 {
     /* the {{{interface}}}_constructor creates a new {{{interfaceName}}
@@ -127,7 +140,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
     /* USER CODE GOES HERE */
 
     return return_value;
-} /* require_{{{interfaceName}}}_body */
+} /* require_{{{interfaceName}}} */
 
 {{/body}}
 {{/is_module}}
@@ -137,22 +150,31 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
  *
  */ 
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}_body(Interpreter_Type self{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}(Interpreter_Type *self{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}){{#header}};{{/header}}
 {{#body}}
 {
     Interpreter_Error_Type error_check; /* this value will be non-zero after
-    			                   a call to Native_Object_get() if
-					   that call encounters an error */
+    			            a call to
+			            {{{interfaceName}}}_Native_Object_get()
+			            if that call encounters an error */
     {{#arguments}}
         {{#C_and_Jerryscript_Types}}
 	{{#callback}}
 	{{{C_Type}}} _temp__for_{{{name}}} = {{{name}}};
-#define {{{name}}}(...) (run_{{{C_Type}}}_function(_temp__for_{{{name}}}, self, __VA_ARGS__))
+#define {{{name}}}(...) (run_{{{C_Type}}}_function(_temp__for_{{{name}}}, *self, __VA_ARGS__))
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
 
-    Native_Object_{{{interfaceName}}} *native_object = Native_Object_get(self, &{{{interfaceName}}}_checksum, &error_check);
+    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(*self, &error_check);
+    if (error_check)
+    {
+        *self = error_check;
+	{{#C_and_Jerryscript_Types}}
+	{{^voidReturnType}}{{^return_is_this}}/* we return a (meaningless) default value here so the compiler doesn't complain */{{/return_is_this}}{{/voidReturnType}}
+	return{{^voidReturnType}}{{^return_is_this}} {{{default_value}}}{{/return_is_this}}{{/voidReturnType}};
+	{{/C_and_Jerryscript_Types}}
+    }
 
 {{#debug_printing}}
 #ifdef DEBUG_PRINTING
@@ -202,7 +224,7 @@ Native_Object_{{{interfaceName}}} *Native_Object_{{{interfaceName}}}_create(void
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
-}; /* {{{interfaceName}}}_{{{operationName}}}_body */
+}; /* {{{interfaceName}}}_{{{operationName}}} */
 
 {{/body}}
 {{/operations}}

@@ -1380,6 +1380,7 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
        from the parser) to the "values" array... (which is why we have(!)
        to call fix_names_and_types _BEFORE_ this loop...) */
     new_enum.members = [];
+    new_enum.longest_Javascript_name_length = 0;
     for(var i = 0 ; i < new_enum.number_of_members; i++)
     {
 	let new_object = {C_name    : new_enum.values[i].C_value,
@@ -1393,6 +1394,11 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
 	    new_object.finalMember = true;
 	    
 	new_enum.members.push(new_object);
+
+	if (new_object.Javascript_name.length >
+	                               new_enum.longest_Javascript_name_length)
+	    new_enum.longest_Javascript_name_length =
+	                                    new_object.Javascript_name.length;
     }
   }
 

@@ -32,8 +32,6 @@ under the License.
 #define {{{dictionaryName}}}_H_
 {{/header}}
 
-#include <stdio.h>
-#include <string.h>
 #include "jerryscript.h"
 #include "{{{utilities_filename}}}.h"
 
@@ -59,17 +57,14 @@ typedef struct {
     {{/C_and_Jerryscript_Types}}
 	{{/members}}
 } {{{dictionaryName}}};
-{{/header}}
-
-/* this variable is used in composite types to denote a field of type
-   {{{interfaceName}}} -- this should be considered a read-only value */
-{{#header}}extern {{/header}}int {{{dictionaryName}}}_uid;
-
-{{#header}}
 
 /********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
 
 {{/header}}
+/* this variable is used in composite types to denote a field of type
+   {{{interfaceName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{dictionaryName}}}_uid;
+
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
 {{{dictionaryName}}} {{{dictionaryName}}}_constructor(void){{#header}};{{/header}}
@@ -96,6 +91,40 @@ typedef struct {
 } /* {{{dictionaryName}}}_constructor */
 {{/body}}
 
+{{^original_arg_handling}}
+{{#body}}
+static jerry_value_t get_dictionary_properties()
+{
+    return 0;
+} /* get_dictionary_properties */
+{{/body}}
+jerryx_arg_t
+interpreter_arg_{{{dictionaryName}}}({{{dictionaryName}}}* destination,
+			interpreter_arg_optional_flag_enum_type optional_flag){{#header}};{{/header}}
+{{#body}}
+{
+    /* the set up of the jerryx_arg_t is cribbed from
+       https://tinyurl.com/yc8qjpna */
+    static const char *prop_name_p[] = { {{#members}}"{{{memberName}}}"{{^finalMember}}, {{/finalMember}}{{/members}} };
+    static jerryx_arg_t prop_mapping[{{{members.length}}}];
+    {{#members}}
+      {{#C_and_Jerryscript_Types}}
+	prop_mapping[{{{member_index}}}] = interpreter_arg_{{{C_Type}}} (&(destination->{{{memberName}}}), INTERPRETER_ARG_REQUIRED);
+      {{/C_and_Jerryscript_Types}}
+    {{/members}}
+
+    const jerryx_arg_object_props_t prop_info =
+    {
+        .name_p =    (const jerry_char_t **) prop_name_p,
+	.name_cnt =  {{{members.length}}},
+	.c_arg_p =   prop_mapping,
+	.c_arg_cnt = {{{members.length}}}
+    };
+    return jerryx_arg_object_properties(&prop_info,
+					(jerryx_arg_optional_t)optional_flag);
+} /* interpreter_arg_{{{dictionaryName}}} */
+{{/body}}
+{{/original_arg_handling}}
 {{! really, these functions should be named "get_..._struct" rather
     than "get_..._value" -- but b/c Jerryscript already has get_*_value
     for all of the builtin types, it's easier to follow that naming

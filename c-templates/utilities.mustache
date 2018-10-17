@@ -34,9 +34,11 @@ under the License.
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 {{#header}}
 #include "jerryscript.h"
+#include "arg.h"
 
 {{/header}}
 {{#body}}
@@ -652,6 +654,7 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_value_is_bool (bool)jerry_value_is_boolean
 #define interpreter_value_is_string (bool)jerry_value_is_string
 
+
 /* "byte" is the type of the ArrayBuffer type */
 #define interpreter_value_is_byte (bool)jerry_value_is_number
 //#define interpreter_value_is_octet (bool)jerry_value_is_number
@@ -715,10 +718,86 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
     if (error_check) \
         return error_check; \
 } /*GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
-#endif
+#endif /* ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
 
 {{/header}}
 
+{{^original_arg_handling}}
+{{#header}}
+#define COERCION_POLICY              JERRYX_ARG_COERCE
+#define ROUNDING_POLICY 	     JERRYX_ARG_ROUND
+#define CLAMPING_POLICY 	     JERRYX_ARG_CLAMP
+typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
+	      INTERPRETER_ARG_REQUIRED=JERRYX_ARG_REQUIRED
+} interpreter_arg_optional_flag_enum_type;
+
+/* all of the interpreter_arg_* functions take a pointer to the
+   result and a the optional flag (defined above, either
+   INTERPRETER_ARG_OPTIONAL or INTERPRETER_ARG_REQUIRED) */
+/* for brevity, "x" == value to be defined, and "z" = optional-flag value) */
+#define interpreter_arg_number        jerryx_arg_number
+#define interpreter_arg_string	      jerryx_arg_string
+#define interpreter_arg_bool(x, z) jerryx_arg_boolean(x, COERCION_POLICY, (jerryx_arg_optional_t)z)
+#define interpreter_arg_int8_t(x, z)    jerryx_arg_int8(x, ROUNDING_POLICY, \
+				     		       	 CLAMPING_POLICY, \
+						       	 COERCION_POLICY, \
+						       	 (jerryx_arg_optional_t)z)
+#define interpreter_arg_uint8_t(x, z)   jerryx_arg_uint8(x, ROUNDING_POLICY, \
+				     			  CLAMPING_POLICY, \
+							  COERCION_POLICY, \
+							  (jerryx_arg_optional_t)z)
+
+#define interpreter_arg_int16_t(x, z)   jerryx_arg_int16(x, ROUNDING_POLICY, \
+				     			  CLAMPING_POLICY, \
+							  COERCION_POLICY, \
+							  (jerryx_arg_optional_t)z)
+#define interpreter_arg_uint16_t(x, z)  jerryx_arg_uint16(x, ROUNDING_POLICY, \
+				     			   CLAMPING_POLICY, \
+							   COERCION_POLICY, \
+							   (jerryx_arg_optional_t)z)
+#define interpreter_arg_int32_t(x, z)   jerryx_arg_int32(x, ROUNDING_POLICY, \
+				     			  CLAMPING_POLICY, \
+							  COERCION_POLICY, \
+							  (jerryx_arg_optional_t)z)
+#define interpreter_arg_uint32_t(x, z)  jerryx_arg_uint32(x, ROUNDING_POLICY, \
+				     			   CLAMPING_POLICY, \
+							   COERCION_POLICY, \
+							   (jerryx_arg_optional_t)z)
+/* this one has to use its own function, b/c Jerryscript doesn't have
+   a floating-point version */
+#define interpreter_arg_float(x, z) \
+            jerryx_arg_custom(x, \
+	    		     (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
+			                     (uintptr_t)z}), \
+			      interpreter_arg_to_float)
+#define interpreter_arg_double(x, z)  jerryx_arg_number(x, COERCION_POLICY, (jerryx_arg_optional_t)z)
+{{/header}}
+
+/* the transform function for floating-point numbers is defined only
+   for doubles, so we need a wrapper that will call the version for
+   doubles and then convert that value to a float */
+jerry_value_t interpreter_arg_to_float(jerryx_arg_js_iterator_t *js_arg_iter_p,
+			               const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+{{#body}}
+{
+fprintf(stderr, "INSIDE of interpreter_arg_to_float\n");
+    double intermediate_result = 0.0;
+    uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
+    /* we naively access c_arg_p as if we know(!) that there are two
+       parameters, one for the coercion flag, and one for the optional flag */
+    jerryx_arg_t get_double = interpreter_arg_number(&intermediate_result,
+						     extra_info[0],
+					             extra_info[1]);
+    jerry_value_t convert_to_double_result =
+            	     get_double.func(js_arg_iter_p, &get_double);
+
+    if (!jerry_value_is_error(convert_to_double_result))
+        *((float*)(c_arg_p->dest)) = (float)intermediate_result;
+    return convert_to_double_result;
+} /* interpreter_arg_to_float */
+{{/body}}
+
+{{/original_arg_handling}}
 Interpreter_Type interpreter_get_property(Interpreter_Type thing, string property){{#header}};{{/header}}
 {{#body}}
 {
@@ -770,22 +849,22 @@ void *Native_Object_get(Interpreter_Type object,
     if (!object_contains_native_object)
         return NULL;
 
-    if (/* JUST FOR TESTING, ALLOW THE PASSED-IN CHECKSUM TO BE NULL */
+    if (/* TODO: JUST FOR TESTING, ALLOW THE PASSED-IN CHECKSUM TO BE NULL */
         checksum && stored_checksum != checksum)
     {
-        /*fprintf(stderr, "Native Objects don't match.\n");*/
-	static const jerry_char_t *message = (jerry_char_t *)"Native Objects don't match.";
+    	static const jerry_char_t *message = (jerry_char_t *)"Native Objects don't match.";
 	*error_value =  jerry_create_error_sz (JERRY_ERROR_REFERENCE,
 					     message,
                				     (jerry_size_t)strlen((char *)message));
-	return NULL; /* TODO: is this the right thing in this case? */
+	return thing; /* TODO: should we be returning "thing" in this case? */
+	       	      /* ARGUABLY, yes -- let the user decide if he
+        	         cares that the decallocators are different... */
     }
 
     return thing;
 } /* Native_Object_get */
 {{/body}}
 
-#include <stdlib.h>
 char *interpreter_get_string_value(Interpreter_Type string_value){{#header}};{{/header}}
 {{#body}}
 {

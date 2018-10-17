@@ -32,16 +32,11 @@ under the License.
 #define {{{enumName}}}_ENUM_H_
 {{/header}}
 
-#include <stdio.h>
-#include <string.h>
 #include "{{{utilities_filename}}}.h"
 {{#body}}
 #include "{{{enumName}}}.h"
 
 {{/body}}
-/* this variable is used in composite types to denote a field of type
-   {{{interfaceName}}} -- this should be considered a read-only value */
-{{#header}}extern {{/header}}int {{{enumName}}}_uid;
 
 {{#header}}
 #include "jerryscript.h"
@@ -56,6 +51,10 @@ static int number_of_{{{enumName}}} = {{{members.length}}};
 /********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
 
 {{/header}}
+/* this variable is used in composite types to denote a field of type
+   {{{interfaceName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{enumName}}}_uid;
+
 {{! TODO: what if the "members" list is empty?!?"}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for enums, just return the
@@ -83,8 +82,70 @@ static char *{{{enumName}}}_Javascript_strings[] = { {{#members}}{{{indentation}
 {{! TODO: do we have to explicitly deallocate interpreter_get_string_value's? }}
     return ({{{enumName}}})enum_index(interpreter_get_string_value(value), {{{enumName}}}_Javascript_strings, number_of_{{{enumName}}});
 } /* interpreter_get_{{{enumName}}}_value */
-{{/body}}
 
+{{/body}}
+{{^original_arg_handling}}
+{{#header}}
+/* this one has to use its own function, b/c Jerryscript doesn't have
+   a floating-point version */
+#define interpreter_arg_{{{enumName}}}(x, z) \
+            jerryx_arg_custom(x, \
+                             (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
+                                             (uintptr_t)z}), \
+                              interpreter_arg_to_{{{enumName}}})
+{{/header}}
+
+/* the transform function for enums requires us to use the pre-defined
+   transform function for strings to grab that result and convert the
+   string to the enum */
+jerry_value_t interpreter_arg_to_{{{enumName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p,
+                                       const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+{{#body}}
+{
+fprintf(stderr, "INSIDE of interpreter_arg_to_{{{enumName}}}}\n");
+    char temp_buffer[{{{longest_Javascript_name_length}}}+1];
+
+    uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
+
+    /* we naively access c_arg_p as if we know(!) that there are two
+       parameters, one for the coercion flag, and one for the optional flag */
+    jerryx_arg_t get_string = interpreter_arg_string(temp_buffer,
+						     {{{longest_Javascript_name_length}}}+1,
+                                                     extra_info[0],
+                                                     extra_info[1]);
+    jerry_value_t convert_to_string_result =
+                     get_string.func(js_arg_iter_p, &get_string);
+
+    if (!jerry_value_is_error(convert_to_string_result))
+    {
+        {{{enumName}}} temp_value = enum_index(temp_buffer,
+					 {{{enumName}}}_Javascript_strings,
+					 number_of_{{{enumName}}});
+	if (temp_value == -1)
+	{
+	    char *main_error_string_part_1 = "String >";
+	    int part1_length = strlen(main_error_string_part_1);
+	    char *main_error_string_part_2 = "< does not match {{{enumName}}} type.\n";
+	    int part2_length = strlen(main_error_string_part_2);
+	    char error_string[part1_length + part2_length +
+	                      {{{longest_Javascript_name_length}}}+1];
+	    strcpy(error_string, main_error_string_part_1);
+	    strcpy(error_string+part1_length, temp_buffer);
+	    strcpy(error_string+(part1_length + strlen(temp_buffer)),
+		   main_error_string_part_2);
+	    error_string[part1_length+part2_length+strlen(temp_buffer)+1] =
+								           '\0';
+	    return jerry_create_error(JERRY_ERROR_TYPE,
+                                      (const jerry_char_t *) error_string);
+	}
+	else
+            *(({{{enumName}}} *)(c_arg_p->dest)) = temp_value;
+    }
+    return convert_to_string_result;
+} /* interpreter_arg_to_float */
+
+{{/body}}
+{{/original_arg_handling}}
 Interpreter_Type interpreter_create_{{{enumName}}}({{{enumName}}} x){{#header}};{{/header}}
 {{#body}}
 {

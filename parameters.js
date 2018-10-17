@@ -17,6 +17,13 @@ specific language governing permissions and limitations
 under the License.
 */
 
+/* WHEN ADDING A NEW FLAG:
+   You should only need to update the following two data structures:
+   command_line_parms and acceptable_inputs
+   (obviously, you then have to use your new flag elsewhere, but
+    that should be the extent of changes in this file...)
+*/
+
 /* parse command-line arguments */
 /* we use "process.argv.slice(2) b/c the first two params in argv are
    "node" and the name of the script (in that order) */
@@ -32,6 +39,7 @@ let command_line_parms = {
     print_generation_message: argv['print_generation_message'],
     output_utility_files:     argv['output_utility_files'],
     quiet:                    argv['quiet'],
+    arg_handling:             argv['arg_handling'],
     help:                     argv['help']
 };
 
@@ -48,6 +56,7 @@ let acceptable_inputs = {
     leave_enums_alone:        [false, true],
     print_generation_message: [true, false],
     quiet:                    [false, true],
+    arg_handling:             ["original", "new"],
     help:                     []
 }; /* acceptable_inputs */
 
