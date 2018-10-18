@@ -57,6 +57,8 @@ module.exports.getContext = function(ast, moduleName){
 
     composites: ast.getCompositesArray(),
 
+    Interpreter: ast.Interpreter,
+
     debug_printing: ast.debug_printing,
 
     print_generation_message: ast.print_generation_message,

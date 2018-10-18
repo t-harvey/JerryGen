@@ -33,7 +33,7 @@ under the License.
 {{! We have to make sure that the type is defined before any
     composites that use it are #include'd... }}
 /* defined in {{{interfaceName}}}_stubs.h */
-typedef Interpreter_Type {{{interfaceName}}};
+typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 
 {{#externalTypes}}
 #include "{{{type}}}.h"
@@ -50,10 +50,11 @@ typedef Interpreter_Type {{{interfaceName}}};
 
 #include "jerryscript.h"
 #include "{{{utilities_filename}}}.h"
+
 {{#body}}
 #include "{{{interfaceName}}}.h"
-{{/body}}
 
+{{/body}}
 {{^repress_stubs}}
 {{#header}}
 {{! TODO: why do we need to include the stubs.h in this .h?!? }}
@@ -68,12 +69,12 @@ typedef Interpreter_Type {{{interfaceName}}};
 #define {{{interfaceName}}}_checksum {{{inheritance}}}_checksum
 {{/body}}{{/inheritance}}
 {{^inheritance}}
-{{#header}}extern {{/header}}Interpreter_Checksum_Type {{{interfaceName}}}_checksum {{#body}} = { {{{interfaceName}}}_Native_Object_deallocator }{{/body}};
+{{#header}}extern {{/header}}{{{Interpreter.checksum_type}}} {{{interfaceName}}}_checksum {{#body}} = { {{{interfaceName}}}_Native_Object_deallocator }{{/body}};
 {{/inheritance}}
 
 
-{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get(Interpreter_Type self,
-				      Interpreter_Error_Type *error_check){{#header}};{{/header}}
+{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} self,
+				      {{{Interpreter.error_type}}} *error_check){{#header}};{{/header}}
 {{#body}}
 {
     return Native_Object_get(self, &{{{interfaceName}}}_checksum, error_check);
@@ -110,24 +111,24 @@ typedef Interpreter_Type {{{interfaceName}}};
 {{/attributes.length}}
 {{#attributes}}
 {{#C_and_Jerryscript_Types}}
-{{#header}}extern {{/header}}{{{C_Type}}} get_{{{interfaceName}}}_{{{attributeName}}} (Interpreter_Type self){{#header}};{{/header}}
+{{#header}}extern {{/header}}{{{C_Type}}} get_{{{interfaceName}}}_{{{attributeName}}} ({{{Interpreter.Type}}} self){{#header}};{{/header}}
 {{#body}}
 {
-    Interpreter_Type property_pointer = jerry_create_string((const jerry_char_t *) "{{{attributeName}}}");
-    Interpreter_Type attribute_pointer = jerry_get_property(self, property_pointer);
-    {{{C_Type}}} return_value = ({{{C_Type}}})interpreter_get_{{{C_Type}}}_value(attribute_pointer);
+    {{{Interpreter.Type}}} property_pointer = jerry_create_string((const jerry_char_t *) "{{{attributeName}}}");
+    {{{Interpreter.Type}}} attribute_pointer = jerry_get_property(self, property_pointer);
+    {{{C_Type}}} return_value = ({{{C_Type}}}){{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(attribute_pointer);
     jerry_release_value(property_pointer);
     jerry_release_value(attribute_pointer);
     return return_value;
 } /* get_{{interfaceName}}_{{attributeName}} */
 
 {{/body}}
-{{#header}}extern {{/header}}void set_{{{interfaceName}}}_{{{attributeName}}} (Interpreter_Type self, {{{C_Type}}} new_value){{#header}};{{/header}}
+{{#header}}extern {{/header}}void set_{{{interfaceName}}}_{{{attributeName}}} ({{{Interpreter.Type}}} self, {{{C_Type}}} new_value){{#header}};{{/header}}
 {{#body}}
 {
-    Interpreter_Type new_value_pointer =
-              interpreter_create_{{{C_Type}}}({{#is_string}}(const jerry_char_t *) {{/is_string}}new_value);
-    interpreter_set_property(self, "{{{attributeName}}}", new_value_pointer);
+    {{{Interpreter.Type}}} new_value_pointer =
+              {{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{C_Type}}}({{#is_string}}(const jerry_char_t *) {{/is_string}}new_value);
+    {{{Interpreter.interpreter}}}__set_property(self, "{{{attributeName}}}", new_value_pointer);
     jerry_release_value(new_value_pointer);
 
 } /* set_{{interfaceName}}_{{attributeName}} */
@@ -181,10 +182,10 @@ void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Ob
 {{/body}}
     {{#operations}}
         {{^inherited_operation}}
-Interpreter_Type
-{{{interfaceName}}}_{{{operationName}}}_handler(const Interpreter_Type func_value, /**< function object */
-		   const Interpreter_Type this_val, /**< this arg */
-                   const Interpreter_Type *args_p, /**< function arguments */
+{{{Interpreter.Type}}}
+{{{interfaceName}}}_{{{operationName}}}_handler(const {{{Interpreter.Type}}} func_value, /**< function object */
+		   const {{{Interpreter.Type}}} this_val, /**< this arg */
+                   const {{{Interpreter.Type}}} *args_p, /**< function arguments */
                    const jerry_length_t args_cnt){{#header}};{{/header}} /**< number of function arguments */
 {{#body}}
 {
@@ -210,13 +211,13 @@ Interpreter_Type
     {{#arguments}}
 	{{#variadic}}
    	    {{#C_and_Jerryscript_Types}}
-    {{{name}}} = interpreter_get_{{{C_Type}}}_value_from_args({{{paramIndex}}}, args_p, args_cnt);
+    {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value_from_args({{{paramIndex}}}, args_p, args_cnt);
    	    {{/C_and_Jerryscript_Types}}
 	{{/variadic}}
 	{{^variadic}}
    	    {{#C_and_Jerryscript_Types}}
     if ({{{paramIndex}}} < args_cnt)
-        {{{name}}} = interpreter_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
+        {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
     else
                  {{^optional}}
     {
@@ -246,10 +247,10 @@ Interpreter_Type
       {{#arguments}}
 	{{#C_and_Jerryscript_Types}}
 	  {{#optional}}
-	interpreter_arg_{{{C_Type}}}(&{{{name}}}, INTERPRETER_ARG_OPTIONAL){{^finalParam}},{{/finalParam}}
+	{{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(&{{{name}}}, {{{INTERPRETER.INTERPRETER}}}_ARG_OPTIONAL){{^finalParam}},{{/finalParam}}
 	  {{/optional}}
 	  {{^optional}}
-	interpreter_arg_{{{C_Type}}}(&{{{name}}}, INTERPRETER_ARG_REQUIRED){{^finalParam}},{{/finalParam}}
+	{{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(&{{{name}}}, {{{INTERPRETER.INTERPRETER}}}_ARG_REQUIRED){{^finalParam}},{{/finalParam}}
 	  {{/optional}}
 	{{/C_and_Jerryscript_Types}}
       {{/arguments}}
@@ -283,7 +284,7 @@ Interpreter_Type
 {{^repress_stubs}}
 
 {{#C_and_Jerryscript_Types}}
-extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}(Interpreter_Type*{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}});
+extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}*{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}});
 {{/C_and_Jerryscript_Types}}
 {{/repress_stubs}}
 {{! for the "return_value", the logic is as follows: 1) don't put out
@@ -293,7 +294,7 @@ simple declaration; 3) if we're not repressing stubs, then put out the
 declaration with an assignment from the stub }}
 {{#repress_stubs}}{{^voidReturnType}}
 /* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
-    Interpreter_Type copy_of_this_val = this_val;
+    {{{Interpreter.Type}}} copy_of_this_val = this_val;
 {{#C_and_Jerryscript_Types}}
     {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}(&copy_of_this_val{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}});{{/repress_stubs}}
 {{/C_and_Jerryscript_Types}}
@@ -310,7 +311,7 @@ declaration with an assignment from the stub }}
         {{#is_string}}
     {{! DOES THE FOLLOWING COVER ALL OF THE PERMUTATIONS? }}
     /* put the string into Jerryscript before we cleanup any string arguments */
-    Interpreter_Type string_value = jerry_create_string((const jerry_char_t *)return_value);
+    {{{Interpreter.Type}}} string_value = jerry_create_string((const jerry_char_t *)return_value);
         {{/is_string}}
     {{/C_and_Jerryscript_Types}}
     {{! FREE MALLOC'D STRINGS}}
@@ -341,7 +342,7 @@ declaration with an assignment from the stub }}
             {{/voidReturnType}}
             {{^voidReturnType}}
                 {{^is_string}}
-    return interpreter_create_{{{Jerryscript_Type}}}(return_value);
+    return {{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{Jerryscript_Type}}}(return_value);
                 {{/is_string}}
                 {{#is_string}}
      return string_value;
@@ -357,40 +358,40 @@ declaration with an assignment from the stub }}
     {{/operations}}
 
 {{#body}}
-static Interpreter_Type
-create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
-		   const Interpreter_Type this_val,
-                   const Interpreter_Type *args_p,
+static {{{Interpreter.Type}}}
+create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_value,
+		   const {{{Interpreter.Type}}} this_val,
+                   const {{{Interpreter.Type}}} *args_p,
                    const jerry_length_t args_cnt)
 {
 {{! If the object has been specified as no-interface, then the user's
     not allowed to create a new one of these; for now, return the
     (single) global object instead of an error }}
 {{#NoInterfaceObject}}
-    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");
-    Interpreter_Type global_object = jerry_get_global_object();
+    {{{Interpreter.Type}}} object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");
+    {{{Interpreter.Type}}} global_object = jerry_get_global_object();
     /* THIS IS A nointerfaceobject, SO WE'RE RETURNING THE (SINGLE) GLOBAL
        INSTANCE */
-    Interpreter_Type object = jerry_get_property(global_object, object_name);
+    {{{Interpreter.Type}}} object = jerry_get_property(global_object, object_name);
     jerry_release_value(object_name);
     jerry_release_value(global_object);
     return object;
 {{/NoInterfaceObject}}
 {{^NoInterfaceObject}}
-    Interpreter_Type new_{{{interfaceName}}} = jerry_create_object();
+    {{{Interpreter.Type}}} new_{{{interfaceName}}} = jerry_create_object();
 
     {{#attributes}}
     if ((((signed int)args_cnt)-1) >= {{{attribute_index}}})
     {
-        Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
+        {{{Interpreter.Type}}} {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
         jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, args_p[{{{attribute_index}}}]));
         jerry_release_value({{{attributeName}}}_prop_name);
     }
     else
     {
     {{#C_and_Jerryscript_Types}}
-        Interpreter_Type {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
-	Interpreter_Type {{{attributeName}}}_default_value = interpreter_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *) {{/is_string}}{{{default_value}}});
+        {{{Interpreter.Type}}} {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
+	{{{Interpreter.Type}}} {{{attributeName}}}_default_value = {{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *) {{/is_string}}{{{default_value}}});
         jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, {{{attributeName}}}_default_value));
         jerry_release_value({{{attributeName}}}_default_value);
         jerry_release_value({{{attributeName}}}_prop_name);
@@ -405,7 +406,7 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
     {{! TODO: check to see if an actual prototype is returned from the
         following call: }}
     {{#prototype_chain}}
-    Interpreter_Type prototype_{{{parentName}}} = get_prototype((char *)"{{{parentName}}}");
+    {{{Interpreter.Type}}} prototype_{{{parentName}}} = get_prototype((char *)"{{{parentName}}}");
     jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
 					    prototype_{{{parentName}}}));
     jerry_release_value(prototype_{{{parentName}}});
@@ -413,7 +414,7 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
 
     {{! ...and, of course, we overlay the current object's prototype
         last so that its methods override all of its ancestors }}
-    Interpreter_Type prototype = get_prototype((char *)"{{{interfaceName}}}");
+    {{{Interpreter.Type}}} prototype = get_prototype((char *)"{{{interfaceName}}}");
     jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
 					    prototype));
     jerry_release_value(prototype);
@@ -431,11 +432,11 @@ create_{{{interfaceName}}}_interface_handler(const Interpreter_Type func_value,
 /* we need this when we want to create a structure with the
    interface's operations, but we don't (yet?) have any values for the
    attributes */
-Interpreter_Type create_empty_{{{interfaceName}}}(){{#header}};{{/header}}
+{{{Interpreter.Type}}} create_empty_{{{interfaceName}}}(){{#header}};{{/header}}
 {{#body}}
 {
-    Interpreter_Type dummy_jerry_value;
-    Interpreter_Type empty_{{{interfaceName}}} =
+    {{{Interpreter.Type}}} dummy_jerry_value;
+    {{{Interpreter.Type}}} empty_{{{interfaceName}}} =
                     create_{{{interfaceName}}}_interface_handler(dummy_jerry_value,
 							dummy_jerry_value,
 							&dummy_jerry_value,
@@ -448,7 +449,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {{#body}}
 {
     /* first, make sure that this prototype doesn't already exist */
-    Interpreter_Type existing_prototype = get_prototype((char *)"{{{interfaceName}}}");
+    {{{Interpreter.Type}}} existing_prototype = get_prototype((char *)"{{{interfaceName}}}");
     if (!jerry_value_is_error(existing_prototype) &&
         !jerry_value_is_undefined(existing_prototype))
     {
@@ -464,10 +465,10 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
        anything in the object version of the interface, either, but it
        looks nice... }}
     {{! IS THE ABOVE STILL TRUE?  WHAT IF IT'S A NOINTERFACEOBJECT? }}
-    Interpreter_Type global_object = jerry_get_global_object();
+    {{{Interpreter.Type}}} global_object = jerry_get_global_object();
 
     /* create a new object to hold all of the interface prototypes */
-    Interpreter_Type {{{interfaceName}}}_prototype_object = jerry_create_object();
+    {{{Interpreter.Type}}} {{{interfaceName}}}_prototype_object = jerry_create_object();
     {{#operations}}
     add_field_to_object({{{interfaceName}}}_prototype_object,
                         "{{{operationName}}}", &{{#inherited_operation}}{{{defining_interface}}}{{/inherited_operation}}{{^inherited_operation}}{{{interfaceName}}}{{/inherited_operation}}_{{{operationName}}}_handler);
@@ -481,7 +482,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_create();
     Native_Object_set(native_object, {{{interfaceName}}}_prototype_object, &{{{interfaceName}}}_checksum);
 
-    Interpreter_Type object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");
+    {{{Interpreter.Type}}} object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");
     jerry_release_value(jerry_set_property(global_object,
 					   object_name,
 					   {{{interfaceName}}}_prototype_object));
@@ -531,7 +532,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
     and then just graft the methods onto it and return it }}
 {{#is_module}}
 {{#body}}
-static Interpreter_Type {{{interfaceName}}}_require_function_(void)
+static {{{Interpreter.Type}}} {{{interfaceName}}}_require_function_(void)
 {
     /* make sure that all of the types upon which this type depends
        have been initialized */
@@ -548,10 +549,10 @@ static Interpreter_Type {{{interfaceName}}}_require_function_(void)
 {{! TODO: handle repress_stubs }}
 
     /* let the user set up the object and then map the operations onto it */
-    Interpreter_Type new_{{{interfaceName}}} =
-                     interpreter_create_{{{interfaceName}}}(require_{{{interfaceName}}}());
+    {{{Interpreter.Type}}} new_{{{interfaceName}}} =
+                     {{{Interpreter.interpreter}}}_create_{{{interfaceName}}}(require_{{{interfaceName}}}());
 
-    Interpreter_Type prototype = get_prototype((char *)"{{{interfaceName}}}");
+    {{{Interpreter.Type}}} prototype = get_prototype((char *)"{{{interfaceName}}}");
     jerry_release_value(jerry_set_prototype(new_{{{interfaceName}}},
 					    prototype));
     jerry_release_value(prototype);
@@ -583,19 +584,19 @@ static void register_initialize_{{{interfaceName}}}(void)
 
 {{/body}}
 {{! INTERFACE GETTER/SETTER: }}
-{{{interfaceName}}} interpreter_get_{{{interfaceName}}}_value(Interpreter_Type value){{#header}};{{/header}}
+{{{interfaceName}}} {{{Interpreter.interpreter}}}_get_{{{interfaceName}}}_value({{{Interpreter.Type}}} value){{#header}};{{/header}}
 {{#body}}
 {
     /* interfaces live on the Javascript side, so "value" is already
         of the correct type */
     return value;
 
-} /* interpreter_get_{{{interfaceName}}}_value */
+} /* {{{Interpreter.interpreter}}}_get_{{{interfaceName}}}_value */
 
 {{/body}}
-/* like all the interpreter_create_* functions, this one takes a C
+/* like all the {{{Interpreter.interpreter}}}_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
-Interpreter_Type interpreter_create_{{{interfaceName}}}({{{interfaceName}}} x){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{interfaceName}}}({{{interfaceName}}} x){{#header}};{{/header}}
 {{#body}}
 {
     /* interfaces are stored over on the Javascript side, so "x" is
@@ -603,26 +604,26 @@ Interpreter_Type interpreter_create_{{{interfaceName}}}({{{interfaceName}}} x){{
        the handle so that the user can "release" his */
     return jerry_acquire_value(x);
 
-} /* interpreter_create_{{{interfaceName}}} */
+} /* {{{Interpreter.interpreter}}}_create_{{{interfaceName}}} */
 
 {{/body}}
 {{#AAAheader}}
 {{#AAAtypedefs}}
-#define interpreter_create_{{{name}}} interpreter_create_{{{type}}}
+#define {{{Interpreter.interpreter}}}_create_{{{name}}} {{{Interpreter.interpreter}}}_create_{{{type}}}
 {{/AAAtypedefs}}
 {{/AAAheader}}
-bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}_value_is_{{{interfaceName}}}({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
 {{#body}}
 {
     {{#attributes}}
-    if (!interpreter_has_own_property(thing_value, "{{{attributeName}}}"))
+    if (!{{{Interpreter.interpreter}}}__has_own_property(thing_value, "{{{attributeName}}}"))
             return false;
     else
     {
 {{#C_and_Jerryscript_Types}}
-        Interpreter_Type field = interpreter_get_property(thing_value,
+        {{{Interpreter.Type}}} field = {{{Interpreter.interpreter}}}__get_property(thing_value,
                                                          "{{{attributeName}}}");
-	bool value_is_right_type = interpreter_value_is_{{{C_Type}}}(field);
+	bool value_is_right_type = {{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}value_is_{{{C_Type}}}(field);
         jerry_release_value(field);
 
         if (!value_is_right_type)
@@ -638,13 +639,13 @@ bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#he
                            jerry_create_string((const jerry_char_t *)"length");
 
     {{#operations}}
-    if (!interpreter_has_own_property(thing_value, "{{{operationName}}}"))
+    if (!{{{Interpreter.interpreter}}}__has_own_property(thing_value, "{{{operationName}}}"))
     {
         /* check to see if this object inherited the operation */
-        if (interpreter_has_property(thing_value, "{{{operationName}}}"))
+        if ({{{Interpreter.interpreter}}}__has_property(thing_value, "{{{operationName}}}"))
 	{
 	    jerry_value_t parent = jerry_get_prototype(thing_value);
-	    bool parent_has_operation = interpreter_has_own_property(parent, "{{{operationName}}}");
+	    bool parent_has_operation = {{{Interpreter.interpreter}}}__has_own_property(parent, "{{{operationName}}}");
 
 	    /* TODO: IF YOU RELEASE THE jerry_value_t FOR THE PROTOTYPE, THE
    	       INTERPRETER THROWS AN EXCEPTION:
@@ -659,7 +660,7 @@ bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#he
     else
     {
 {{#C_and_Jerryscript_Types}}
-        Interpreter_Type field = interpreter_get_property(thing_value,
+        {{{Interpreter.Type}}} field = {{{Interpreter.interpreter}}}__get_property(thing_value,
                                                          "{{{operationName}}}");
         jerry_value_t length_value =
 	                     jerry_get_property(field, length_property);
@@ -676,7 +677,7 @@ bool interpreter_value_is_{{{interfaceName}}}(Interpreter_Type thing_value){{#he
     {{/operations}}
     /* fall-through indicates success */
     return true;
-} /* interpreter_value_is_{{{interfaceName}}} */
+} /* {{{Interpreter.interpreter}}}_value_is_{{{interfaceName}}} */
 
 {{/body}}
 {{#debug_printing}}

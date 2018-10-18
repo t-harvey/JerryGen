@@ -40,6 +40,7 @@ let command_line_parms = {
     output_utility_files:     argv['output_utility_files'],
     quiet:                    argv['quiet'],
     arg_handling:             argv['arg_handling'],
+    tied_to_jerryscript:      argv['tied_to_jerryscript'],
     help:                     argv['help']
 };
 
@@ -57,6 +58,7 @@ let acceptable_inputs = {
     print_generation_message: [true, false],
     quiet:                    [false, true],
     arg_handling:             ["original", "new"],
+    tied_to_jerryscript:      [false, true],
     help:                     []
 }; /* acceptable_inputs */
 

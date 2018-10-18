@@ -37,14 +37,14 @@ else
 	    includes_events=`grep "EventEmitter" $idl_filename | grep "interface" `
 	    if [[ -n $events_file ]]
 	    then
-                $generator_directory/generate.js --print_generation_message=false --output_utility_files --debug_printing=on --package=$name $idl_filename
+                $generator_directory/generate.js $4 --print_generation_message=false --output_utility_files --debug_printing=on --package=$name $idl_filename
 	    elif [[ -n $includes_events ]]
 	    then
 	        awk -f `dirname $0`/filter_webild.awk /Users/a0179262/work/forked_zephyr.js/docs/events.md > events.idl
-                $generator_directory/generate.js --print_generation_message=false --output_utility_files --debug_printing=on --package=$name --include=`pwd`/events.idl $idl_filename
+                $generator_directory/generate.js $4 --print_generation_message=false --output_utility_files --debug_printing=on --package=$name --include=`pwd`/events.idl $idl_filename
 		rm events.idl
 	    else
-                $generator_directory/generate.js --print_generation_message=false --debug_printing=on --package=$name $idl_filename
+                $generator_directory/generate.js $4 --print_generation_message=false --debug_printing=on --package=$name $idl_filename
 	    fi
 	    cp $idl_filename $name/.
             echo "************************************"

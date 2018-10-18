@@ -58,6 +58,17 @@ augAST.utilities_filename       = "webidl_compiler_utilities";
 augAST.debug_printing           = (parameters.debug_printing === "on");
 augAST.original_arg_handling    = (parameters.arg_handling === "original");
 augAST.print_generation_message = (parameters.print_generation_message === "true");
+if (!parameters.tied_to_jerryscript)
+augAST.Interpreter = { "Type": "Interpreter_Type",
+		       "interpreter"        : "interpreter",
+		       "error_type"         : "Interpreter_Error_Type",
+		       "checksum_type"      : "Interpreter_Checksum_Type" };
+else
+augAST.Interpreter = { "Type": "jerry_value_t",
+		       "interpreter"        : "jerry",
+		       "error_type"         : "jerry_error_t",
+		       "checksum_type"      : "jerry_object_native_info_t",
+		       "tied_to_jerryscript": "true" };
 
 // NOTE: THIS COMMENT WAS IN THE ORIGINAL CODE; IT SEEMS LIKE A GOOD IDEA(?)
 // TODO, use cross-platform paths (using '/' is bad...)

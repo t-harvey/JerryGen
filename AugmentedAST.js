@@ -533,6 +533,15 @@ AugmentedAST.prototype.getConversionTypes = function(idlType,
     if (return_types.Jerryscript_Type === "string")
 	return_types.is_string = true;
 
+    /* the only reason we need this is for the highly questionable
+       requirement that we support "jerry_value_t" instead of
+       "Interpreter_Type" -- the problem is that there are a number of
+       places that cannot distinguish between between Jerryscript's
+       "object" type and WebIDL's "object" thing, so add (yet another)
+       boolean for WebIDL "object"s */
+    if (return_types.Jerryscript_Type === "object")
+	return_types.is_object = true;
+
     /* (for callbacks, both the C and Jerryscript types will be the same,
        so it doesn't matter which one we look at) */
     /* TODO: AT THIS POINT, DO WE KNOW ALL OF THE TYPES' KINDS? */
@@ -3258,6 +3267,7 @@ AugmentedAST.prototype.convert_list_of_array_types_to_dictionaries = function(ar
 				    "default_value": 0
 				  }
 		    });
+	let is_string = (element_type === "string");
 	members.push({"type": "field",
 		      "memberName": "items",
 		      "member_index": 1,
@@ -3272,6 +3282,7 @@ AugmentedAST.prototype.convert_list_of_array_types_to_dictionaries = function(ar
 		           { "Jerryscript_Type": element_type,
 			     "C_Type": element_type,
 			     "is_array" : true,
+			     "is_string" : is_string,
 		             "default_value": this.get_C_default_value(element_type)
 			   }
 		    });

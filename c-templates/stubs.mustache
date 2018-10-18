@@ -150,10 +150,10 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
  *
  */ 
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}(Interpreter_Type *self{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}} *self{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}){{#header}};{{/header}}
 {{#body}}
 {
-    Interpreter_Error_Type error_check; /* this value will be non-zero after
+    {{{Interpreter.error_type}}} error_check; /* this value will be non-zero after
     			            a call to
 			            {{{interfaceName}}}_Native_Object_get()
 			            if that call encounters an error */

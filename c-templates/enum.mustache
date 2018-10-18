@@ -75,41 +75,41 @@ static char *{{{enumName}}}_Javascript_strings[] = { {{#members}}{{{indentation}
 {{^onlyOneMember}}};{{/onlyOneMember}}
 
 {{/body}}
-{{{enumName}}} interpreter_get_{{{enumName}}}_value(Interpreter_Type value){{#header}};{{/header}}
+{{{enumName}}} {{{Interpreter.interpreter}}}_get_{{{enumName}}}_value({{{Interpreter.Type}}} value){{#header}};{{/header}}
 {{#body}}
 {
 {{! TODO: check that enum_index doesn't return -1! }}
 {{! TODO: do we have to explicitly deallocate interpreter_get_string_value's? }}
-    return ({{{enumName}}})enum_index(interpreter_get_string_value(value), {{{enumName}}}_Javascript_strings, number_of_{{{enumName}}});
-} /* interpreter_get_{{{enumName}}}_value */
+    return ({{{enumName}}})enum_index({{{Interpreter.interpreter}}}_get_string_value(value), {{{enumName}}}_Javascript_strings, number_of_{{{enumName}}});
+} /* {{{Interpreter.interpreter}}}_get_{{{enumName}}}_value */
 
 {{/body}}
 {{^original_arg_handling}}
 {{#header}}
 /* this one has to use its own function, b/c Jerryscript doesn't have
    a floating-point version */
-#define interpreter_arg_{{{enumName}}}(x, z) \
+#define {{{Interpreter.interpreter}}}_arg_{{{enumName}}}(x, z) \
             jerryx_arg_custom(x, \
                              (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
                                              (uintptr_t)z}), \
-                              interpreter_arg_to_{{{enumName}}})
+                              {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}})
 {{/header}}
 
 /* the transform function for enums requires us to use the pre-defined
    transform function for strings to grab that result and convert the
    string to the enum */
-jerry_value_t interpreter_arg_to_{{{enumName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p,
+jerry_value_t {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p,
                                        const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
 {{#body}}
 {
-fprintf(stderr, "INSIDE of interpreter_arg_to_{{{enumName}}}}\n");
+fprintf(stderr, "INSIDE of {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}}\n");
     char temp_buffer[{{{longest_Javascript_name_length}}}+1];
 
     uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
 
     /* we naively access c_arg_p as if we know(!) that there are two
        parameters, one for the coercion flag, and one for the optional flag */
-    jerryx_arg_t get_string = interpreter_arg_string(temp_buffer,
+    jerryx_arg_t get_string = {{{Interpreter.interpreter}}}_arg_string(temp_buffer,
 						     {{{longest_Javascript_name_length}}}+1,
                                                      extra_info[0],
                                                      extra_info[1]);
@@ -142,25 +142,25 @@ fprintf(stderr, "INSIDE of interpreter_arg_to_{{{enumName}}}}\n");
             *(({{{enumName}}} *)(c_arg_p->dest)) = temp_value;
     }
     return convert_to_string_result;
-} /* interpreter_arg_to_float */
+} /* {{{Interpreter.interpreter}}}_arg_to_float */
 
 {{/body}}
 {{/original_arg_handling}}
-Interpreter_Type interpreter_create_{{{enumName}}}({{{enumName}}} x){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{enumName}}}({{{enumName}}} x){{#header}};{{/header}}
 {{#body}}
 {
-    return interpreter_create_string ((const jerry_char_t *) {{{enumName}}}_Javascript_strings[x]);
-} /* interpreter_create_{{{enumName}}} */
+    return {{{Interpreter.interpreter}}}_create_string ((const jerry_char_t *) {{{enumName}}}_Javascript_strings[x]);
+} /* {{{Interpreter.interpreter}}}_create_{{{enumName}}} */
 
 {{/body}}
-bool interpreter_value_is_{{{enumName}}}(Interpreter_Type thing_value){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}_value_is_{{{enumName}}}({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
 {{#body}}
 {
     if (!jerry_value_is_string(thing_value))
         return false;
     else
     {
-        char *enum_string = interpreter_get_string_value(thing_value);
+        char *enum_string = {{{Interpreter.interpreter}}}_get_string_value(thing_value);
 	if (enum_index(enum_string,
 	               {{{enumName}}}_Javascript_strings,
 	   	       number_of_{{{enumName}}}) != -1)
@@ -168,7 +168,7 @@ bool interpreter_value_is_{{{enumName}}}(Interpreter_Type thing_value){{#header}
 	else
 	    return false;
     }
-} /* interpreter_value_is_{{{enumName}}} */
+} /* {{{Interpreter.interpreter}}}_value_is_{{{enumName}}} */
 
 {{/body}}
 {{! the following greatly(!) simplifies the code elsewhere, b/c we
