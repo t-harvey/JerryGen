@@ -1,0 +1,203 @@
+undefined
+undefined
+undefined
+undefined
+z2: 1,2,3,4,5,6
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+***********************executing: x.baz(a(true), b(2), c(2));
+undefined
+PARAMETERS TO "baz" :
+   a :  TRUE
+   b :  2
+   c:
+   [
+      0 :  4.000000
+   ]
+undefined
+***********************executing: x.baz(a(true), b(2), d(true)); <-- should be an error with strict type checking (third param is a bool, not a float)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: It is not a boolean.
+***********************executing: x.baz(d(true), e("17.0"), e("17.0")); <-- should be an error with strict type checking (2nd and 3rd params are a strings, not a numbers)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: It is not a number.
+***********************executing: x.foo(4.0, z);
+undefined
+PARAMETERS TO "foo" :
+   y :  4.000000
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  66
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+***********************executing: x.foo(z, z) <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: any-type error.
+***********************executing: x.bar(z3([7, 8, 9]), 'a')
+INSIDE of interpreter_arg_to_simple_enum}
+undefined
+PARAMETERS TO "bar" :
+   a:
+   [
+      0 :  7
+      1 :  8
+      2 :  9
+   ]
+   b: simple_enum_a
+undefined
+***********************executing: x.bar('the') <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Expected array.
+***********************executing: x.bar([4.2], 'a')
+INSIDE of interpreter_arg_to_simple_enum}
+undefined
+PARAMETERS TO "bar" :
+   a:
+   [
+      0 :  4
+   ]
+   b: simple_enum_a
+undefined
+***********************executing: x.bar([4.2], 'ab') <-- should be an error)
+INSIDE of interpreter_arg_to_simple_enum}
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: String >ab< does not match simple_enum type.
+***********************executing: x.bar("4", 'ab') <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Expected array.
+***********************changing z.z to 4.32
+undefined
+4.32
+***********************calling x.foo(4.0, new simple_dictionary( 5, [] )) -- should be an error with strict type checking (new-dict.z is a number, not a boolean)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: It is not a boolean.
+***********************calling x.foo2(true)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >boolean<:
+       :  TRUE
+undefined
+***********************calling x.foo2(1)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  1.000000
+undefined
+***********************calling x.foo2(4.3)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  4.300000
+undefined
+***********************calling x.foo4("true")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  "true"
+undefined
+***********************calling x.foo4("the")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  "the"
+undefined
+***********************calling x.foo4(true)
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >boolean<:
+       :  TRUE
+undefined
+***********************calling x.foo4(4.3) <-- w/ strict type checking: should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo4(undef) <-- w/ strict type checking: should be an error
+undefined
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo2("4.3") <-- w/ strict type checking: should be an error (param needs a float, given a string)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo5(z) <-- w/ strict type checking: should be an error (z.z is a float, not a boolean)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo5(4.3)
+undefined
+PARAMETERS TO "foo5" :
+   x with union type >double<:
+       :  4.300000
+undefined
+Script Error: SyntaxError
+ERROR IN PARAMETERS.
+Script Error: TypeError: It is not a boolean.
+***********************calling x.foo4("")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  ""
+undefined
+***********************calling x.foo(0.0, <simple_dictionary-lookalike>)
+undefined
+undefined
+true
+1,2,3,4,5,6
+777
+***********************calling x.foo("t0.0", not_a_simple_dictionary)
+undefined
+PARAMETERS TO "foo" :
+   y :  "t0.0"
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  6
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+undefined
+***********************calling x.call_simple_callback(simple_call)
+undefined
+PARAMETERS TO "call_simple_callback" :
+   call -- CALLBACK FUNCTION (Native Javascript implementation)
+        simple_call was sent: >5<
+undefined
+

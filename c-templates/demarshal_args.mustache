@@ -1,0 +1,145 @@
+{{! We change the delimiters here, as both interface-operations and
+callbacks use this code -- we preprocess this to add the field-name
+corresponding to the type of thing we're processing... (search for
+"thingName") }}
+{{! context: this is used in callbacks/handlers, so we expect that we
+    have a variable called "args_cnt", which is the number of
+    arguments the function has been called with }}
+{{=<% %>=}}
+
+{{! ******************************************************************* }}
+{{! ORIGINAL (MANUAL) ARGUMENT HANDLING }}
+{{! ******************************************************************* }}
+  {{#original_arg_handling}}
+    {{#arguments}}
+	{{#C_and_Jerryscript_Types}}
+    {{{C_Type}}} {{{name}}};
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+{{! TODO: the "this_val" passed in to a function parameter: should it be
+    this_val, or should we gen up a value_t for the global object? }}
+    {{#arguments}}
+	{{#variadic}}
+   	    {{#C_and_Jerryscript_Types}}
+    {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value_from_args({{{paramIndex}}}, args_p, args_cnt);
+   	    {{/C_and_Jerryscript_Types}}
+	{{/variadic}}
+	{{^variadic}}
+   	    {{#C_and_Jerryscript_Types}}
+    if ({{{paramIndex}}} < args_cnt)
+        {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
+    else
+                 {{^optional}}
+    {
+	fprintf(stderr, "Too few parameters to function ><%thingName%><\n");
+	/* return; TODO: we should jump to the return code (?) */
+    }
+		 {{/optional}}
+                 {{#optional}}
+        {{{name}}} = {{{default_value}}};
+		 {{/optional}}
+             {{/C_and_Jerryscript_Types}}
+    	{{/variadic}}
+    {{/arguments}}
+  {{/original_arg_handling}}
+{{! ******************************************************************* }}
+{{! "NEW" (JERRYSCRIPT-BASED) ARGUMENT HANDLING }}
+{{! ******************************************************************* }}
+  {{^original_arg_handling}}
+    {{#arguments}}
+	{{#C_and_Jerryscript_Types}}
+    {{{C_Type}}} {{{name}}}{{#optional}} = {{{default_value}}}{{/optional}};
+        {{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+
+    {{#number_of_non_variadic_params}}
+    jerry_value_t get_args_result;
+    {{/number_of_non_variadic_params}}
+    {{^number_of_non_variadic_params}}
+        {{#number_of_variadic_params}}
+    jerry_value_t get_args_result;
+        {{/number_of_variadic_params}}
+    {{/number_of_non_variadic_params}}
+
+    {{#number_of_non_variadic_params}}
+    /* "mapping" defines the steps to transform input arguments to
+       C variables. */
+    const jerryx_arg_t mapping[] =
+    {
+	/* `this` is the first value. No checking needed on `this`
+	   for this function. */
+	jerryx_arg_ignore(),
+
+	/* variadic parameters have to be handled separately; first,
+	   build the struct to get all of the non-variadic parameters */
+      {{#arguments}}
+	{{#C_and_Jerryscript_Types}}
+	{{^variadic}}	  
+	{{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(&{{{name}}}, {{#optional}}INTERPRETER_ARG_OPTIONAL){{/optional}}{{^optional}}INTERPRETER_ARG_REQUIRED{{/optional}}){{^finalParam}},{{/finalParam}}
+	{{/variadic}}
+	{{/C_and_Jerryscript_Types}}
+      {{/arguments}}
+    };
+
+    {{! TODO: don't call transform_this_and_args if we're just going
+    	to send the "this" checker a null function! }}
+    {{! we need to reduce the number of args sent to the transform function
+    	by one if that final parameter is variadic, as we'll handle that
+	subsequently }}
+    get_args_result = jerryx_arg_transform_this_and_args (this_val,
+							  args_p,
+							  args_cnt,
+                                                          mapping,
+                                                       	  {{{number_of_non_variadic_params}}}+1);
+    {{/number_of_non_variadic_params}}
+
+    if (jerry_value_is_error(get_args_result))
+    {
+	fprintf(stderr, "ERROR IN PARAMETERS.\n");
+	return get_args_result;
+    }
+
+    {{! unfortunately, looping through all of the arguments is the only
+    	way to get to the final (maybe variadic) parameter... }}
+    {{#arguments}}
+	{{#C_and_Jerryscript_Types}}
+	{{#variadic}}
+    /* now, loop through any variadic parameters and stick them in an array */
+    {
+        int number_of_elements = args_cnt - {{{paramIndex}}};
+	{{{name}}}.length = number_of_elements;
+	if (number_of_elements > 0)
+	{
+             {{{name}}}.items = malloc(sizeof({{{element_type}}})*number_of_elements);
+	     for (int i = 0, args_index = {{{paramIndex}}};
+	      	  i < number_of_elements;
+		  i++, args_index++)
+	    {
+	        jerry_value_t input_mapping[1] = { args_p[args_index] };
+                jerryx_arg_t output_mapping[1] = { {{{Interpreter.interpreter}}}_arg_{{{element_type}}}(&({{{name}}}.items[i]), INTERPRETER_ARG_REQUIRED) };
+                get_args_result = 
+	                 jerryx_arg_transform_args(input_mapping,
+						   1,
+                             			   output_mapping,
+                             			   1);
+                if (jerry_value_is_error(get_args_result))
+                {
+                    /* TODO: free (ALL!) memory!!! */
+		    fprintf(stderr, "ERROR in variadic parameter.\n");
+            	    return get_args_result;
+		}
+       	    }
+	}
+	else /* no extra parameters */
+      	    {{{name}}}.items = NULL;
+    }
+	{{/variadic}}
+	{{/C_and_Jerryscript_Types}}
+    {{/arguments}}
+
+/*    else */
+/*	fprintf(stderr, "CORRECT PARAMETERS.\n");*/
+  {{/original_arg_handling}}
+{{! ******************************************************************* }}
+{{! END OF ARGUMENT HANDLING }}
+{{! ******************************************************************* }}

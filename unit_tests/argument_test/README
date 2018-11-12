@@ -1,0 +1,509 @@
+The purpose of this test is to exercise the jerryx_arg_*
+functionality.  The argument_test.idl file contains an example of all
+of the WebIDL constructs, and these get used and passed around in
+various ways to hit as many cases as seem obvious.
+
+This test actually consists of checking both the strict type checking
+and the lax type checking -- in the latter, JerryScript works hard to
+coerce values into the necessary C values.  Currently, the default is
+lax type checking, so to run the second test, the test must go into
+webidl_compiler_utilities.h and switch the comments on the two
+COERCION_POLICY #def's.
+
+(We assume that all commands are run under the "examples" directory
+under the Jerryscript main directory -- and with the Jerrygen
+directory (called "generator") at the same level as Jerryscript.)
+
+To compile the WebIDL:
+
+../../generator/generate.js --output_utility_files --debug_printing=on --package=argument_test ../../generator/unit_tests/argument_test/argument_test.idl
+
+Copy over the stub to run the callback:
+
+cp ../../generator/unit_tests/argument_test/simple_interface_stubs.c argument_test/.
+
+To compile the C code (after cd'ing into the argument_test directory):
+
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I../../jerry-ext/include/jerryscript-ext -I. ../../../generator/unit_tests/template/main_jerrygen.c *.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm 
+
+To run the test:
+
+./a.out ../../../generator/unit_tests/argument_test/test_arguments.script
+
+All in one command (starts from jerryscript/examples):
+
+../../generator/generate.js --output_utility_files --debug_printing=on --package=argument_test ../../generator/unit_tests/argument_test/argument_test.idl; cp ../../generator/unit_tests/argument_test/simple_interface_stubs.c argument_test/. ; pushd argument_test; gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I../../jerry-ext/include/jerryscript-ext -I. ../../../generator/unit_tests/template/main_jerrygen.c *.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm  && ./a.out ../../../generator/unit_tests/argument_test/test_arguments.script ; popd
+
+Expected output (with lax type converson turned on):
+
+undefined
+undefined
+undefined
+undefined
+z2: 1,2,3,4,5,6
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+***********************executing: x.baz(a(true), b(2), c(2));
+undefined
+PARAMETERS TO "baz" :
+   a :  TRUE
+   b :  2
+   c:
+   [
+      0 :  4.000000
+   ]
+undefined
+***********************executing: x.baz(a(true), b(2), d(true)); <-- should be an error with strict type checking (third param is a bool, not a float)
+undefined
+PARAMETERS TO "baz" :
+   a :  TRUE
+   b :  1
+   c:
+   [
+      0 :  1.000000
+   ]
+undefined
+***********************executing: x.baz(d(true), e("17.0"), e("17.0")); <-- should be an error with strict type checking (2nd and 3rd params are a strings, not a numbers)
+undefined
+PARAMETERS TO "baz" :
+   a :  TRUE
+   b :  17
+   c:
+   [
+      0 :  17.000000
+   ]
+undefined
+***********************executing: x.foo(4.0, z);
+undefined
+PARAMETERS TO "foo" :
+   y :  4.000000
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  66
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+***********************executing: x.foo(z, z) <-- should be an error
+undefined
+PARAMETERS TO "foo" :
+   y :  nan
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  66
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+***********************executing: x.bar(z3([7, 8, 9]), 'a')
+INSIDE of interpreter_arg_to_simple_enum}
+undefined
+PARAMETERS TO "bar" :
+   a:
+   [
+      0 :  7
+      1 :  8
+      2 :  9
+   ]
+   b: simple_enum_a
+undefined
+***********************executing: x.bar('the') <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Expected array.
+***********************executing: x.bar([4.2], 'a')
+INSIDE of interpreter_arg_to_simple_enum}
+undefined
+PARAMETERS TO "bar" :
+   a:
+   [
+      0 :  4
+   ]
+   b: simple_enum_a
+undefined
+***********************executing: x.bar([4.2], 'ab') <-- should be an error)
+INSIDE of interpreter_arg_to_simple_enum}
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: String >ab< does not match simple_enum type.
+***********************executing: x.bar("4", 'ab') <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Expected array.
+***********************changing z.z to 4.32
+undefined
+4.32
+***********************calling x.foo(4.0, new simple_dictionary( 5, [] )) -- should be an error with strict type checking (new-dict.z is a number, not a boolean)
+undefined
+PARAMETERS TO "foo" :
+   y :  4.000000
+   z:
+      z :  TRUE
+      array:
+      [
+      ]
+RETURN_VALUE :  0.000000
+0
+***********************calling x.foo2(true)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  1.000000
+undefined
+***********************calling x.foo2(1)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  1.000000
+undefined
+***********************calling x.foo2(4.3)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  4.300000
+undefined
+***********************calling x.foo4("true")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  "true"
+undefined
+***********************calling x.foo4("the")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  "the"
+undefined
+***********************calling x.foo4(true)
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >boolean<:
+       :  TRUE
+undefined
+***********************calling x.foo4(4.3) <-- w/ strict type checking: should be an error
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >boolean<:
+       :  TRUE
+undefined
+***********************calling x.foo4(undef) <-- w/ strict type checking: should be an error
+undefined
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >boolean<:
+       :  FALSE
+undefined
+***********************calling x.foo2("4.3") <-- w/ strict type checking: should be an error (param needs a float, given a string)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  4.300000
+undefined
+***********************calling x.foo5(z) <-- w/ strict type checking: should be an error (z.z is a float, not a boolean)
+undefined
+PARAMETERS TO "foo5" :
+   x with union type >simple_dictionary<:
+      :
+         z :  TRUE
+         array:
+         [
+            0:
+            [
+               0 :  1
+               1 :  2
+               2 :  3
+            ]
+            1:
+            [
+               0 :  4
+               1 :  5
+               2 :  66
+            ]
+         ]
+undefined
+***********************calling x.foo5(4.3)
+undefined
+PARAMETERS TO "foo5" :
+   x with union type >double<:
+       :  4.300000
+undefined
+Script Error: SyntaxError
+PARAMETERS TO "foo" :
+   y :  1.000000
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  66
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+***********************calling x.foo4("")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  ""
+undefined
+***********************calling x.foo(0.0, <simple_dictionary-lookalike>)
+undefined
+undefined
+true
+1,2,3,4,5,6
+777
+PARAMETERS TO "foo" :
+   y :  "t0.0"
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  6
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+
+Expected output (with strict type conversion turned on):
+
+undefined
+undefined
+undefined
+undefined
+z2: 1,2,3,4,5,6
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+***********************executing: x.baz(a(true), b(2), c(2));
+undefined
+PARAMETERS TO "baz" :
+   a :  TRUE
+   b :  2
+   c:
+   [
+      0 :  4.000000
+   ]
+undefined
+***********************executing: x.baz(a(true), b(2), d(true)); <-- should be an error with strict type checking (third param is a bool, not a float)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: It is not a boolean.
+***********************executing: x.baz(d(true), e("17.0"), e("17.0")); <-- should be an error with strict type checking (2nd and 3rd params are a strings, not a numbers)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: It is not a number.
+***********************executing: x.foo(4.0, z);
+undefined
+PARAMETERS TO "foo" :
+   y :  4.000000
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  66
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+***********************executing: x.foo(z, z) <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: any-type error.
+***********************executing: x.bar(z3([7, 8, 9]), 'a')
+INSIDE of interpreter_arg_to_simple_enum}
+undefined
+PARAMETERS TO "bar" :
+   a:
+   [
+      0 :  7
+      1 :  8
+      2 :  9
+   ]
+   b: simple_enum_a
+undefined
+***********************executing: x.bar('the') <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Expected array.
+***********************executing: x.bar([4.2], 'a')
+INSIDE of interpreter_arg_to_simple_enum}
+undefined
+PARAMETERS TO "bar" :
+   a:
+   [
+      0 :  4
+   ]
+   b: simple_enum_a
+undefined
+***********************executing: x.bar([4.2], 'ab') <-- should be an error)
+INSIDE of interpreter_arg_to_simple_enum}
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: String >ab< does not match simple_enum type.
+***********************executing: x.bar("4", 'ab') <-- should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Expected array.
+***********************changing z.z to 4.32
+undefined
+4.32
+***********************calling x.foo(4.0, new simple_dictionary( 5, [] )) -- should be an error with strict type checking (new-dict.z is a number, not a boolean)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: It is not a boolean.
+***********************calling x.foo2(true)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >boolean<:
+       :  TRUE
+undefined
+***********************calling x.foo2(1)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  1.000000
+undefined
+***********************calling x.foo2(4.3)
+undefined
+PARAMETERS TO "foo2" :
+   x with union type >float<:
+       :  4.300000
+undefined
+***********************calling x.foo4("true")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  "true"
+undefined
+***********************calling x.foo4("the")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  "the"
+undefined
+***********************calling x.foo4(true)
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >boolean<:
+       :  TRUE
+undefined
+***********************calling x.foo4(4.3) <-- w/ strict type checking: should be an error
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo4(undef) <-- w/ strict type checking: should be an error
+undefined
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo2("4.3") <-- w/ strict type checking: should be an error (param needs a float, given a string)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo5(z) <-- w/ strict type checking: should be an error (z.z is a float, not a boolean)
+ERROR IN PARAMETERS.
+undefined
+Script Error: TypeError: Composite-type error.
+***********************calling x.foo5(4.3)
+undefined
+PARAMETERS TO "foo5" :
+   x with union type >double<:
+       :  4.300000
+undefined
+Script Error: SyntaxError
+ERROR IN PARAMETERS.
+Script Error: TypeError: It is not a boolean.
+***********************calling x.foo4("")
+undefined
+PARAMETERS TO "foo4" :
+   x with union type >string<:
+       :  ""
+undefined
+***********************calling x.foo(0.0, <simple_dictionary-lookalike>)
+undefined
+undefined
+true
+1,2,3,4,5,6
+777
+PARAMETERS TO "foo" :
+   y :  "t0.0"
+   z:
+      z :  TRUE
+      array:
+      [
+         0:
+         [
+            0 :  1
+            1 :  2
+            2 :  3
+         ]
+         1:
+         [
+            0 :  4
+            1 :  5
+            2 :  6
+         ]
+      ]
+RETURN_VALUE :  0.000000
+0
+

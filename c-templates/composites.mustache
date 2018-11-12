@@ -85,8 +85,11 @@ struct {{{compositeName}}}_struct {
 
     return new_{{{compositeName}}};
 } /* {{{compositeName}}}_constructor */
-{{/body}}
 
+{{/body}}
+{{^original_arg_handling}}
+{{> build_composite_arg_function}}
+{{/original_arg_handling}}
 {{! really, these functions should be named "get_..._union" rather
     than "get_..._value" -- but b/c Jerryscript already has get_*_value
     for all of the builtin types, it's easier to follow that naming

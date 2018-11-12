@@ -1,44 +1,49 @@
 
-/*# AUTOMATICALLY GENERATED ON Thu Mar 01 2018 10:06:44 GMT-0600 (CST) #*/
+#include "webidl_compiler_utilities.h"
+#include "any_type_test.h"
 #include "any_type_test_stubs.h"
-#include <stdio.h>
 
 #define DEBUG_PRINTING 1
 
 #include "any_type_test_stubs.h"
 
-static jerry_error_t error_check; /* examine this if the value of native_object
-    		  	             might be wrong after a call to
-				     Native_Object_get() */
-
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
-void Native_Object_any_type_test_deallocator(void *native_object)
+void any_type_test_Native_Object_deallocator(void *native_object)
 {
 	/* USER CODE GOES HERE */
 
-} /* Native_Object_any_type_test_deallocator */
+} /* any_type_test_Native_Object_deallocator */
 
-Native_Object_any_type_test *Native_Object_any_type_test_create(void)
+any_type_test_Native_Object *any_type_test_Native_Object_create(void)
 {
-    Native_Object_any_type_test *new_object = (Native_Object_any_type_test *)malloc(sizeof(Native_Object_any_type_test));
+    any_type_test_Native_Object *new_object = (any_type_test_Native_Object *)malloc(sizeof(any_type_test_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* Native_Object_any_type_test_create */
-
-
-jerry_object_native_info_t any_type_test_checksum = {Native_Object_any_type_test_deallocator};
+} /* any_type_test_Native_Object_create */
 
 /******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
 
 /* any_type_test */
-any any_type_test_do_something_body(type_sent_in arg1_type, any arg1, type_sent_in arg2_type, any arg2, Interpreter_Type this_val)
+/**
+ *
+ */ 
+any any_type_test_do_something(Interpreter_Type *self, type_sent_in arg1_type, any arg1, type_sent_in arg2_type, any arg2)
 {
-    /* EXAMINE THE VALUE OF "ERROR_CHECK" IF THERE COULD BE AN ERROR
-       WITH AN OBJECT'S Native_Object */    
-    Native_Object_any_type_test *native_object = Native_Object_get(this_val, &any_type_test_checksum, &error_check);
+
+
+
+
+    Interpreter_Error_Type error_check;
+    any_type_test_Native_Object *native_object = any_type_test_Native_Object_get(*self, &error_check);
+    if (error_check)
+    {
+        *self = error_check;
+	/* we return a (meaningless) default value here so the compiler doesn't complain */
+	return any_constructor();
+    }
 
 #ifdef DEBUG_PRINTING
    printf("PARAMETERS TO \"do_something\" :\n");
@@ -49,8 +54,7 @@ any any_type_test_do_something_body(type_sent_in arg1_type, any arg1, type_sent_
 #endif /* DEBUG_PRINTING */
 
     /* USER CODE GOES HERE */
-
-    any return_value;
+  any return_value;
     static int type_lookup[] = {
 	/*BOOLEAN_T*/ boolean_uid,
 	/*BYTE_T*/ byte_uid,
@@ -155,5 +159,5 @@ any any_type_test_do_something_body(type_sent_in arg1_type, any arg1, type_sent_
 
     return return_value;
 
-}; /* any_type_test_do_something_body */
+}; /* any_type_test_do_something */
 

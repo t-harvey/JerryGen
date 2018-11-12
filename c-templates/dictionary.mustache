@@ -89,15 +89,68 @@ typedef struct {
 
     return new_{{{dictionaryName}}};
 } /* {{{dictionaryName}}}_constructor */
-{{/body}}
 
-{{^original_arg_handling}}
-{{#body}}
-static jerry_value_t get_dictionary_properties()
-{
-    return 0;
-} /* get_dictionary_properties */
 {{/body}}
+{{^original_arg_handling}}
+{{#is_array_object}}
+{{#header}}
+#define {{{Interpreter.interpreter}}}_arg_{{{dictionaryName}}}(x, z) \
+            jerryx_arg_custom(x, \
+                             (uintptr_t)&((uintptr_t []){(uintptr_t)JERRYX_ARG_COERCE, \
+                                                         (uintptr_t)z}), \
+                              {{{Interpreter.interpreter}}}_arg_to_{{{dictionaryName}}})
+{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_arg_to_{{{dictionaryName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p, const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+{{#body}}
+{
+    {{{Interpreter.Type}}} array_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
+    if (!jerry_value_is_array(array_value))
+	return jerry_create_error(JERRY_ERROR_TYPE,
+                (const jerry_char_t *) "Expected array.");
+
+    unsigned int array_length = jerry_get_array_length(array_value);
+    {{{dictionaryName}}} *new_{{{dictionaryName}}} = malloc(sizeof({{{dictionaryName}}}));
+
+    {{! We'll loop through the "members" even though we know there's exactly
+	two, b/c it's easier to access the array-element type that way... }}
+    {{#members}}
+    {{#C_and_Jerryscript_Types}}
+    {{^is_array}}
+    new_{{{dictionaryName}}}->length = array_length;
+    {{/is_array}}
+    {{#is_array}}
+    if (array_length > 0)
+	new_{{{dictionaryName}}}->items = ({{{C_Type}}} *)malloc(array_length*sizeof({{{C_Type}}}));
+
+    {{{Interpreter.Type}}} get_element_return_value;
+    for (int i = 0; i < array_length; i++)
+    {
+        jerry_value_t input_mapping[1] = { jerry_get_property_by_index(array_value, i) };
+        jerryx_arg_t output_mapping[1] = { {{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(&(new_{{{dictionaryName}}}->items[i]), ((uintptr_t*)(c_arg_p->extra_info))[1]) };
+	get_element_return_value = 
+               jerryx_arg_transform_args(
+                             input_mapping,
+                             1,
+                             output_mapping,
+                             1);
+        if (jerry_value_is_error(get_element_return_value))
+        {
+            /* TODO: free (ALL!) memory!!! */
+            return get_element_return_value;
+        }
+    }
+    {{/is_array}}
+    {{/C_and_Jerryscript_Types}}
+    {{/members}}
+
+    /* fallthrough indicates that the array was read in correctly */
+    *(({{{dictionaryName}}} *)(c_arg_p->dest)) = *new_{{{dictionaryName}}};
+    return get_element_return_value;
+} /* {{{Interpreter.interpreter}}}_arg_to_{{{dictionaryName}}} */
+
+{{/body}}
+{{/is_array_object}}
+{{^is_array_object}}
 jerryx_arg_t
 {{{Interpreter.interpreter}}}_arg_{{{dictionaryName}}}({{{dictionaryName}}}* destination,
 			{{{Interpreter.interpreter}}}_arg_optional_flag_enum_type optional_flag){{#header}};{{/header}}
@@ -109,7 +162,7 @@ jerryx_arg_t
     static jerryx_arg_t prop_mapping[{{{members.length}}}];
     {{#members}}
       {{#C_and_Jerryscript_Types}}
-	prop_mapping[{{{member_index}}}] = {{{Interpreter.interpreter}}}_arg_{{{C_Type}}} (&(destination->{{{memberName}}}), INTERPRETER_ARG_REQUIRED);
+	prop_mapping[{{{member_index}}}] = {{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(&(destination->{{{memberName}}}), INTERPRETER_ARG_REQUIRED);
       {{/C_and_Jerryscript_Types}}
     {{/members}}
 
@@ -123,7 +176,9 @@ jerryx_arg_t
     return jerryx_arg_object_properties(&prop_info,
 					(jerryx_arg_optional_t)optional_flag);
 } /* {{{Interpreter.interpreter}}}_arg_{{{dictionaryName}}} */
+
 {{/body}}
+{{/is_array_object}}
 {{/original_arg_handling}}
 {{! really, these functions should be named "get_..._struct" rather
     than "get_..._value" -- but b/c Jerryscript already has get_*_value

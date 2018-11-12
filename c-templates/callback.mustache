@@ -111,41 +111,28 @@ typedef {{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} (* 
 {
     return jerry_create_undefined();
 } /* {{{callbackName}}}_constructor */
-{{/body}}
 
+{{/body}}
+{{#header}}
+#define {{{Interpreter.interpreter}}}_arg_{{{callbackName}}}(x, z) \
+	jerryx_arg_function(x, (jerryx_arg_optional_t)z)
+{{/header}}
 {{#body}}
 static {{{Interpreter.Type}}}
 run_{{{callbackName}}}_function_handler(
 	     const {{{Interpreter.Type}}} func_value, /**< function object */
-	     const {{{Interpreter.Type}}} this_value, /**< this arg */
+	     const {{{Interpreter.Type}}} this_val, /**< this arg */
              const {{{Interpreter.Type}}} *args_p, /**< function arguments */
              const jerry_length_t args_cnt) /**< number of function arguments */
 {
-{{!
-    ********************************************************************
-    TODO: THIS CODE DOESN'T WORK IF THEY NEED interpreter_get_value_..._ARRAY !!!
-    (b/c we don't create the get_..._Array function anywhere...)
-    ********************************************************************  }}
-    /* demarshal the arguments */
-    {{#arguments}}
-	 {{#variadic}}
-   	     {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}} {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value_from_args({{{paramIndex}}}, args_p, args_cnt);
-             {{/C_and_Jerryscript_Types}}
-	 {{/variadic}}
-	 {{^variadic}}
-             {{#C_and_Jerryscript_Types}}
-    {{{C_Type}}} {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]{{#callback}}, this_value{{/callback}});
-             {{/C_and_Jerryscript_Types}}
-	 {{/variadic}}
-    {{/arguments}}
+    {{> demarshal_args}}
 
 {{#C_and_Jerryscript_Types}}
-{{ ! for the "return_value", the logic is as follows: 1. don't put out
+{{! for the "return_value", the logic is as follows: 1. don't put out
 the declaration if it's a void return type or this function returns
 the "this" pointer (is that possible with a callback, in WebIDL?); 2.
 put out the declaration with an assignment from "run" routine }}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(func_value, this_value{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(func_value, this_val{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
 {{#arguments}}{{{indentation}}}{{{name}}}{{{separator}}}{{/arguments}}{{#arguments.length}};{{/arguments.length}}
 
 {{/C_and_Jerryscript_Types}}
@@ -175,7 +162,7 @@ put out the declaration with an assignment from "run" routine }}
     {{#C_and_Jerryscript_Types}}
         {{#return_is_this}}
     /* return a reference back to this interface */
-    return jerry_acquire_value(this_value);
+    return jerry_acquire_value(this_val);
         {{/return_is_this}}
         {{^return_is_this}}
             {{#voidReturnType}}

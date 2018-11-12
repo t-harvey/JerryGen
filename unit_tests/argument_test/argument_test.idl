@@ -1,0 +1,20 @@
+enum simple_enum { "a", "b", "cde", "fghijkl" };
+
+dictionary simple_dictionary {
+    boolean z;
+    sequence < sequence < long > > array;
+};
+
+callback simple_callback = void(long x);
+
+interface simple_interface {
+    attribute long x;
+    float foo(any y, simple_dictionary z);
+    void bar(sequence < long > a, simple_enum b);
+    void baz(boolean a, long b, float... c);
+    void foo2( ( boolean or long or float ) x);
+    void foo3( ( long or float ) x);
+    void foo4( ( boolean or string ) x);
+    void foo5( ( boolean or double or simple_dictionary ) x);
+    void call_simple_callback(simple_callback call);
+};

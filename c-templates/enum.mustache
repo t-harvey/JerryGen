@@ -33,11 +33,11 @@ under the License.
 {{/header}}
 
 #include "{{{utilities_filename}}}.h"
+
 {{#body}}
 #include "{{{enumName}}}.h"
 
 {{/body}}
-
 {{#header}}
 #include "jerryscript.h"
 typedef enum { {{#members}}{{{indentation}}}{{{C_name}}}{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} }{{/onlyOneMember}}{{/members}}
@@ -102,14 +102,13 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}(jerryx_arg_js_
                                        const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
 {{#body}}
 {
-fprintf(stderr, "INSIDE of {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}}\n");
     char temp_buffer[{{{longest_Javascript_name_length}}}+1];
 
     uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
 
     /* we naively access c_arg_p as if we know(!) that there are two
        parameters, one for the coercion flag, and one for the optional flag */
-    jerryx_arg_t get_string = {{{Interpreter.interpreter}}}_arg_string(temp_buffer,
+    jerryx_arg_t get_string = {{{Interpreter.interpreter}}}_arg_string_no_malloc(temp_buffer,
 						     {{{longest_Javascript_name_length}}}+1,
                                                      extra_info[0],
                                                      extra_info[1]);
@@ -118,14 +117,14 @@ fprintf(stderr, "INSIDE of {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}}\
 
     if (!jerry_value_is_error(convert_to_string_result))
     {
-        {{{enumName}}} temp_value = enum_index(temp_buffer,
+        int temp_value = enum_index(temp_buffer,
 					 {{{enumName}}}_Javascript_strings,
 					 number_of_{{{enumName}}});
 	if (temp_value == -1)
 	{
 	    char *main_error_string_part_1 = "String >";
 	    int part1_length = strlen(main_error_string_part_1);
-	    char *main_error_string_part_2 = "< does not match {{{enumName}}} type.\n";
+	    char *main_error_string_part_2 = "< does not match {{{enumName}}} type.";
 	    int part2_length = strlen(main_error_string_part_2);
 	    char error_string[part1_length + part2_length +
 	                      {{{longest_Javascript_name_length}}}+1];
@@ -139,7 +138,7 @@ fprintf(stderr, "INSIDE of {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}}\
                                       (const jerry_char_t *) error_string);
 	}
 	else
-            *(({{{enumName}}} *)(c_arg_p->dest)) = temp_value;
+            *(({{{enumName}}} *)(c_arg_p->dest)) = ({{{enumName}}})temp_value;
     }
     return convert_to_string_result;
 } /* {{{Interpreter.interpreter}}}_arg_to_float */

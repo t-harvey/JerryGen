@@ -88,7 +88,7 @@ typedef struct {
   {{#body}}
 /* because the {{{interfaceName}}} inherits from the {{{inheritance}}}
    interface, the Native Object for both of these interfaces has to be
-   the same -- the definition of the {{{inheritnace}}}_Native_Object is in the
+   the same -- the definition of the {{{inheritance}}}_Native_Object is in the
    {{{inheritance}}}_stubs.h file */
   {{/body}}
   {{#header}}
@@ -153,10 +153,6 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
 {{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}} *self{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}){{#header}};{{/header}}
 {{#body}}
 {
-    {{{Interpreter.error_type}}} error_check; /* this value will be non-zero after
-    			            a call to
-			            {{{interfaceName}}}_Native_Object_get()
-			            if that call encounters an error */
     {{#arguments}}
         {{#C_and_Jerryscript_Types}}
 	{{#callback}}
@@ -164,8 +160,9 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
 #define {{{name}}}(...) (run_{{{C_Type}}}_function(_temp__for_{{{name}}}, *self, __VA_ARGS__))
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
-    {{/arguments}}
 
+    {{/arguments}}
+    {{{Interpreter.error_type}}} error_check;
     {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(*self, &error_check);
     if (error_check)
     {

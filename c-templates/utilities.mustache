@@ -54,7 +54,7 @@ typedef jerry_value_t {{{Interpreter.Type}}};
 typedef jerry_error_t {{{Interpreter.error_type}}};
 typedef jerry_object_native_info_t {{{Interpreter.checksum_type}}};
 {{/Interpreter.tied_to_jerryscript}}
-typedef {{{Interpreter.Type}}} object;
+typedef {{{Interpreter.Type}}} _object;
 typedef string Error;
 
 #define {{{Interpreter.interpreter}}}_get_Error_value {{{Interpreter.interpreter}}}_get_string_value
@@ -62,10 +62,14 @@ typedef string Error;
 #define {{{Interpreter.interpreter}}}_value_is_Error {{{Interpreter.interpreter}}}_value_is_string
 #define debug_print_Error debug_print_string
 
-#define {{{Interpreter.interpreter}}}_get_object_value(x) (x)
-#define {{{Interpreter.interpreter}}}__create_object(x) (x)
-#define {{{Interpreter.interpreter}}}__value_is_object jerry_value_is_object
-#define object_constructor jerry_create_object
+{{! the WebIDL type "object" conflicts with some of the Jerryscript
+    calls, so we define WebIDL's type as "_object" so that there
+    won't be name conflicts if somebody uses the "tied_to_jerryscript"
+    flag...}}
+#define {{{Interpreter.interpreter}}}_get__object_value(x) (x)
+#define {{{Interpreter.interpreter}}}_create__object(x) (x)
+#define {{{Interpreter.interpreter}}}_value_is__object jerry_value_is_object
+#define _object_constructor jerry_create_object
 
 /* each type needs to have its own unique id (uid) so that we can
    build union types out of multiple types and differentiate between
@@ -262,30 +266,6 @@ void initialize_ArrayBuffer_(void){{#header}};{{/header}}
 {{#body}}
 {
 }; /* initialize_Array_Buffer_ */
-
-{{/body}}
-
-void debug_print_ArrayBuffer(char *variable_name,
-                             ArrayBuffer value,
-                             unsigned int indentation){{#header}};{{/header}}
-{{#body}}
-{
-    debug_print_uint32_t(variable_name, value.length, indentation);
-
-    int data_indent = indentation + strlen(variable_name) + 3;
-    int ENTRIES_PER_ROW = 8;
-#define LAST_IN_ROW !((j+1)%ENTRIES_PER_ROW)
-    int j = 0;
-    printf("%*s", data_indent, "");
-    for (j = 0; j < value.length; j++)
-	printf("0x%02X%s%*s", value.data[j],
-	                    (LAST_IN_ROW)?"\n":"  ",
-	                    (LAST_IN_ROW && j+1 != value.length)?data_indent:0,
-	                    "");
-
-    if (j%ENTRIES_PER_ROW)
-        printf("\n");
-}; /* debug_print_ArrayBuffer */
 
 {{/body}}
 
@@ -638,7 +618,7 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 //#define interpreter_get_unsignedlong_value (unsignedlong)jerry_get_number_value
 //#define interpreter_get_longlong_value (longlong)jerry_get_number_value
 //#define interpreter_get_unsignedlonglong_value (unsignedlonglong)jerry_get_number_value
-//#define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
+#define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
 
 #define {{{Interpreter.interpreter}}}_get_this_value(x) (x)
 #define this_constructor() 0
@@ -668,7 +648,7 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 //#define interpreter_value_is_unsignedlong (bool)jerry_value_is_number
 //#define interpreter_value_is_longlong (bool)jerry_value_is_number
 //#define interpreter_value_is_unsignedlonglong (bool)jerry_value_is_number
-//#define interpreter_value_is_boolean (bool)jerry_value_is_boolean
+#define interpreter_value_is_boolean (bool)jerry_value_is_boolean
 
 #define {{{Interpreter.interpreter}}}_value_is_float (bool)jerry_value_is_number
 
@@ -729,7 +709,13 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 
 {{^original_arg_handling}}
 {{#header}}
-#define COERCION_POLICY              JERRYX_ARG_COERCE
+
+/* for strict parameter-checking (e.g., a "boolean" parameter has to
+   have a "true/false" value, it can't be an integer), comment out the
+   first #define, and un-comment the second... */
+#define COERCION_POLICY                 JERRYX_ARG_COERCE
+/* #define COERCION_POLICY              JERRYX_ARG_NO_COERCE */
+
 #define ROUNDING_POLICY 	     JERRYX_ARG_ROUND
 #define CLAMPING_POLICY 	     JERRYX_ARG_CLAMP
 typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
@@ -741,7 +727,6 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
    INTERPRETER_ARG_OPTIONAL or INTERPRETER_ARG_REQUIRED) */
 /* for brevity, "x" == value to be defined, and "z" = optional-flag value) */
 #define {{{Interpreter.interpreter}}}_arg_number        jerryx_arg_number
-#define {{{Interpreter.interpreter}}}_arg_string	      jerryx_arg_string
 #define {{{Interpreter.interpreter}}}_arg_bool(x, z) jerryx_arg_boolean(x, COERCION_POLICY, (jerryx_arg_optional_t)z)
 #define {{{Interpreter.interpreter}}}_arg_int8_t(x, z)    jerryx_arg_int8(x, ROUNDING_POLICY, \
 				     		       	 CLAMPING_POLICY, \
@@ -768,6 +753,22 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 				     			   CLAMPING_POLICY, \
 							   COERCION_POLICY, \
 							   (jerryx_arg_optional_t)z)
+
+/* CAUTION: THIS FUNCTION CALLS malloc! */
+#define {{{Interpreter.interpreter}}}_arg_string(x, z) \
+            jerryx_arg_custom(x, \
+	    		     (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
+			                     (uintptr_t)z}), \
+			      {{{Interpreter.interpreter}}}_arg_to_string)
+
+#define {{{Interpreter.interpreter}}}_arg__object(x, z) \
+            jerryx_arg_custom(x, \
+	    		     (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
+			                     (uintptr_t)z}), \
+			      {{{Interpreter.interpreter}}}_arg_to__object)
+
+#define {{{Interpreter.interpreter}}}_arg_string_no_malloc jerryx_arg_string
+
 /* this one has to use its own function, b/c Jerryscript doesn't have
    a floating-point version */
 #define {{{Interpreter.interpreter}}}_arg_float(x, z) \
@@ -785,7 +786,6 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to_float(jerryx_arg_js_iterator_
 			               const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
 {{#body}}
 {
-fprintf(stderr, "INSIDE of {{{Interpreter.interpreter}}}_arg_to_float\n");
     double intermediate_result = 0.0;
     uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
     /* we naively access c_arg_p as if we know(!) that there are two
@@ -801,6 +801,58 @@ fprintf(stderr, "INSIDE of {{{Interpreter.interpreter}}}_arg_to_float\n");
     return convert_to_double_result;
 } /* {{{Interpreter.interpreter}}}_arg_to_float */
 {{/body}}
+
+/* the transform function for string values has to do some memory
+   manipulation, so we need a wrapper that will do the extra steps */
+jerry_value_t {{{Interpreter.interpreter}}}_arg_to_string(jerryx_arg_js_iterator_t *js_arg_iter_p,
+			               const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t string_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
+    string temp = NULL;
+
+    /* TODO: really, we should be checking to see if we can coerce whatever
+       the value is into a string -- I think(?) the only error condition
+       here would be if "string_value" is undefined... */
+    if (!jerry_value_is_string(string_value))
+	return jerry_create_error(JERRY_ERROR_TYPE,
+                             	  (const jerry_char_t *) "Expected a string.");
+
+    temp = {{{Interpreter.interpreter}}}_get_string_value(string_value);
+    if (temp == NULL)
+    {
+	return jerry_create_error(JERRY_ERROR_TYPE,
+			   (const jerry_char_t *) "Null string found.");
+    }
+    else
+    {
+	*((string *)(c_arg_p->dest)) = temp;
+	return jerry_create_undefined();
+    }
+} /* {{{Interpreter.interpreter}}}_arg_to_string */
+{{/body}}
+
+
+/* the transform function for "object" doesn't actually do anything other
+   than check to see if the jerry_value_t is an object */
+jerry_value_t {{{Interpreter.interpreter}}}_arg_to__object(jerryx_arg_js_iterator_t *js_arg_iter_p,
+			               const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+{{#body}}
+{
+    jerry_value_t _object_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
+    if (!jerry_value_is_object(_object_value))
+    	return jerry_create_error(JERRY_ERROR_TYPE,
+                             	  (const jerry_char_t *) "Expected an object.");
+    *((jerry_value_t *)c_arg_p->dest) = _object_value;
+    return jerry_create_undefined();
+} /* {{{Interpreter.interpreter}}}_arg_to__object */
+
+{{/body}}
+
+{{#arg_function}}
+{{> build_composite_arg_function}}
+
+{{/arg_function}}
 
 {{/original_arg_handling}}
 {{{Interpreter.Type}}} {{{Interpreter.interpreter}}}__get_property({{{Interpreter.Type}}} thing, string property){{#header}};{{/header}}
@@ -824,8 +876,8 @@ void {{{Interpreter.interpreter}}}__set_property({{{Interpreter.Type}}} thing, s
    jerry_release_value(new_value_pointer);
    jerry_release_value(prop_name);
 } /* {{{Interpreter.interpreter}}}__set_property */
-{{/body}}
 
+{{/body}}
 void Native_Object_set(void *thing, {{{Interpreter.Type}}} object, {{{Interpreter.checksum_type}}} *checksum){{#header}};{{/header}}
 {{#body}}
 {
@@ -1194,11 +1246,11 @@ void debug_print_message(char *message){{#header}};{{/header}}
 } /* debug_print_message */
 
 {{/body}}
-void debug_print_object(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+void debug_print__object(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	printf("%*s<object> :  \"%s\"\n", indentation, "", variable_name);
-} /* debug_print_object */
+} /* debug_print__object */
 
 {{/body}}
 void debug_print_this(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
@@ -1277,6 +1329,29 @@ void debug_print_any(char *variable_name, any value, unsigned int indentation){{
 	   break;
     }
 } /* debug_print_any */
+
+{{/body}}
+void debug_print_ArrayBuffer(char *variable_name,
+                             ArrayBuffer value,
+                             unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    debug_print_uint32_t(variable_name, value.length, indentation);
+
+    int data_indent = indentation + strlen(variable_name) + 3;
+    int ENTRIES_PER_ROW = 8;
+#define LAST_IN_ROW !((j+1)%ENTRIES_PER_ROW)
+    int j = 0;
+    printf("%*s", data_indent, "");
+    for (j = 0; j < value.length; j++)
+	printf("0x%02X%s%*s", value.data[j],
+	                    (LAST_IN_ROW)?"\n":"  ",
+	                    (LAST_IN_ROW && j+1 != value.length)?data_indent:0,
+	                    "");
+
+    if (j%ENTRIES_PER_ROW)
+        printf("\n");
+}; /* debug_print_ArrayBuffer */
 
 {{/body}}
 void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#header}};{{/header}}

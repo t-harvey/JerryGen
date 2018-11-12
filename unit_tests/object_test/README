@@ -19,7 +19,7 @@ from the unit_test/object_test directory:
 cd object_test/ ; cp ~/work/generator/unit_tests/object_test/call_callback_stubs.c .
 
 Now, run the compile command:
-gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I../../jerry-ext/include/jerryscript-ext/ -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
 
 ...the result should be an a.out executable and no warnings or error
 messages.  Run it as follows:
@@ -28,7 +28,7 @@ a.out ~/work/generator/unit_tests/object_test/object_test_script.js
 
 The full set of commands:
 
- ../../generator/generate.js --output_utility_files --package=object_test ../../generator/unit_tests/object_test/object_test.idl && cd object_test/ && cp ~/work/generator/unit_tests/object_test/call_callback_stubs.c . && gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm && a.out ~/work/generator/unit_tests/object_test/object_test_script.js
+ ../../generator/generate.js --output_utility_files --package=object_test ../../generator/unit_tests/object_test/object_test.idl && cd object_test/ && cp ~/work/generator/unit_tests/object_test/call_callback_stubs.c . && gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I../../jerry-ext/include/jerryscript-ext/ -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm && a.out ~/work/generator/unit_tests/object_test/object_test_script.js
 
 
 Expected output:

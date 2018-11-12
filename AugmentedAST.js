@@ -101,7 +101,7 @@ AugmentedAST.prototype.primitiveTypes = ['any', 'ArrayBuffer', 'boolean',
    types, we'll need to look for these, not, e.g., "unsigned int" */
 AugmentedAST.prototype.CTypes = [ "int8_t", "uint8_t", "int16_t", "uint16_t",
 				  "int32_t", "uint32_t", "int64_t", "uint64_t",
-				  "bool", 
+				  "bool", "_object",
 				  'unsignedlong', 'longlong',
 				  'unsignedlonglong', 'unrestrictedfloat',
 				  'unrestricteddouble'];
@@ -212,12 +212,6 @@ AugmentedAST.prototype.isArrayType = function (t)
 }; /* AugmentedAST.isArrayType */
 
 /* returns true if the given type has been defined as a composite type */
-AugmentedAST.prototype.isCompositeType = function (t)
-{
-    return this.composites[this.getTypeName(t)] != undefined;
-}; /* AugmentedAST.isCompositeType */
-
-/* returns true if the given type has been defined as an interface in the IDL */
 AugmentedAST.prototype.isCompositeType = function (t)
 {
     return this.composites[this.getTypeName(t)] != undefined;
@@ -368,6 +362,7 @@ AugmentedAST.prototype.C_to_Jerryscript_TypeMap = {
 	"double"      : "number",
         "string"      : "string",
         "Error"       : "Error",
+        "object"      : "_object",
 	"this"        : "this"
     }; /* C_to_Jerryscript_TypeMap */
 
@@ -417,6 +412,7 @@ AugmentedAST.prototype.WebIDL_to_C_TypeMap = {
 	"ByteString" : "string",
 	"USVString" : "string",
 	"string" : "string",
+        "object"      : "_object",
         "Error": "Error",
 	"this" : "this"
     }; /* WebIDL_to_C_TypeMap */
@@ -522,7 +518,10 @@ AugmentedAST.prototype.getConversionTypes = function(idlType,
 	return_types.Jerryscript_Type = return_types.C_Type;
 
     if (idlType.array > 0)
+    {
+	return_types.element_type = idlType.element_type;
 	return_types.is_array = true;
+    }
 
     /* the "this" pointer can only occur (in the WebIDL) as the return
        type of a function; mark it here for easy identification */
@@ -798,7 +797,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     /* the following line was my first attempt:
     /* let uniq_list =
 	    intrinsics_list.filter(function(item, pos)
-	                      {return intrinsics_list.indexOf(item)==pos;});*/
+<	                      {return intrinsics_list.indexOf(item)==pos;});*/
     /* ...but this fails, b/c indexOf doesn't like objects (it's the perennial
        difference between == and ===) -- so I substituted the following, which
        I got off of http://tinyurl.com/yabbcs8v */
@@ -943,6 +942,13 @@ AugmentedAST.prototype.fix_names_and_types = function(thing, type_of_thing)
 	    argument.name = fix_name(call.arguments[j].name);
 	    argument.C_and_Jerryscript_Types.C_Type =
 		            fix_type(argument.C_and_Jerryscript_Types.C_Type);
+	}
+
+	call.number_of_non_variadic_params = call.arguments.length;
+	if (call.arguments[call.arguments.length-1].variadic)
+	{
+	    call.number_of_variadic_params = 1;
+	    call.number_of_non_variadic_params--;
 	}
     }; /* process_call */
 
@@ -1688,7 +1694,7 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
 
   record_name(theInterface.name, "interface");
 
-  // zephyr's idl contains operations with no preceding type, which is
+  // zephyr's idl contains operations with no return type, which is
   // incorrect WebIDL -- should we complain and exit, or convert the
   // operation to returning a void (plus tell the user that's what we did)?
   // The pattern when the parser hits this error is to put the operation's
@@ -2472,6 +2478,8 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	for (let i = 0 ; i < webidl_type_list.length; i++)
 	    new_c_and_j_type_list.push(
 		                this.getConversionTypes(webidl_type_list[i]));
+	/* this is for Mustache output: */
+	new_c_and_j_type_list[0].first_in_list = true;
 	composite["c_and_j_type_list"] = new_c_and_j_type_list;
 
 	/* we'll need to name each field by its webidl name, so record that
@@ -2479,22 +2487,23 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	for (var i =0; i < composite["c_and_j_type_list"].length; i++)
 	    composite["c_and_j_type_list"][i].webidl_name =
 		webidl_type_list[i].replace(/ /g,''); /* remove whitespace */
-	
-	/* this is for Mustache output: */
-	composite["c_and_j_type_list"][0].first_in_list = true;
     }; /* build_type_list_from_webidl_list */
 
     /* because Javascript only has a single numeric type, we want to convert
        Javascript values into the largest C type so as to keep from losing
        bits; this routine will build a subset of the c_and_j_type_list with
        only a single (the largest) numeric (C) type and then store this
-       filtered list in j_to_c_type_list in the composite */
+       filtered list in j_to_c_type_list in the composite -- we'll use this
+       list to order the type checking/assignment when building a composite
+       type from the Javascript value */
     let filter_numeric_types = function(composite)
     {
 	var filtered_list = [];
 	/* we'll arbitrarily define unsigned's to be bigger than signed's,
 	   and floating-point trumps any integral value */
-	var c_type_size = { int8_t:    7 ,
+	var c_type_size = { boolean:  1,
+			    bool:     1,
+			    int8_t:   7 ,
 			    uint8_t:  8 ,
 			    int16_t:  15,
 			    uint16_t: 16,
@@ -2509,14 +2518,15 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 			  };
 	var greater_than = function(x, y)
 	{
-	    if      (typeof x == "undefined") return y;
-	    else if (typeof y == "undefined") return x;
+	    if      (typeof x == "undefined") return false;
+	    else if (typeof y == "undefined") return true;
 
 	    return (c_type_size[x.C_Type] > c_type_size[y.C_Type]);
 	}; /* greater_than */
 
-	var largest_numeric_type;
+	var largest_numeric_type = undefined;
 	var c_and_j_type_list = composite.c_and_j_type_list;
+	var boolean_type_copy = undefined; /* defined if we see "boolean"... */
 	for(var i = 0; i < c_and_j_type_list.length; i++)
 	{
 	    var this_type = Object.assign({}, c_and_j_type_list[i]);
@@ -2525,6 +2535,8 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	       list */
 	    if (typeof c_type_size[this_type.C_Type] == "undefined")
 		filtered_list.push(this_type);
+	    else if (this_type.C_Type === "bool")
+		boolean_type_copy = this_type;
 	    else if (greater_than(this_type, largest_numeric_type))
 		largest_numeric_type = this_type;
 	}
@@ -2532,10 +2544,19 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	/* stick the largest numeric type we found onto the end of the list */
 	if (typeof largest_numeric_type != "undefined")
 	    filtered_list.push(largest_numeric_type);
+	/* ...and, if necessary, stick a boolean check at the *very* end
+	   of the list... */
+	if (typeof boolean_type_copy != "undefined")
+	    filtered_list.push(boolean_type_copy);
 
+        /* this is for Mustache output: */
 	filtered_list[0].first_in_list = true;
+	filtered_list[filtered_list.length-1].last_in_list = true;
+
 	composite.j_to_c_type_list = filtered_list;
     }; /* filter_numeric_types */
+
+    
 
     Object.values(this.composites).forEach(
 					build_type_list_from_webidl_list,
@@ -2552,6 +2573,7 @@ AugmentedAST.prototype.build_composite_types = function(composites)
     Object.values(this.composites).forEach(
 	                                filter_numeric_types,
 	                                this /* stay in the current context */);
+
 } /* build_composite_types */
 
 
@@ -2769,7 +2791,7 @@ AugmentedAST.prototype.augment = function (ast) {
     this.find_inheritance_chain(this.interfaces);
     this.find_inheritance_chain(this.dictionaries);
 
-    /* we need to make sure that no one creates data types that are inclusive
+    /* we need to make sure that no one creates data types that are recursive
        (e.g.,: a has a field of type b, and b has a field of type a) */
     this.ensure_no_recursion_in_types(Object.assign({}, this.interfaces,
 					           this.dictionaries));
@@ -2976,6 +2998,8 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
        code, above, that handles an explicit array type */
     if (is_variadic)
     {
+	idlType.element_type = new_type;
+
 	/* create_array_type wants a particular data struture, so we'll
 	   build one just to make it do what we want... */
 	new_type = create_array_type({"items":new_type}, this.array_types);
@@ -3372,6 +3396,7 @@ AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
 			    /* Object.assign copies memory rather than
 			       the reference */
 			    let type = Object.assign({}, argument.C_and_Jerryscript_Types);
+			    type.element_type = type.C_Type;
 			    type.C_Type = type.C_Type+"_Array";
 			    type.is_string = false; /* kludge, but we know
 						       it's true */

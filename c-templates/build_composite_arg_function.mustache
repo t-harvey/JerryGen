@@ -1,0 +1,83 @@
+{{! this is a shared file for building the interpreter_arg_<thing>
+    function, so step 1 is to compile this entire file to fill in
+    each individual's specifics; we modify mustache's delimiters
+    for this first pass; compiling this file will produce a string
+    that will then be included in the larger file for those two
+    applications and compiled a second time }}
+
+{{=<% %>=}}
+
+{{! currently, this is only used by two routines, the composite
+    builder, and the utilities builder (to build the "any" type),
+    so the fields and values for each thing are:
+
+    composites:
+        thingName: "{ { { compositeName } } }"
+	thingType: "Composite"    /* used for error messages */
+
+    "any": 
+        thingName: "any"
+	thingType: "any"
+}}
+{{#header}}
+#define {{{Interpreter.interpreter}}}_arg_<%thingName%>(x, z) \
+            jerryx_arg_custom(x, \
+                             (uintptr_t)&((uintptr_t []){(uintptr_t)JERRYX_ARG_COERCE, \
+                                                         (uintptr_t)z}), \
+                              {{{Interpreter.interpreter}}}_arg_to_<%thingName%>)
+
+{{/header}}
+{{! composites can only benefit from Jerryscript's automated parameter
+    checking by first peek'ing at the top of the stack to determine
+    the type and then calling the appropriate function to assign the
+    parameter; the problem is that every interpreter_arg_*
+    function pops the top off of the stack, so we can't just call each
+    possible type's _arg_* function and look for one that doesn't
+    return an error condition }}
+{{! TODO: technically, we should be assigning to a local copy of the
+    composite type, only writing to the passed in one if there isn't
+    an error }}
+{{{Interpreter.Type}}}
+{{{Interpreter.interpreter}}}_arg_to_<%thingName%>(jerryx_arg_js_iterator_t *js_arg_iter_p,
+                                       const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+{{#body}}
+{
+    <%thingName%> *destination = c_arg_p->dest;
+    uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
+    jerryx_arg_t conversion_function;
+    {{{Interpreter.Type}}} conversion_result;
+
+    
+    {{#j_to_c_type_list}}
+    {{! setting the JERRYX_ARG_OPTIONAL field tells the jerryx_arg_*
+    	function not to pop the stack if it fails to get that type of
+	value -- so, to maintain the stack top for successive calls,
+    	we set that flag for all but the last attempt; at the final
+	call, we use the value of "optional or required" that gets
+	sent in }}
+    {
+        conversion_function =
+               {{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(({{{C_Type}}} *)(&(destination->value.{{{webidl_name}}}_field)),
+					{{#last_in_list}}extra_info[1]{{/last_in_list}}{{^last_in_list}}INTERPRETER_ARG_OPTIONAL{{/last_in_list}});
+        conversion_result = conversion_function.func(js_arg_iter_p, &conversion_function);
+        if (!jerry_value_is_error(conversion_result))
+        {
+            destination->union_type = {{{webidl_name}}}_uid;
+	    return conversion_result;
+        }
+	{{^last_in_list}}
+	jerryx_arg_js_iterator_restore(js_arg_iter_p);
+	{{/last_in_list}}
+	{{#last_in_list}}
+	else
+	    {{! TODO: do we care if the optional flag was set for this? }}
+	    /* indicates that whatever they gave us, it wasn't one of
+       	       the types we were expecting... */
+    	    return jerry_create_error(JERRY_ERROR_TYPE,
+	       	      	      (const jerry_char_t *) "<%thingType%>-type error.");
+	{{/last_in_list}}
+    }
+    {{/j_to_c_type_list}}
+
+} /* {{{Interpreter.interpreter}}}_arg_to_<%thingName%> */
+{{/body}}

@@ -43,7 +43,12 @@ module.exports.genCString = function(ast, moduleName, header_or_body)
     else /* header_or_body === "generate_body" */
 	context.body = true;
 
-    return hogan.compile(getMustacheTemplate('interface')).render(context);
+    var precompile = hogan.compile(getMustacheTemplate('demarshal_args'));
+    var demarshal_template = precompile.render({thingName: "{{{operationName}}}"});
+    var compiled_template = hogan.compile(demarshal_template);
+    return hogan.compile(getMustacheTemplate('interface')).render(
+	                                context,
+					{demarshal_args: compiled_template});
 };
 
 
@@ -111,7 +116,11 @@ module.exports.genCallbackString = function(ast, moduleName, header_or_body)
     else /* header_or_body === "generate_body" */
 	context.body = true;
 
-    return hogan.compile(getMustacheTemplate('callback')).render(context);
+    var precompile = hogan.compile(getMustacheTemplate('demarshal_args'));
+    var demarshal_template = precompile.render({thingName: "{{{callbackName}}}"});
+    var compiled_template = hogan.compile(demarshal_template);
+
+    return hogan.compile(getMustacheTemplate('callback')).render(context, {demarshal_args: compiled_template});
 }; /* genCallbackString */
 
 
@@ -147,7 +156,14 @@ module.exports.genCompositeString =
 	else /* header_or_body === "generate_body" */
 	    context.body = true;
     
-	return hogan.compile(getMustacheTemplate("composites")).render(context);
+    var precompile = hogan.compile(
+	                 getMustacheTemplate('build_composite_arg_function'));
+    var composite_template = precompile.render(
+	                                 {thingName: "{{{compositeName}}}",
+					  thingType: "Composite"});
+    var compiled_template = hogan.compile(composite_template);
+
+	return hogan.compile(getMustacheTemplate("composites")).render(context, {build_composite_arg_function: compiled_template});
 }; /* genCompositeString */
 
 
@@ -182,6 +198,29 @@ module.exports.genUtilitiesString = function(ast, moduleName, header_or_body)
     else /* header_or_body === "generate_body" */
 	context.body = true;
 
-    return hogan.compile(getMustacheTemplate("utilities")).render(context);
+    var precompile = hogan.compile(
+	                 getMustacheTemplate('build_composite_arg_function'));
+    var any_template = precompile.render({thingName: "any",
+					  thingType: "any"});
+    var compiled_template = hogan.compile(any_template);
+
+    /* to make the compiled_template work, we need to add to the context
+       the data structure that the template expects: */
+    context.arg_function = {j_to_c_type_list: [{ C_Type: "string",
+						webidl_name: "string",
+						last_in_list: false
+                                               },
+	                                       { C_Type: "double",
+						webidl_name: "double",
+						last_in_list: false
+                                               },
+	                                       { C_Type: "bool",
+						webidl_name: "boolean",
+						last_in_list: true
+                                               },
+					      ]
+			   };
+    return hogan.compile(getMustacheTemplate("utilities")).render(context,
+			{build_composite_arg_function: compiled_template});
 }; /* genUtilitiesString */
 
