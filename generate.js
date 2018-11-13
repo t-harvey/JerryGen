@@ -52,6 +52,7 @@ if (typeof parameters.include_files != "undefined")
 var augAST = new AugmentedAST(parsed_file,
 			      parameters.fix_type_errors,
 			      parameters.leave_enums_alone,
+			      parameters.tied_to_jerryscript,
 			      parameters.package);
 
 augAST.utilities_filename       = "webidl_compiler_utilities";

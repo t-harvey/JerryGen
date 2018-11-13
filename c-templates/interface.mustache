@@ -201,7 +201,8 @@ void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Ob
 {{^repress_stubs}}
 
 {{#C_and_Jerryscript_Types}}
-extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}*{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}});
+    {{{Interpreter.error_type}}} error = 0;
+extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error);
 {{/C_and_Jerryscript_Types}}
 {{/repress_stubs}}
 {{! for the "return_value", the logic is as follows: 1) don't put out
@@ -211,14 +212,13 @@ simple declaration; 3) if we're not repressing stubs, then put out the
 declaration with an assignment from the stub }}
 {{#repress_stubs}}{{^voidReturnType}}
 /* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
-    {{{Interpreter.Type}}} copy_of_this_val = this_val;
 {{#C_and_Jerryscript_Types}}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}(&copy_of_this_val{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}});{{/repress_stubs}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}(this_val{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, &error);{{/repress_stubs}}
 {{/C_and_Jerryscript_Types}}
-    /* we expect the stubs files to overwrite the "this" pointer with
-       an error value to report malfunction */
-    if (copy_of_this_val != this_val)
-        return copy_of_this_val;
+    /* we expect the stubs files to return a non-zero error if
+       something went wrong */
+    if (error) {{! TODO: what about clearing memory? }}
+        return error;
 
     {{! if the return value is a string (or array of strings), we want
         to enter it into the Jerryscript environment _before_ we

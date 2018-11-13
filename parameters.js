@@ -58,7 +58,7 @@ let acceptable_inputs = {
     print_generation_message: [true, false],
     quiet:                    [false, true],
     arg_handling:             ["original", "new"],
-    tied_to_jerryscript:      [true, false],
+    tied_to_jerryscript:      [false, true],
     help:                     []
 }; /* acceptable_inputs */
 
