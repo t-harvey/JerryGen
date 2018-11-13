@@ -583,13 +583,13 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 
 {{#header}}
 #ifndef INTERFACE_EXTRACT
-#define INTERFACE_EXTRACT(self, InterfaceName, AttributeName) \
-	extract_##InterfaceName##_##AttributeName(self)
+#define INTERFACE_EXTRACT(this, InterfaceName, AttributeName) \
+	extract_##InterfaceName##_##AttributeName(this)
 #endif /* INTERFACE_EXTRACT */
 
 #ifndef INTERFACE_INSERT
-#define INTERFACE_INSERT(self, InterfaceName, AttributeName, value) \
-	insert_##InterfaceName##_##AttributeName(self, value)
+#define INTERFACE_INSERT(this, InterfaceName, AttributeName, value) \
+	insert_##InterfaceName##_##AttributeName(this, value)
 #endif /* INTERFACE_INSERT */
 
 /***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
@@ -621,7 +621,9 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define interpreter_get_boolean_value (boolean)jerry_get_boolean_value
 
 #define {{{Interpreter.interpreter}}}_get_this_value(x) (x)
+#define {{{Interpreter.interpreter}}}_get_{{{Interpreter.Type}}}_value(x) (x)
 #define this_constructor() 0
+#define {{{Interpreter.Type}}}_constructor() 0
 
 /* we check value types using their C-type names, although the checks
    translate into checking for synonymous Javascript types */
@@ -1005,7 +1007,7 @@ static const char *q36 = "q36_interface_and_defintions_prototypes_holder_q36";
    create a Native_Object that is nothing more than a struct that will
    hold the {{{Interpreter.Type}}} that points to the prototypes holder */
 typedef struct {
-    {{{Interpreter.Type}}} self;
+    {{{Interpreter.Type}}} this;
 } prototypes_holder_native_object;
 
 /* we want to try to load the prototypes holder and then check to make
@@ -1053,11 +1055,11 @@ void webidl_utilities_cleanup(void){{#header}};{{/header}}
 {
     {{{Interpreter.Type}}} prototypes_holder = get_prototypes_holder();
     jerry_error_t error_check;
-    prototypes_holder_native_object *self_pointer =
+    prototypes_holder_native_object *this_pointer =
                      Native_Object_get(prototypes_holder, NULL, &error_check);
 
-    jerry_release_value(self_pointer->self);
-    free(self_pointer);
+    jerry_release_value(this_pointer->this);
+    free(this_pointer);
     jerry_release_value(prototypes_holder);
 
 } /* webidl_utilities_cleanup */
@@ -1077,11 +1079,11 @@ void create_prototypes_holder(void){{#header}};{{/header}}
     jerry_release_value(prototype_holder_name);
     jerry_release_value(global_object);
 
-    /* store a self-pointer inside the object so that it can't be GC'd */
-    prototypes_holder_native_object *new_self_ptr =
+    /* store a this-pointer inside the object so that it can't be GC'd */
+    prototypes_holder_native_object *new_this_ptr =
                                malloc(sizeof(prototypes_holder_native_object));
-    new_self_ptr->self = new_prototypes_holder;
-    Native_Object_set(new_self_ptr, new_prototypes_holder, NULL);
+    new_this_ptr->this = new_prototypes_holder;
+    Native_Object_set(new_this_ptr, new_prototypes_holder, NULL);
 
     jerry_release_value(new_prototypes_holder);
 } /* create_prototypes_holder */
@@ -1257,7 +1259,14 @@ void debug_print_this(char *variable_name, float value, unsigned int indentation
 {{#body}}
 {
     printf("%*s<this pointer>\n", indentation, "");
-} /* debug_print_object */
+} /* debug_print_this */
+
+{{/body}}
+void debug_print_{{{Interpreter.Type}}}(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+{{#body}}
+{
+    printf("%*s<this pointer>\n", indentation, "");
+} /* debug_print_{{{Interpreter.Type}}} */
 
 {{/body}}
 void debug_print_object_fields({{{Interpreter.Type}}} thing){{#header}};{{/header}}

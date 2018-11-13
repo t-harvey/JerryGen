@@ -50,13 +50,16 @@ var record_name = function(name, kind)
 /* processes the given AST for errors, and produces an augmented
    version of the ast with easy access to the defined dictionaries,
    interfaces, types, and other definitions in the idl */
-function AugmentedAST(ast, fix_type_errors, leave_enums_alone, moduleName)
+function AugmentedAST(ast,
+		      fix_type_errors, leave_enums_alone,
+		      tied_to_jerryscript, moduleName)
 {
     this.ast = ast;
     this.moduleName = moduleName;
     this.isAugmented = false;
     this.fix_type_errors = fix_type_errors;
     this.leave_enums_alone = leave_enums_alone;
+    this.tied_to_jerryscript = tied_to_jerryscript;
 
     this.dictionaries = Object.create(null);
     this.callbacks = Object.create(null);
@@ -104,7 +107,8 @@ AugmentedAST.prototype.CTypes = [ "int8_t", "uint8_t", "int16_t", "uint16_t",
 				  "bool", "_object",
 				  'unsignedlong', 'longlong',
 				  'unsignedlonglong', 'unrestrictedfloat',
-				  'unrestricteddouble'];
+				  'unrestricteddouble', 'Interpreter_Type',
+				  'jerry_value_t' ];
 
 /* uses the augmented data to produce an array of types, including
    primitive, dictionary, interface, typedef, exception and enum types
@@ -363,7 +367,9 @@ AugmentedAST.prototype.C_to_Jerryscript_TypeMap = {
         "string"      : "string",
         "Error"       : "Error",
         "object"      : "_object",
-	"this"        : "this"
+	"this"        : "this",
+        "Interpreter_Type" : "this",
+        "jerry_value_t" : "this"
     }; /* C_to_Jerryscript_TypeMap */
 
 
@@ -414,9 +420,8 @@ AugmentedAST.prototype.WebIDL_to_C_TypeMap = {
 	"string" : "string",
         "object"      : "_object",
         "Error": "Error",
-	"this" : "this"
+	"this" : "Interpreter_Type"
     }; /* WebIDL_to_C_TypeMap */
-
 
 /* record all of the names of typedefs in our input; 
 /* SIDE EFFECT: creates the AugmentedAST.typedefs list */
@@ -945,7 +950,8 @@ AugmentedAST.prototype.fix_names_and_types = function(thing, type_of_thing)
 	}
 
 	call.number_of_non_variadic_params = call.arguments.length;
-	if (call.arguments[call.arguments.length-1].variadic)
+	if (call.arguments.length > 0 &&
+	    call.arguments[call.arguments.length-1].variadic)
 	{
 	    call.number_of_variadic_params = 1;
 	    call.number_of_non_variadic_params--;
@@ -2704,6 +2710,10 @@ AugmentedAST.prototype.augment = function (ast) {
   if (this.isAugmented) {
     return this; //already augmented
   }
+
+  if (this.tied_to_jerryscript)
+      this.WebIDL_to_C_TypeMap["this"] = "jerry_value_t";
+
     /* record typedefs in their own structure (this.typedefs) -- we could(!)
        remove them from the ast, but right now, we just ignore them in the
        next loop... */

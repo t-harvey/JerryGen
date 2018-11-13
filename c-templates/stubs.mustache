@@ -150,23 +150,23 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
  *
  */ 
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}} *self{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}} *this{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}){{#header}};{{/header}}
 {{#body}}
 {
     {{#arguments}}
         {{#C_and_Jerryscript_Types}}
 	{{#callback}}
 	{{{C_Type}}} _temp__for_{{{name}}} = {{{name}}};
-#define {{{name}}}(...) (run_{{{C_Type}}}_function(_temp__for_{{{name}}}, *self, __VA_ARGS__))
+#define {{{name}}}(...) (run_{{{C_Type}}}_function(_temp__for_{{{name}}}, *this, __VA_ARGS__))
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
 
     {{/arguments}}
     {{{Interpreter.error_type}}} error_check;
-    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(*self, &error_check);
+    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(*this, &error_check);
     if (error_check)
     {
-        *self = error_check;
+        *this = error_check;
 	{{#C_and_Jerryscript_Types}}
 	{{^voidReturnType}}{{^return_is_this}}/* we return a (meaningless) default value here so the compiler doesn't complain */{{/return_is_this}}{{/voidReturnType}}
 	return{{^voidReturnType}}{{^return_is_this}} {{{default_value}}}{{/return_is_this}}{{/voidReturnType}};
@@ -196,7 +196,7 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
 {{^voidReturnType}}
 {{#return_is_this}} {{! CAN A STUB EVER RETURN "this"?!? -- NO; IT'S A
 		        VOID RETURN TYPE... }}
-    /*return self;*/
+    /*return this;*/
 {{/return_is_this}}
 {{^return_is_this}}
 #ifdef DEBUG_PRINTING

@@ -73,11 +73,11 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 {{/inheritance}}
 
 
-{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} self,
+{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} this,
 				      {{{Interpreter.error_type}}} *error_check){{#header}};{{/header}}
 {{#body}}
 {
-    return Native_Object_get(self, &{{{interfaceName}}}_checksum, error_check);
+    return Native_Object_get(this, &{{{interfaceName}}}_checksum, error_check);
 }; /* Native_Object_get_from_{{{interfaceName}}} */
 {{/body}}
 /* all WebIDL constructs have a constructor function, so that C code
@@ -111,11 +111,11 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 {{/attributes.length}}
 {{#attributes}}
 {{#C_and_Jerryscript_Types}}
-{{#header}}extern {{/header}}{{{C_Type}}} get_{{{interfaceName}}}_{{{attributeName}}} ({{{Interpreter.Type}}} self){{#header}};{{/header}}
+{{#header}}extern {{/header}}{{{C_Type}}} get_{{{interfaceName}}}_{{{attributeName}}} ({{{Interpreter.Type}}} this){{#header}};{{/header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} property_pointer = jerry_create_string((const jerry_char_t *) "{{{attributeName}}}");
-    {{{Interpreter.Type}}} attribute_pointer = jerry_get_property(self, property_pointer);
+    {{{Interpreter.Type}}} attribute_pointer = jerry_get_property(this, property_pointer);
     {{{C_Type}}} return_value = ({{{C_Type}}}){{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(attribute_pointer);
     jerry_release_value(property_pointer);
     jerry_release_value(attribute_pointer);
@@ -123,12 +123,12 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 } /* get_{{interfaceName}}_{{attributeName}} */
 
 {{/body}}
-{{#header}}extern {{/header}}void set_{{{interfaceName}}}_{{{attributeName}}} ({{{Interpreter.Type}}} self, {{{C_Type}}} new_value){{#header}};{{/header}}
+{{#header}}extern {{/header}}void set_{{{interfaceName}}}_{{{attributeName}}} ({{{Interpreter.Type}}} this, {{{C_Type}}} new_value){{#header}};{{/header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} new_value_pointer =
               {{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{C_Type}}}({{#is_string}}(const jerry_char_t *) {{/is_string}}new_value);
-    {{{Interpreter.interpreter}}}__set_property(self, "{{{attributeName}}}", new_value_pointer);
+    {{{Interpreter.interpreter}}}__set_property(this, "{{{attributeName}}}", new_value_pointer);
     jerry_release_value(new_value_pointer);
 
 } /* set_{{interfaceName}}_{{attributeName}} */
@@ -215,7 +215,7 @@ declaration with an assignment from the stub }}
 {{#C_and_Jerryscript_Types}}
     {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}(&copy_of_this_val{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}});{{/repress_stubs}}
 {{/C_and_Jerryscript_Types}}
-    /* we expect the stubs files to overwrite the "self" pointer with
+    /* we expect the stubs files to overwrite the "this" pointer with
        an error value to report malfunction */
     if (copy_of_this_val != this_val)
         return copy_of_this_val;
