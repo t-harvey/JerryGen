@@ -115,6 +115,12 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
     return new_object;
 } /* {{{interfaceName}}}_Native_Object_create */
 {{/body}}
+{{#header}}
+extern {{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} this,
+                                      {{{Interpreter.error_type}}} *error_check);
+extern void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
+                                      {{{interfaceName}}}_Native_Object *new_value);
+{{/header}}
 {{/inheritance}}
 {{#body}}
 
@@ -150,7 +156,7 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
  *
  */ 
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}} this{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}{{{Interpreter.Type}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}} this{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error){{#header}};{{/header}}
 {{#body}}
 {
     {{#arguments}}
@@ -160,18 +166,13 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
 #define {{{name}}}(...) (run_{{{C_Type}}}_function(_temp__for_{{{name}}}, this, __VA_ARGS__))
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
-
     {{/arguments}}
-    {{{Interpreter.error_type}}} error_check;
-    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(this, &error_check);
-    if (error_check)
-    {
-        *error = error_check;
-	{{#C_and_Jerryscript_Types}}
+    *error = 0;
+    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(this, error);
+    if (*error){{#C_and_Jerryscript_Types}}
 	{{^voidReturnType}}{{^return_is_this}}/* we return a (meaningless) default value here so the compiler doesn't complain */{{/return_is_this}}{{/voidReturnType}}
-	return{{^voidReturnType}}{{^return_is_this}} {{{default_value}}}{{/return_is_this}}{{/voidReturnType}};
+	return{{^voidReturnType}}{{^return_is_this}} {{{default_value}}}{{/return_is_this}}{{#return_is_this}} this{{/return_is_this}}{{/voidReturnType}};
 	{{/C_and_Jerryscript_Types}}
-    }
 
 {{#debug_printing}}
 #ifdef DEBUG_PRINTING
@@ -194,9 +195,8 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
 {{#debug_printing}}
 {{#C_and_Jerryscript_Types}}
 {{^voidReturnType}}
-{{#return_is_this}} {{! CAN A STUB EVER RETURN "this"?!? -- NO; IT'S A
-		        VOID RETURN TYPE... }}
-    /*return this;*/
+{{#return_is_this}}
+    return this;
 {{/return_is_this}}
 {{^return_is_this}}
 #ifdef DEBUG_PRINTING

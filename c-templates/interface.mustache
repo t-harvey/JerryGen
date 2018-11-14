@@ -71,14 +71,20 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 {{^inheritance}}
 {{#header}}extern {{/header}}{{{Interpreter.checksum_type}}} {{{interfaceName}}}_checksum {{#body}} = { {{{interfaceName}}}_Native_Object_deallocator }{{/body}};
 {{/inheritance}}
+void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
+				      {{{interfaceName}}}_Native_Object *new_value){{#header}};{{/header}}
+{{#body}}
+{
+    Native_Object_set(this, new_value, &{{{interfaceName}}}_checksum);
+}; /* {{{interfaceName}}}_Native_Object_set */
 
-
+{{/body}}
 {{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} this,
 				      {{{Interpreter.error_type}}} *error_check){{#header}};{{/header}}
 {{#body}}
 {
     return Native_Object_get(this, &{{{interfaceName}}}_checksum, error_check);
-}; /* Native_Object_get_from_{{{interfaceName}}} */
+}; /* {{{interfaceName}}}_Native_Object_get */
 {{/body}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
@@ -97,7 +103,7 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
     {{/attributes}}
 
     /* set up the native object */
-    Native_Object_set((struct {{{interfaceName}}}_Native_Object *){{{interfaceName}}}_Native_Object_create(), new_{{{interfaceName}}}, &{{{interfaceName}}}_checksum);
+    Native_Object_set(new_{{{interfaceName}}}, (struct {{{interfaceName}}}_Native_Object *){{{interfaceName}}}_Native_Object_create(), &{{{interfaceName}}}_checksum);
 
     return new_{{{interfaceName}}};
 } /* {{{interfaceName}}}_constructor */
@@ -202,7 +208,7 @@ void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Ob
 
 {{#C_and_Jerryscript_Types}}
     {{{Interpreter.error_type}}} error = 0;
-extern {{#return_is_this}}void{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error);
+extern {{#return_is_this}}{{{Interpreter.Type}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error);
 {{/C_and_Jerryscript_Types}}
 {{/repress_stubs}}
 {{! for the "return_value", the logic is as follows: 1) don't put out
@@ -339,7 +345,7 @@ create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_v
 
     /* set up the Native_Object for the new object */
     {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_create();
-    Native_Object_set(native_object, new_{{{interfaceName}}}, &{{{interfaceName}}}_checksum);
+    Native_Object_set(new_{{{interfaceName}}}, native_object, &{{{interfaceName}}}_checksum);
 
     return new_{{{interfaceName}}};
 {{/NoInterfaceObject}}
@@ -397,7 +403,7 @@ void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
 {{#NoInterfaceObject}}
     /* set up the Native_Object for the new object */
     {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_create();
-    Native_Object_set(native_object, {{{interfaceName}}}_prototype_object, &{{{interfaceName}}}_checksum);
+    Native_Object_set({{{interfaceName}}}_prototype_object, native_object, &{{{interfaceName}}}_checksum);
 
     {{{Interpreter.Type}}} object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");
     jerry_release_value(jerry_set_property(global_object,

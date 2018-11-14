@@ -880,10 +880,10 @@ void {{{Interpreter.interpreter}}}__set_property({{{Interpreter.Type}}} thing, s
 } /* {{{Interpreter.interpreter}}}__set_property */
 
 {{/body}}
-void Native_Object_set(void *thing, {{{Interpreter.Type}}} object, {{{Interpreter.checksum_type}}} *checksum){{#header}};{{/header}}
+void Native_Object_set({{{Interpreter.Type}}} object, void *new_value, {{{Interpreter.checksum_type}}} *checksum){{#header}};{{/header}}
 {{#body}}
 {
-    jerry_set_object_native_pointer(object, thing, checksum);
+    jerry_set_object_native_pointer(object, new_value, checksum);
 } /* Native_Object_set */
 
 {{/body}}
@@ -1083,7 +1083,7 @@ void create_prototypes_holder(void){{#header}};{{/header}}
     prototypes_holder_native_object *new_this_ptr =
                                malloc(sizeof(prototypes_holder_native_object));
     new_this_ptr->this = new_prototypes_holder;
-    Native_Object_set(new_this_ptr, new_prototypes_holder, NULL);
+    Native_Object_set(new_prototypes_holder, new_this_ptr, NULL);
 
     jerry_release_value(new_prototypes_holder);
 } /* create_prototypes_holder */

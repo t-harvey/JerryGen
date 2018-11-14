@@ -214,7 +214,7 @@ put out the declaration with an assignment from "run" routine }}
                                        run_{{{callbackName}}}_function_handler);
 
     {{{Interpreter.checksum_type}}} checksum = {};
-    Native_Object_set(callback_function, new_function, &checksum);
+    Native_Object_set(new_function, callback_function, &checksum);
 
     return new_function;
 } /* {{{Interpreter.interpreter}}}_convert_C_function_to_{{{callbackName}}} */
