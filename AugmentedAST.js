@@ -559,6 +559,14 @@ AugmentedAST.prototype.getConversionTypes = function(idlType,
        when defining a variable of that type -- intrinsic types have
        a value, while everything else has a constructor */
     return_types.default_value = this.get_C_default_value(return_types.C_Type);
+    /* ...and if the default value is a constructor, we'll want to be
+       able to put out an extern declaration before using it */
+    if (typeof(return_types.default_value) === "string" &&
+	return_types.default_value.length ==
+	          (return_types.default_value.indexOf("_constructor()") +
+	           "constructor()".length))
+	return_types.default_value_extern = "extern " +
+	                                    return_types.default_value + ";";
 
     return return_types;
 }; /* AugmentedAST.getConversionTypes */

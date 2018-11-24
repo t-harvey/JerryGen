@@ -29,6 +29,17 @@ function getMustacheTemplate(templateName){
     return fs.readFileSync(mustache_filename, {encoding: 'utf8'})
 } /* getMustacheTemplate */
 
+/* writes into the context object the kind of file to be created */
+let set_type_of_file = function(context, header_or_body)
+{
+    if (header_or_body === "generate_header")
+	context.header = true;
+    else if (header_or_body === "generate_private_header")
+	context.private_header = true;
+    else /* header_or_body === "generate_body" */
+	context.body = true;
+} /* set_type_of_file */
+
 
 /*
 Interface Code generation
@@ -38,10 +49,7 @@ module.exports.genCString = function(ast, moduleName, header_or_body)
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
+    set_type_of_file(context, header_or_body);
 
     var precompile = hogan.compile(getMustacheTemplate('demarshal_args'));
     var demarshal_template = precompile.render({thingName: "{{{operationName}}}"});
@@ -60,10 +68,7 @@ module.exports.genDictionaryString = function(ast, moduleName, header_or_body)
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
+    set_type_of_file(context, header_or_body);
 
     return hogan.compile(getMustacheTemplate('dictionary')).render(context);
 };
@@ -77,10 +82,7 @@ module.exports.genTypedefString = function(ast, moduleName, header_or_body)
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
+    set_type_of_file(context, header_or_body);
 
     return hogan.compile(getMustacheTemplate('typedef')).render(context);
 };
@@ -94,10 +96,7 @@ module.exports.genEnumString = function(ast, moduleName, header_or_body)
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
+    set_type_of_file(context, header_or_body);
 
     return hogan.compile(getMustacheTemplate('enum')).render(context);
 }; /* genEnumString */
@@ -111,10 +110,7 @@ module.exports.genCallbackString = function(ast, moduleName, header_or_body)
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
+    set_type_of_file(context, header_or_body);
 
     var precompile = hogan.compile(getMustacheTemplate('demarshal_args'));
     var demarshal_template = precompile.render({thingName: "{{{callbackName}}}"});
@@ -132,11 +128,8 @@ module.exports.genDictionaryTypesString = function(ast, moduleName, header_or_bo
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
-    
+    set_type_of_file(context, header_or_body);
+
     return hogan.compile(getMustacheTemplate("types")).render(context);
 }; /* genDictionaryTypesString */
 
@@ -146,15 +139,11 @@ module.exports.genDictionaryTypesString = function(ast, moduleName, header_or_bo
 Composite-type Code generation
  */
 
-module.exports.genCompositeString =
-    function(ast, moduleName, header_or_body)
-    {
-	var context = CHoganHelpers.getContext(ast, moduleName);
+module.exports.genCompositeString = function(ast, moduleName, header_or_body)
+{
+    var context = CHoganHelpers.getContext(ast, moduleName);
 
-	if (header_or_body === "generate_header")
-	    context.header = true;
-	else /* header_or_body === "generate_body" */
-	    context.body = true;
+    set_type_of_file(context, header_or_body);
     
     var precompile = hogan.compile(
 	                 getMustacheTemplate('build_composite_arg_function'));
@@ -176,10 +165,7 @@ module.exports.genStubsString = function(ast, moduleName, header_or_body)
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
+    set_type_of_file(context, header_or_body);
 
     return hogan.compile(getMustacheTemplate("stubs")).render(context);
 }; /* genStubsString */
@@ -193,10 +179,8 @@ module.exports.genUtilitiesString = function(ast, moduleName, header_or_body)
 {
     var context = CHoganHelpers.getContext(ast, moduleName);
 
-    if (header_or_body === "generate_header")
-	context.header = true;
-    else /* header_or_body === "generate_body" */
-	context.body = true;
+    /* there's no such thing as a private header for the utilities */
+    set_type_of_file(context, header_or_body);
 
     var precompile = hogan.compile(
 	                 getMustacheTemplate('build_composite_arg_function'));

@@ -22,7 +22,7 @@ under the License.
     that shouldn't(?)(!) be in the input file }}
 {{^OBEYFORMATTING}}
 {{! This one .mustache file is used to create both the .h and the .c
-    files -- look for the "body" and "header" markers }}
+    files -- look for the "body", "private_header", and "header" markers }}
 {{!
     Callbacks are used differently according to context; we will pass
     around a "callback" as a calling_context, which is a struct of
@@ -65,28 +65,28 @@ under the License.
 {{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
-{{#header}}
-#ifndef {{{callbackName}}}_H_
-#define {{{callbackName}}}_H_
-{{/header}}
+{{^body}}
+#ifndef {{#private_header}}PRIVATE_{{/private_header}}{{{callbackName}}}_H_
+#define {{#private_header}}PRIVATE_{{/private_header}}{{{callbackName}}}_H_
+{{/body}}
 
 #include "jerryscript.h"
 
-{{#header}}
-#include "{{{utilities_filename}}}.h"
+{{^body}}
+#include "{{{utilities_filename}}}{{^header}}_private{{/header}}.h"
+
 {{#externalTypes}}
-#include "{{{type}}}.h"
+#include "{{{type}}}{{^header}}_private{{/header}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
-#include "{{{type_name}}}.h"
+#include "{{{type_name}}}{{^header}}_private{{/header}}.h"
 {{/non_intrinsic_types}}
-{{/header}}
-{{#body}}
-#include "{{{callbackName}}}.h"
-{{/body}}
 
-{{! all types need to be defined before an include files, since those
-    might use the type (e.g., in a composite type) }}
+{{/body}}
+{{^header}}
+#include "{{{callbackName}}}{{#body}}_private{{/body}}.h"
+
+{{/header}}
 {{#header}}
 typedef {{{Interpreter.Type}}} {{{callbackName}}};
 /* this is the type signature of functions that can be assigned
@@ -94,29 +94,30 @@ typedef {{{Interpreter.Type}}} {{{callbackName}}};
 typedef {{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
 
 {{/header}}
+{{^header}}
+{{#private_header}}
+/* these are the support functions and definitions that are used by the
+   generated code, but should not be used by the programmer */
+
+{{/private_header}}
 /* this variable is used in composite types to denote a field of type
    {{{callbackName}}} -- this should be considered a read-only value */
-{{#header}}extern {{/header}}int {{{callbackName}}}_uid;
+{{#private_header}}extern {{/private_header}}int {{{callbackName}}}_uid;
 
-{{#header}}
-
-/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
-
-{{/header}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for callbacks, we just return
    a NULL pointer */
-{{{callbackName}}} {{{callbackName}}}_constructor(void){{#header}};{{/header}}
+{{{callbackName}}} {{{callbackName}}}_constructor(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     return jerry_create_undefined();
 } /* {{{callbackName}}}_constructor */
 
 {{/body}}
-{{#header}}
+{{#private_header}}
 #define {{{Interpreter.interpreter}}}_arg_{{{callbackName}}}(x, z) \
 	jerryx_arg_function(x, (jerryx_arg_optional_t)z)
-{{/header}}
+{{/private_header}}
 {{#body}}
 static {{{Interpreter.Type}}}
 run_{{{callbackName}}}_function_handler(
@@ -185,7 +186,7 @@ put out the declaration with an assignment from "run" routine }}
 
 {{! TODO: WE (CURRENTLY) IGNORE ARRAYS OF CALLBACKS!!! }}
 {{{callbackName}}}
-{{{Interpreter.interpreter}}}_get_{{{callbackName}}}_value({{{Interpreter.Type}}} value){{#header}};{{/header}}
+{{{Interpreter.interpreter}}}_get_{{{callbackName}}}_value({{{Interpreter.Type}}} value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* we don't actually do anything for "get", as we treat all
@@ -205,9 +206,9 @@ put out the declaration with an assignment from "run" routine }}
    side; as usual, return a callback context, since that is our
    abstraction of Jerryscript functions */
 {{/body}}
-{{{callbackName}}} {{{Interpreter.interpreter}}}_convert_C_functon_to_{{{callbackName}}}({{{callbackName}}}_callback callback_function){{#header}};
+{{{callbackName}}} {{{Interpreter.interpreter}}}_convert_C_functon_to_{{{callbackName}}}({{{callbackName}}}_callback callback_function){{#private_header}};
 
-{{/header}}
+{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} new_function = jerry_create_external_function(
@@ -222,14 +223,14 @@ put out the declaration with an assignment from "run" routine }}
 {{/body}}
 /* the create function for callbacks is just the identity, since we
    pass them around as {{{Interpreter.Type}}}'s */
-{{{callbackName}}} {{{Interpreter.interpreter}}}_create_{{{callbackName}}}({{{callbackName}}} callback_function){{#header}};{{/header}}
+{{{callbackName}}} {{{Interpreter.interpreter}}}_create_{{{callbackName}}}({{{callbackName}}} callback_function){{#private_header}};{{/private_header}}
 {{#body}}
 {
      return callback_function;
 } /* {{{Interpreter.interpreter}}}_create_{{{callbackName}}} */
 {{/body}}
 
-bool {{{Interpreter.interpreter}}}_value_is_{{{callbackName}}}({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}_value_is_{{{callbackName}}}({{{Interpreter.Type}}} thing_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{! TODO: IS THIS REALLY THE BEST WE CAN DO?!? }}
@@ -266,8 +267,8 @@ bool {{{Interpreter.interpreter}}}_value_is_{{{callbackName}}}({{{Interpreter.Ty
     difference, so this routine figures it out and does the
     appropriate thing }}
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} run_{{{callbackName}}}_function(const {{{callbackName}}} {{{callbackName}}}_function, {{{Interpreter.Type}}} this_ptr{{^arguments.length}}){{#header}};{{/header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
-{{#arguments}}{{{indentation}}}{{#C_and_Jerryscript_Types}}{{{C_Type}}} {{{name}}}{{{separator}}}{{/C_and_Jerryscript_Types}}{{/arguments}}{{#arguments.length}}{{#header}};{{/header}}{{/arguments.length}}
+{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} run_{{{callbackName}}}_function(const {{{callbackName}}} {{{callbackName}}}_function, {{{Interpreter.Type}}} this_ptr{{^arguments.length}}){{#private_header}};{{/private_header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+{{#arguments}}{{{indentation}}}{{#C_and_Jerryscript_Types}}{{{C_Type}}} {{{name}}}{{{separator}}}{{/C_and_Jerryscript_Types}}{{/arguments}}{{#arguments.length}}{{#private_header}};{{/private_header}}{{/arguments.length}}
 {{#body}}
 {
     /* check to see if the Jerryscript value has an underlying C-function
@@ -308,7 +309,7 @@ bool {{{Interpreter.interpreter}}}_value_is_{{{callbackName}}}({{{Interpreter.Ty
 } /* run_{{{callbackName}}}_function */
 {{/body}}
 
-void initialize_{{{callbackName}}}_(void){{#header}};{{/header}}
+void initialize_{{{callbackName}}}_(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* even though we don't actually store anything for callbacks,
@@ -369,6 +370,8 @@ static void register_initialize_{{{callbackName}}}(void)
 } /* register_initialize_{{{callbackName}}} */
 
 {{/body}}
+{{/header}}
+{{^private_header}}
 {{#debug_printing}}
 void debug_print_{{{callbackName}}} (char *variable_name,
      				      {{{callbackName}}} value,
@@ -392,9 +395,10 @@ void debug_print_{{{callbackName}}} (char *variable_name,
 } /* debug_print_{{{callbackName}}} */
 {{/body}}
 {{/debug_printing}}
+{{/private_header}}
+{{^body}}
 
-{{#header}}
-#endif /* {{{callbackName}}}_H_ */
-{{/header}}
+#endif /* {{#private_header}}PRIVATE_{{/private_header}}{{{callbackName}}}_H_ */
+{{/body}}
 {{/callbacks}}
 {{/OBEYFORMATTING}}

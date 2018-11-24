@@ -27,25 +27,25 @@ under the License.
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
 {{#dictionaries}}
-{{#header}}
-#ifndef {{{dictionaryName}}}_H_
-#define {{{dictionaryName}}}_H_
-{{/header}}
+{{^body}}
+#ifndef {{#private_header}}PRIVATE_{{/private_header}}{{{dictionaryName}}}_H_
+#define {{#private_header}}PRIVATE_{{/private_header}}{{{dictionaryName}}}_H_
+{{/body}}
 
 #include "jerryscript.h"
-#include "{{{utilities_filename}}}.h"
+{{^body}}
+#include "{{{utilities_filename}}}{{#private_header}}_private{{/private_header}}.h"
 
-{{#header}}
 {{#externalTypes}}
-#include "{{{type}}}.h"
+#include "{{{type}}}{{#private_header}}_private{{/private_header}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
-#include "{{{type_name}}}.h"
+#include "{{{type_name}}}{{#private_header}}_private{{/private_header}}.h"
 {{/non_intrinsic_types}}
-{{/header}}
-{{#body}}
-#include "{{{dictionaryName}}}.h"
 {{/body}}
+{{^header}}
+#include "{{{dictionaryName}}}{{#body}}_private{{/body}}.h"
+{{/header}}
 
 {{! we need to define the type before any of the external includes,
     which might need to use this type }}
@@ -58,16 +58,17 @@ typedef struct {
 	{{/members}}
 } {{{dictionaryName}}};
 
-/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
-
 {{/header}}
+{{^private_header}}
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{dictionaryName}}}_uid;
+{{/private_header}}
+{{^header}}
 
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
-{{{dictionaryName}}} {{{dictionaryName}}}_constructor(void){{#header}};{{/header}}
+{{{dictionaryName}}} {{{dictionaryName}}}_constructor(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{dictionaryName}}} new_{{{dictionaryName}}};
@@ -93,14 +94,14 @@ typedef struct {
 {{/body}}
 {{^original_arg_handling}}
 {{#is_array_object}}
-{{#header}}
+{{#private_header}}
 #define {{{Interpreter.interpreter}}}_arg_{{{dictionaryName}}}(x, z) \
             jerryx_arg_custom(x, \
                              (uintptr_t)&((uintptr_t []){(uintptr_t)JERRYX_ARG_COERCE, \
                                                          (uintptr_t)z}), \
                               {{{Interpreter.interpreter}}}_arg_to_{{{dictionaryName}}})
-{{/header}}
-{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_arg_to_{{{dictionaryName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p, const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+{{/private_header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_arg_to_{{{dictionaryName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p, const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} array_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
@@ -153,7 +154,7 @@ typedef struct {
 {{^is_array_object}}
 jerryx_arg_t
 {{{Interpreter.interpreter}}}_arg_{{{dictionaryName}}}({{{dictionaryName}}}* destination,
-			{{{Interpreter.interpreter}}}_arg_optional_flag_enum_type optional_flag){{#header}};{{/header}}
+			{{{Interpreter.interpreter}}}_arg_optional_flag_enum_type optional_flag){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* the set up of the jerryx_arg_t is cribbed from
@@ -184,7 +185,7 @@ jerryx_arg_t
     than "get_..._value" -- but b/c Jerryscript already has get_*_value
     for all of the builtin types, it's easier to follow that naming
     scheme for dictionaries and interfaces...}}
-{{{dictionaryName}}} {{{Interpreter.interpreter}}}_get_{{{dictionaryName}}}_value({{{Interpreter.Type}}} value){{#header}};{{/header}}
+{{{dictionaryName}}} {{{Interpreter.interpreter}}}_get_{{{dictionaryName}}}_value({{{Interpreter.Type}}} value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} object_value = jerry_value_to_object(value);
@@ -237,7 +238,7 @@ jerryx_arg_t
 {{{dictionaryName}}} {{{Interpreter.interpreter}}}_get_{{{dictionaryName}}}_value_from_args(
 		                              int starting_index,
 	             			      const {{{Interpreter.Type}}} *args_p,
-	                                      const jerry_length_t args_cnt){{#header}};{{/header}}
+	                                      const jerry_length_t args_cnt){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{dictionaryName}}} return_array = {0, 0};
@@ -277,7 +278,7 @@ jerryx_arg_t
 {{/is_array_object}}
 /* like all the {{{Interpreter.interpreter}}}_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
-{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{dictionaryName}}}({{{dictionaryName}}} x){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{dictionaryName}}}({{{dictionaryName}}} x){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} new_jerry_value = jerry_create_object();
@@ -315,7 +316,7 @@ jerryx_arg_t
 
 {{/body}}
 
-bool {{{Interpreter.interpreter}}}_value_is_{{{dictionaryName}}}({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}_value_is_{{{dictionaryName}}}({{{Interpreter.Type}}} thing_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{#is_array_object}}
@@ -403,7 +404,7 @@ create_{{{dictionaryName}}}_dictionary_handler(const {{{Interpreter.Type}}} func
 } /* create_{{{dictionaryName}}}_dictionary_handler */
 {{/body}}
 
-void initialize_{{{dictionaryName}}}_(void){{#header}};{{/header}}
+void initialize_{{{dictionaryName}}}_(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* first, check to see if the prototype object exists for this
@@ -469,7 +470,7 @@ static void register_initialize_{{{dictionaryName}}}(void)
 {{! TODO: THIS DOES NOT HANDLE ARRAYS! }}
 void debug_print_{{{dictionaryName}}} (char *variable_name,
      				      {{{dictionaryName}}} value,
-				      unsigned int indentation){{#header}};{{/header}}
+				      unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
    /* we can get into infinite recursion, with one structure printing
@@ -508,9 +509,10 @@ void debug_print_{{{dictionaryName}}} (char *variable_name,
 {{/body}}
 {{/debug_printing}}
 
-{{#header}}
-
-#endif /* {{{dictionaryName}}}_H_ */
 {{/header}}
+{{^body}}
+
+#endif /* {{#private_header}}PRIVATE_{{/private_header}}{{{dictionaryName}}}_H_ */
+{{/body}}
 {{/dictionaries}}
 {{/OBEYFORMATTING}}

@@ -26,51 +26,68 @@ under the License.
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
 
-{{#header}}
-#ifndef {{{interfaceName}}}_H_
-#define {{{interfaceName}}}_H_
+{{^body}}
+#ifndef {{#private_header}}PRIVATE_{{/private_header}}{{{interfaceName}}}_H_
+#define {{#private_header}}PRIVATE_{{/private_header}}{{{interfaceName}}}_H_
+{{/body}}
 
+{{#header}}
 {{! We have to make sure that the type is defined before any
     composites that use it are #include'd... }}
 /* defined in {{{interfaceName}}}_stubs.h */
 typedef {{{Interpreter.Type}}} {{{interfaceName}}};
-
+{{/header}}
+{{^body}}
 {{#externalTypes}}
-#include "{{{type}}}.h"
+#include "{{{type}}}{{#private_header}}_private{{/private_header}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
-#include "{{{type_name}}}.h"
+#include "{{{type_name}}}{{#private_header}}_private{{/private_header}}.h"
 {{/non_intrinsic_types}}
 {{#prototype_chain}}
-#include "{{{parentName}}}.h"
+#include "{{{parentName}}}{{#private_header}}_private{{/private_header}}.h"
 {{/prototype_chain}}
 
-
-{{/header}}
+{{/body}}
 
 #include "jerryscript.h"
-#include "{{{utilities_filename}}}.h"
+{{^body}}
+#include "{{{utilities_filename}}}{{#private_header}}_private{{/private_header}}.h"
+{{/body}}
+{{#header}}
+#include "{{{interfaceName}}}_stubs.h"
 
-{{#body}}
+{{/header}}
+{{#private_header}}
 #include "{{{interfaceName}}}.h"
+
+{{/private_header}}
+{{#body}}
+#include "{{{interfaceName}}}_private.h"
 
 {{/body}}
 {{^repress_stubs}}
-{{#header}}
+{{#private_header}}
 {{! TODO: why do we need to include the stubs.h in this .h?!? }}
 {{! ...for the function in the checksum, for one thing... }}
 #include "{{{interfaceName}}}_stubs.h"
 
-{{/header}}
+{{/private_header}}
 {{! the checksum is used by the interpreter to ensure that the
     Native_Object is still valid; note that this has a global linkage,
     since the support routines need this value }}
-{{#inheritance}}{{#body}}
+{{#inheritance}}
+{{#body}}
 #define {{{interfaceName}}}_checksum {{{inheritance}}}_checksum
-{{/body}}{{/inheritance}}
-{{^inheritance}}
-{{#header}}extern {{/header}}{{{Interpreter.checksum_type}}} {{{interfaceName}}}_checksum {{#body}} = { {{{interfaceName}}}_Native_Object_deallocator }{{/body}};
+{{/body}}
 {{/inheritance}}
+{{^inheritance}}
+{{^header}}
+{{#private_header}}extern {{/private_header}}{{{Interpreter.checksum_type}}} {{{interfaceName}}}_checksum {{#body}} = { {{{interfaceName}}}_Native_Object_deallocator }{{/body}};
+{{/header}}
+
+{{/inheritance}}
+{{^private_header}}
 void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
 				      {{{interfaceName}}}_Native_Object *new_value){{#header}};{{/header}}
 {{#body}}
@@ -86,9 +103,11 @@ void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
     return Native_Object_get(this, &{{{interfaceName}}}_checksum, error_check);
 }; /* {{{interfaceName}}}_Native_Object_get */
 {{/body}}
+{{/private_header}}
+{{^header}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
-{{{interfaceName}}} {{{interfaceName}}}_constructor(void){{#header}};{{/header}}
+{{{interfaceName}}} {{{interfaceName}}}_constructor(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{interfaceName}}} new_{{{interfaceName}}} = create_empty_{{{interfaceName}}}();
@@ -109,8 +128,10 @@ void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
 } /* {{{interfaceName}}}_constructor */
 
 {{/body}}
+{{/header}}
 {{/repress_stubs}}
 {{#hasAttributes}}
+{{^private_header}}
 
 {{#attributes.length}}
 /* attribute GETTERS/SETTERS */
@@ -142,15 +163,15 @@ void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
 {{/body}}
 {{/C_and_Jerryscript_Types}}
 {{/attributes}} {{! ATTRIBUTE GETTERS/SETTERS}}
+{{/private_header}}
 {{/hasAttributes}}
-{{#header}}
+{{^header}}
 
 /********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
 
-{{/header}}
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
-{{#header}}extern {{/header}}int {{{interfaceName}}}_uid;
+{{#private_header}}extern {{/private_header}}int {{{interfaceName}}}_uid;
 
 {{#repress_stubs}}
 /* each Javascript object can have a single C object associated with
@@ -163,14 +184,14 @@ void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
    Native_Object_set, we also give it a deallocator for that
    Native_Object (note that the function can be null if there isn't
    any memory to free) */
-void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Object *native_object){{#header}};{{/header}}
+void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Object *native_object){{#private_header}};{{/private_header}}
 {{#body}}
 {
 	/* USER CODE GOES HERE */
 } /* {{{interfaceName}}}_Native_Object_deallocator */
 
 {{/body}}
-{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_create(void){{#header}};{{/header}}
+{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_create(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{interfaceName}}}_Native_Object *new_object = ({{{interfaceName}}}_Native_Object *)malloc(sizeof({{{interfaceName}}}_Native_Object));
@@ -192,7 +213,7 @@ void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Ob
 {{{interfaceName}}}_{{{operationName}}}_handler(const {{{Interpreter.Type}}} func_value, /**< function object */
 		   const {{{Interpreter.Type}}} this_val, /**< this arg */
                    const {{{Interpreter.Type}}} *args_p, /**< function arguments */
-                   const jerry_length_t args_cnt){{#header}};{{/header}} /**< number of function arguments */
+                   const jerry_length_t args_cnt){{#private_header}};{{/private_header}} /**< number of function arguments */
 {{#body}}
 {
     {{> demarshal_args}}
@@ -355,7 +376,7 @@ create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_v
 /* we need this when we want to create a structure with the
    interface's operations, but we don't (yet?) have any values for the
    attributes */
-{{{Interpreter.Type}}} create_empty_{{{interfaceName}}}(){{#header}};{{/header}}
+{{{Interpreter.Type}}} create_empty_{{{interfaceName}}}(){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} dummy_jerry_value;
@@ -368,7 +389,7 @@ create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_v
 } /* create_empty_{{{interfaceName}}} */
 {{/body}}
 
-void initialize_{{{interfaceName}}}_(void){{#header}};{{/header}}
+void initialize_{{{interfaceName}}}_(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* first, make sure that this prototype doesn't already exist */
@@ -507,7 +528,7 @@ static void register_initialize_{{{interfaceName}}}(void)
 
 {{/body}}
 {{! INTERFACE GETTER/SETTER: }}
-{{{interfaceName}}} {{{Interpreter.interpreter}}}_get_{{{interfaceName}}}_value({{{Interpreter.Type}}} value){{#header}};{{/header}}
+{{{interfaceName}}} {{{Interpreter.interpreter}}}_get_{{{interfaceName}}}_value({{{Interpreter.Type}}} value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* interfaces live on the Javascript side, so "value" is already
@@ -519,7 +540,7 @@ static void register_initialize_{{{interfaceName}}}(void)
 {{/body}}
 /* like all the {{{Interpreter.interpreter}}}_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
-{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{interfaceName}}}({{{interfaceName}}} x){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{interfaceName}}}({{{interfaceName}}} x){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* interfaces are stored over on the Javascript side, so "x" is
@@ -530,12 +551,12 @@ static void register_initialize_{{{interfaceName}}}(void)
 } /* {{{Interpreter.interpreter}}}_create_{{{interfaceName}}} */
 
 {{/body}}
-{{#AAAheader}}
+{{#AAAprivate_header}}
 {{#AAAtypedefs}}
 #define {{{Interpreter.interpreter}}}_create_{{{name}}} {{{Interpreter.interpreter}}}_create_{{{type}}}
 {{/AAAtypedefs}}
-{{/AAAheader}}
-bool {{{Interpreter.interpreter}}}_value_is_{{{interfaceName}}}({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
+{{/AAAprivate_header}}
+bool {{{Interpreter.interpreter}}}_value_is_{{{interfaceName}}}({{{Interpreter.Type}}} thing_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{#attributes}}
@@ -603,6 +624,8 @@ bool {{{Interpreter.interpreter}}}_value_is_{{{interfaceName}}}({{{Interpreter.T
 } /* {{{Interpreter.interpreter}}}_value_is_{{{interfaceName}}} */
 
 {{/body}}
+{{/header}}
+{{^private_header}}
 {{#debug_printing}}
 void debug_print_{{{interfaceName}}} (char *variable_name,
      				      {{{interfaceName}}} value,
@@ -632,10 +655,9 @@ void debug_print_{{{interfaceName}}} (char *variable_name,
 } /* debug_print_{{{interfaceName}}} */
 {{/body}}
 {{/debug_printing}}
-
-{{#header}}
-
-#endif /* {{{interfaceName}}}_H_ */
-{{/header}}
+{{/private_header}}
+{{^body}}
+#endif /* {{#private_header}}PRIVATE_{{/private_header}}{{{interfaceName}}}_H_ */
+{{/body}}
 {{/interfaces}}
 {{/OBEYFORMATTING}}

@@ -19,14 +19,14 @@
         thingName: "any"
 	thingType: "any"
 }}
-{{#header}}
+{{#private_header}}
 #define {{{Interpreter.interpreter}}}_arg_<%thingName%>(x, z) \
             jerryx_arg_custom(x, \
                              (uintptr_t)&((uintptr_t []){(uintptr_t)JERRYX_ARG_COERCE, \
                                                          (uintptr_t)z}), \
                               {{{Interpreter.interpreter}}}_arg_to_<%thingName%>)
 
-{{/header}}
+{{/private_header}}
 {{! composites can only benefit from Jerryscript's automated parameter
     checking by first peek'ing at the top of the stack to determine
     the type and then calling the appropriate function to assign the
@@ -37,15 +37,16 @@
 {{! TODO: technically, we should be assigning to a local copy of the
     composite type, only writing to the passed in one if there isn't
     an error }}
+{{^header}}
 {{{Interpreter.Type}}}
 {{{Interpreter.interpreter}}}_arg_to_<%thingName%>(jerryx_arg_js_iterator_t *js_arg_iter_p,
-                                       const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+                                       const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
 {{#body}}
 {
     <%thingName%> *destination = c_arg_p->dest;
     uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
     jerryx_arg_t conversion_function;
-    {{{Interpreter.Type}}} conversion_result;
+    {{{Interpreter.Type}}} conversion_result = jerry_create_undefined();
 
     
     {{#j_to_c_type_list}}
@@ -59,6 +60,7 @@
         conversion_function =
                {{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(({{{C_Type}}} *)(&(destination->value.{{{webidl_name}}}_field)),
 					{{#last_in_list}}extra_info[1]{{/last_in_list}}{{^last_in_list}}INTERPRETER_ARG_OPTIONAL{{/last_in_list}});
+	jerry_release_value(conversion_result);
         conversion_result = conversion_function.func(js_arg_iter_p, &conversion_function);
         if (!jerry_value_is_error(conversion_result))
         {
@@ -81,3 +83,4 @@
 
 } /* {{{Interpreter.interpreter}}}_arg_to_<%thingName%> */
 {{/body}}
+{{/header}}

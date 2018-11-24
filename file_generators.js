@@ -56,29 +56,29 @@ module.exports = {
 		continue;
 
 	    augAST[object_type] = {}; // not strictly necessary...
-	    augAST[object_type] = 
-		        {[object_name] : object_list[object_name]};
-
-	    let number_of_files_to_create = 2;	    
-	    if (object_type === "typedefs") /* only needs a .h file */
-		number_of_files_to_create = 1;
+	    augAST[object_type] = {[object_name] : object_list[object_name]};
 
 	    /* this loop handles creating both the .h and .c files -- the
 	       Hogan scripts are set up to take the "header_or_body" value
-	       to create one or the other */
-	    let header_or_body =     ["generate_header", "generate_body"];
-	    let filename_extension = [      ".h"       ,      ".c"      ];
+	       to create one kind or the other */
+	    let header_or_body = [["generate_header"        , ".h"        ],
+				  ["generate_private_header", "_private.h"],
+				  ["generate_body"          , ".c"         ] ];
+
+	    let number_of_files_to_create = header_or_body.length;
+	    if (object_type === "typedefs") /* only needs a .h file */
+		number_of_files_to_create = 2;
 
 	    for (var index = 0; index < number_of_files_to_create; index++)
 	    {
-		let kind_of_file = header_or_body[index];
-		let extension = filename_extension[index];
+		let kind_of_file = header_or_body[index][0];
+		let extension    = header_or_body[index][1];
 		
 		/* call the compiler, and get back a "string", which is
 		   the output of the call to the compiler */
 		let CFileString = compiler(augAST,
 					   parameters.package,
-					   kind_of_file);
+				  	   kind_of_file);
 
 		let stubs_piece = (compiling_stubs)? "_stubs":"";
 		let CFileFileName = parameters.packagePath + "/" +
@@ -166,6 +166,7 @@ module.exports = {
 			      Generator.genStubsString);
     }, /* stubs */
 
+
     composites: function(augAST, parameters)
     {
 	this.generate_C_files(augAST, parameters, "composites",
@@ -178,13 +179,14 @@ module.exports = {
 	var write_return_value;
 	var returned = [];
 
-	let header_or_body = ["generate_header", "generate_body"];
-	let filename_extension = [".h", ".c"];
+	let header_or_body = [["generate_header"        , ".h"        ],
+			      ["generate_private_header", "_private.h"],
+			      ["generate_body"          , ".c"        ] ];
 
-	for (let index = 0; index < 2; index++)
+	for (let index = 0; index < header_or_body.length; index++)
 	{
-	    let kind_of_file = header_or_body[index];
-	    let extension = filename_extension[index];
+	    let kind_of_file = header_or_body[index][0];
+	    let extension = header_or_body[index][1];
 
 	    let utilitiesfileString = Generator.genUtilitiesString(augAST,
 							    parameters.package,

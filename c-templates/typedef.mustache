@@ -25,8 +25,8 @@ under the License.
 {{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
-#ifndef TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_
-#define TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_
+#ifndef {{#private_header}}private_{{/private_header}}TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_
+#define {{#private_header}}private_{{/private_header}}TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_
 {{! to simplify the handling of typedefs' usage, we let all of the
     code that uses some typedefs use the standard calls (like
     "<typedefName>_constructor") as if the type actually existed, and then we
@@ -40,13 +40,16 @@ under the License.
 
 
 #define {{{typedefName}}} {{{ultimate_typename_C_type}}}
+
+{{#private_header}}
+#include "{{{typedefName}}}.h"
 #define {{{Interpreter.interpreter}}}_get_{{{typedefName}}}_value {{{Interpreter.interpreter}}}_get_{{{ultimate_typename_C_type}}}_value
 #define {{{Interpreter.interpreter}}}_create_{{{typedefName}}} {{{Interpreter.interpreter}}}_create_{{{ultimate_typename_C_type}}}
 #define {{{Interpreter.interpreter}}}_value_is_{{{typedefName}}} {{{Interpreter.interpreter}}}_value_is_{{{ultimate_typename_C_type}}}
 #define {{{typedefName}}}_constructor {{{ultimate_typename_C_type}}}_constructor 
 #define initialize_{{{typedefName}}}_ initialize_{{{ultimate_typename_C_type}}}_
 #define debug_print_{{{typedefName}}} debug_print_{{{ultimate_typename_C_type}}}
-
-#endif /* TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_ */
+{{/private_header}}
+#endif /* {{#private_header}}private_{{/private_header}}TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_ */
 {{/typedefs}}
 {{/OBEYFORMATTING}}

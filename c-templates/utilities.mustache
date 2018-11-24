@@ -26,10 +26,10 @@ under the License.
 {{#print_generation_message}}
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
-{{#header}}
-#ifndef UTILITY_FUNCTIONS_H_
-#define UTILITY_FUNCTIONS_H_
-{{/header}}
+{{^body}}
+#ifndef {{#private_header}}PRIVATE_{{/private_header}}UTILITY_FUNCTIONS_H_
+#define {{#private_header}}PRIVATE_{{/private_header}}UTILITY_FUNCTIONS_H_
+{{/body}}
 
 #include <stdio.h>
 #include <string.h>
@@ -41,10 +41,10 @@ under the License.
 #include "arg.h"
 
 {{/header}}
-{{#body}}
-#include "{{{utilities_filename}}}.h"
+{{^header}}
+#include "{{{utilities_filename}}}{{#body}}_private{{/body}}.h"
 
-{{/body}}
+{{/header}}
 {{#header}}
 typedef char * string;
 {{! if we are purposely removing the abstraction by explicitly naming
@@ -97,15 +97,17 @@ typedef string Error;
 #define any_uid              13
 
 {{/header}}
-int get_type_uid(void){{#header}};{{/header}}
+{{^header}}
+int get_type_uid(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     static int counter = any_uid+1;
 
     return counter++;
 } /* get_type_uid */
-{{/body}}
 
+{{/body}}
+{{/header}}
 /* we'll give all of the atomic WebIDL types their own uids so that
    all types are treated the same way; these should be treated as
    read-only values */
@@ -130,7 +132,6 @@ typedef string ByteString;
 typedef string USVString;
 typedef jerry_value_t this;
 
-
 /* we currently don't provide an interface for overlays (typedarray) of
    ArrayBuffer's... */
 typedef struct {
@@ -139,6 +140,9 @@ typedef struct {
 } ArrayBuffer;
 
 {{/header}}
+{{!the routines to manipulate the ArrayBuffer type don't go in the
+   private header file...}}
+{{^private_header}}
 /* write values from a C ArrayBuffer into a Javascript ArrayBuffer */
 int ArrayBuffer_write(ArrayBuffer source, {{{Interpreter.Type}}} target){{#header}};{{/header}}
 {{#body}}
@@ -244,16 +248,16 @@ ArrayBuffer {{{Interpreter.interpreter}}}_get_ArrayBuffer_value({{{Interpreter.T
 }; /* {{{Interpreter.interpreter}}}_create_ArrayBuffer */
 
 {{/body}}
-
-bool {{{Interpreter.interpreter}}}_value_is_ArrayBuffer({{{Interpreter.Type}}} ArrayBuffer_value){{#header}};{{/header}}
+{{/private_header}}
+{{^header}}
+bool {{{Interpreter.interpreter}}}_value_is_ArrayBuffer({{{Interpreter.Type}}} ArrayBuffer_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     return jerry_value_is_arraybuffer(ArrayBuffer_value);
 }; /* {{{Interpreter.interpreter}}}_value_is_ArrayBuffer */
 
 {{/body}}
-
-ArrayBuffer ArrayBuffer_constructor(void){{#header}};{{/header}}
+ArrayBuffer ArrayBuffer_constructor(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     return (ArrayBuffer){0, NULL};
@@ -262,13 +266,14 @@ ArrayBuffer ArrayBuffer_constructor(void){{#header}};{{/header}}
 {{/body}}
 
 /* this is a null call, since ArrayBuffer exists on the Javascript side */
-void initialize_ArrayBuffer_(void){{#header}};{{/header}}
+void initialize_ArrayBuffer_(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
 }; /* initialize_Array_Buffer_ */
 
 {{/body}}
 
+{{/header}}
 {{#header}}
 /* WebIDL's "any" type: */
 typedef struct
@@ -290,9 +295,11 @@ typedef struct
     } value;
 } any;
 
+{{! TODO: JSON types are not really equivalent to the "any" type... }}
 /* for now, we'll implement WebIDL's JSON type as an Any */
-/* TODO: JSON types are not really equivalent to the "any" type... */
 typedef any JSON;
+{{/header}}
+{{#private_header}}
 #define {{{Interpreter.interpreter}}}_get_JSON_value {{{Interpreter.interpreter}}}_get_any_value
 #define {{{Interpreter.interpreter}}}_create_JSON {{{Interpreter.interpreter}}}_create_any
 #define {{{Interpreter.interpreter}}}_value_is_JSON {{{Interpreter.interpreter}}}_value_is_any
@@ -300,11 +307,11 @@ typedef any JSON;
 #define initialize_JSON_ initialize_any_
 #define debug_print_JSON debug_print_any
 
-
-{{/header}}
+{{/private_header}}
+{{^header}}
 /* for the any type, we'll aribtrarily make the default value a long
    and set it to zero */
-any any_constructor(void){{#header}};{{/header}}
+any any_constructor(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     any new_any;
@@ -316,7 +323,7 @@ any any_constructor(void){{#header}};{{/header}}
 
 /* NOTE: Jerryscript only has three types that "value" can be: string,
    boolean, or number (double) ... */
-any {{{Interpreter.interpreter}}}_get_any_value({{{Interpreter.Type}}} value){{#header}};{{/header}}
+any {{{Interpreter.interpreter}}}_get_any_value({{{Interpreter.Type}}} value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     any return_value;
@@ -343,7 +350,7 @@ any {{{Interpreter.interpreter}}}_get_any_value({{{Interpreter.Type}}} value){{#
 } /* {{{Interpreter.interpreter}}}_get_any */
 
 {{/body}}
-{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_any(any any_value){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_any(any any_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     if (any_value.union_type == boolean_uid)
@@ -385,18 +392,18 @@ any {{{Interpreter.interpreter}}}_get_any_value({{{Interpreter.Type}}} value){{#
 } /* {{{Interpreter.interpreter}}}_create_any */
 
 {{/body}}
-bool {{{Interpreter.interpreter}}}_value_is_any({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}_value_is_any({{{Interpreter.Type}}} thing_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     return (jerry_value_is_number(thing_value) ||
     	    jerry_value_is_boolean(thing_value) ||
     	    jerry_value_is_string(thing_value));
 } /* {{{Interpreter.interpreter}}}_value_is_any */
-{{/body}}
 
+{{/body}}
 /* returns true if the Javascript object pointed to by "thing" has "name"
    as one of its fields */
-bool {{{Interpreter.interpreter}}}__has_own_property({{{Interpreter.Type}}} thing, string name){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}__has_own_property({{{Interpreter.Type}}} thing, string name){{#private_header}};{{/private_header}}
 {{#body}}
 {
     jerry_value_t prop_name = jerry_create_string((const jerry_char_t *)name);
@@ -411,7 +418,7 @@ bool {{{Interpreter.interpreter}}}__has_own_property({{{Interpreter.Type}}} thin
 {{/body}}
 /* returns true if the Javascript object pointed to by "thing" has "name"
    as one of its fields */
-bool {{{Interpreter.interpreter}}}__has_property({{{Interpreter.Type}}} thing, string name){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}__has_property({{{Interpreter.Type}}} thing, string name){{#private_header}};{{/private_header}}
 {{#body}}
 {
     jerry_value_t prop_name = jerry_create_string((const jerry_char_t *)name);
@@ -424,7 +431,7 @@ bool {{{Interpreter.interpreter}}}__has_property({{{Interpreter.Type}}} thing, s
     return return_value;
 } /* {{{Interpreter.interpreter}}}__has_property */
 {{/body}}
-
+{{/header}}
 {{#header}}
 /* calls to functions residing in the Javascript environment require
    extra context; from the C-programmer's point of view, callbacks
@@ -439,6 +446,7 @@ typedef struct {
 } calling_context;
 
 {{/header}}
+{{^header}}
 /* each WebIDL construct (dictionary, callback, interface, or enum)
    has a registrator function that sticks its initialization routine
    into a table of function pointers (this is before main starts --
@@ -448,7 +456,7 @@ typedef struct {
    initialized */
 /* all of the initialization functions have a void(*)(void) signature,
    and they are stored in the following table: */
-{{#header}}typedef void (*webidl_construct_initializer)(void);{{/header}}
+{{#private_header}}typedef void (*webidl_construct_initializer)(void);{{/private_header}}
 {{#body}}
 /* TODO: reason about whether all of the global, static variables in
    this file are amenable to running in a multi-threaded environment */
@@ -456,7 +464,7 @@ static int function_count = 0;
 static webidl_construct_initializer *initializer_list = NULL;
 
 {{/body}}
-void register_initialization_function(webidl_construct_initializer initializer){{#header}};{{/header}}
+void register_initialization_function(webidl_construct_initializer initializer){{#private_header}};{{/private_header}}
 {{#body}}
 {
     static int list_size = 8;
@@ -477,9 +485,9 @@ void register_initialization_function(webidl_construct_initializer initializer){
     initializer_list[function_count++] = initializer;
 } /* register_initialization_function */
 {{/body}}
-{{#header}}
+{{#private_header}}
 typedef {{{Interpreter.Type}}} (*Module_Creation_Function)(void);
-{{/header}}
+{{/private_header}}
 {{#body}}
 
 /* WebIDL constructs that have the "ReturnFromRequire" external
@@ -501,7 +509,7 @@ static Require_Table_Entry *mapping_for_require;
 
 {{/body}}
 void register_require_function(string module_name,
-                               Module_Creation_Function constructor_function){{#header}};{{/header}}
+                               Module_Creation_Function constructor_function){{#private_header}};{{/private_header}}
 {{#body}}
 {
     static int table_capacity = 8;
@@ -524,8 +532,6 @@ void register_require_function(string module_name,
                      (Require_Table_Entry){module_name, constructor_function};
 } /* register_require_function */
 
-{{/body}}
-{{#body}}
 /* this function provides "require" to mimic the behavior of
    node.js's "require" */
 static {{{Interpreter.Type}}} my_require(const {{{Interpreter.Type}}} func_value,
@@ -557,7 +563,7 @@ static {{{Interpreter.Type}}} my_require(const {{{Interpreter.Type}}} func_value
 } /* my_require */
 
 {{/body}}
-void initialize_all_webidl_constructs(void){{#header}};{{/header}}
+void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* run all of the WebIDL constructs that have registered their respective
@@ -580,7 +586,7 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 } /* initialize_all_webidl_constructs */
 
 {{/body}}
-
+{{/header}}
 {{#header}}
 #ifndef INTERFACE_EXTRACT
 #define INTERFACE_EXTRACT(this, InterfaceName, AttributeName) \
@@ -591,8 +597,9 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 #define INTERFACE_INSERT(this, InterfaceName, AttributeName, value) \
 	insert_##InterfaceName##_##AttributeName(this, value)
 #endif /* INTERFACE_INSERT */
-
-/***********************IGNORE FUNCTIONS BELOW THIS LINE ****************/
+{{/header}}
+{{^header}}
+{{#private_header}}
 
 /* we don't check the type of each thing while outputting code -> we
    assume that there'll be a "_create/get_thing/is_of_type" function for
@@ -707,10 +714,10 @@ void initialize_all_webidl_constructs(void){{#header}};{{/header}}
 } /*GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
 #endif /* ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
 
-{{/header}}
+{{/private_header}}
 
 {{^original_arg_handling}}
-{{#header}}
+{{#private_header}}
 
 /* for strict parameter-checking (e.g., a "boolean" parameter has to
    have a "true/false" value, it can't be an integer), comment out the
@@ -779,13 +786,13 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 			                     (uintptr_t)z}), \
 			      {{{Interpreter.interpreter}}}_arg_to_float)
 #define {{{Interpreter.interpreter}}}_arg_double(x, z)  jerryx_arg_number(x, COERCION_POLICY, (jerryx_arg_optional_t)z)
-{{/header}}
+{{/private_header}}
 
 /* the transform function for floating-point numbers is defined only
    for doubles, so we need a wrapper that will call the version for
    doubles and then convert that value to a float */
 jerry_value_t {{{Interpreter.interpreter}}}_arg_to_float(jerryx_arg_js_iterator_t *js_arg_iter_p,
-			               const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+			               const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
 {{#body}}
 {
     double intermediate_result = 0.0;
@@ -807,7 +814,7 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to_float(jerryx_arg_js_iterator_
 /* the transform function for string values has to do some memory
    manipulation, so we need a wrapper that will do the extra steps */
 jerry_value_t {{{Interpreter.interpreter}}}_arg_to_string(jerryx_arg_js_iterator_t *js_arg_iter_p,
-			               const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+			               const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
 {{#body}}
 {
     jerry_value_t string_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
@@ -838,7 +845,7 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to_string(jerryx_arg_js_iterator
 /* the transform function for "object" doesn't actually do anything other
    than check to see if the jerry_value_t is an object */
 jerry_value_t {{{Interpreter.interpreter}}}_arg_to__object(jerryx_arg_js_iterator_t *js_arg_iter_p,
-			               const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+			               const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
 {{#body}}
 {
     jerry_value_t _object_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
@@ -857,7 +864,7 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to__object(jerryx_arg_js_iterato
 {{/arg_function}}
 
 {{/original_arg_handling}}
-{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}__get_property({{{Interpreter.Type}}} thing, string property){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}__get_property({{{Interpreter.Type}}} thing, string property){{#private_header}};{{/private_header}}
 {{#body}}
 {
     jerry_value_t prop_name =
@@ -868,7 +875,7 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to__object(jerryx_arg_js_iterato
 } /* {{{Interpreter.interpreter}}}__get_property */
 {{/body}}
 
-void {{{Interpreter.interpreter}}}__set_property({{{Interpreter.Type}}} thing, string property, {{{Interpreter.Type}}} new_value){{#header}};{{/header}}
+void {{{Interpreter.interpreter}}}__set_property({{{Interpreter.Type}}} thing, string property, {{{Interpreter.Type}}} new_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
    jerry_value_t prop_name =
@@ -880,7 +887,7 @@ void {{{Interpreter.interpreter}}}__set_property({{{Interpreter.Type}}} thing, s
 } /* {{{Interpreter.interpreter}}}__set_property */
 
 {{/body}}
-void Native_Object_set({{{Interpreter.Type}}} object, void *new_value, {{{Interpreter.checksum_type}}} *checksum){{#header}};{{/header}}
+void Native_Object_set({{{Interpreter.Type}}} object, void *new_value, {{{Interpreter.checksum_type}}} *checksum){{#private_header}};{{/private_header}}
 {{#body}}
 {
     jerry_set_object_native_pointer(object, new_value, checksum);
@@ -889,7 +896,7 @@ void Native_Object_set({{{Interpreter.Type}}} object, void *new_value, {{{Interp
 {{/body}}
 void *Native_Object_get({{{Interpreter.Type}}} object,
                         {{{Interpreter.checksum_type}}} *checksum,
-			jerry_error_t *error_value){{#header}};{{/header}}
+			jerry_error_t *error_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* points to the native object */
@@ -924,7 +931,7 @@ void *Native_Object_get({{{Interpreter.Type}}} object,
 } /* Native_Object_get */
 {{/body}}
 
-char *{{{Interpreter.interpreter}}}_get_string_value({{{Interpreter.Type}}} string_value){{#header}};{{/header}}
+char *{{{Interpreter.interpreter}}}_get_string_value({{{Interpreter.Type}}} string_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     int string_length = jerry_get_string_length(string_value);
@@ -947,7 +954,7 @@ char *{{{Interpreter.interpreter}}}_get_string_value({{{Interpreter.Type}}} stri
 {{! enumeration types are represented in Javascript as strings, so
     getting them across to Jerryscript and back requires some
     finagling }}
-int enum_index(char *target, char **array, int array_length){{#header}};{{/header}}
+int enum_index(char *target, char **array, int array_length){{#private_header}};{{/private_header}}
 {{#body}}
 {
     for (int i = 0; i < array_length; i++)
@@ -965,7 +972,7 @@ int enum_index(char *target, char **array, int array_length){{#header}};{{/heade
    value undefined */
 void add_field_to_object({{{Interpreter.Type}}} enclosing_object,
 			    const char *function_name,
-       			    jerry_external_handler_t handler){{#header}};{{/header}}
+       			    jerry_external_handler_t handler){{#private_header}};{{/private_header}}
 {{#body}}
 {
   /* Create a JS function object and wrap into a jerry value */
@@ -1050,7 +1057,7 @@ static {{{Interpreter.Type}}} get_prototypes_holder(void)
 } /* get_prototypes_holder */
 
 {{/body}}
-void webidl_utilities_cleanup(void){{#header}};{{/header}}
+void webidl_utilities_cleanup(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} prototypes_holder = get_prototypes_holder();
@@ -1065,7 +1072,7 @@ void webidl_utilities_cleanup(void){{#header}};{{/header}}
 } /* webidl_utilities_cleanup */
 
 {{/body}}
-void create_prototypes_holder(void){{#header}};{{/header}}
+void create_prototypes_holder(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} new_prototypes_holder = jerry_create_object();
@@ -1090,7 +1097,7 @@ void create_prototypes_holder(void){{#header}};{{/header}}
 
 {{/body}}
 {{! next, we'll need a "get"ter and "set"ter for each prototype }}
-{{{Interpreter.Type}}} get_prototype(char * object_name){{#header}};{{/header}}
+{{{Interpreter.Type}}} get_prototype(char * object_name){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} prototypes_holder = get_prototypes_holder();
@@ -1105,7 +1112,7 @@ void create_prototypes_holder(void){{#header}};{{/header}}
 } /* get_prototype */
 
 {{/body}}
-void register_prototype(char * object_name, {{{Interpreter.Type}}} new_prototype){{#header}};{{/header}}
+void register_prototype(char * object_name, {{{Interpreter.Type}}} new_prototype){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} prototypes_holder = get_prototypes_holder();
@@ -1119,9 +1126,8 @@ void register_prototype(char * object_name, {{{Interpreter.Type}}} new_prototype
 } /* register_prototype */
 
 {{/body}}
-
 {{#debug_printing}}
-{{#header}}
+
 /************ DEBUG VARIABLES AND FUNCTIONS (FOR BASIC C TYPES) ***********/
 /* when the indentation gets too large, it may mean that we've hit
    some infinite recursion; this value stops us at a reasonable limit */
@@ -1130,89 +1136,147 @@ void register_prototype(char * object_name, {{{Interpreter.Type}}} new_prototype
 /* this is, essentially, the size of a tab */
 #define DEBUG_INDENTATION_WIDTH 3
 
-#define debug_print_int8_t(variable_name, value, indentation) \
-	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+void debug_print_int8_t(char *variable_name, int8_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_int64_t(variable_name, (int64_t)value, indentation);
+} /* debug_print_int8_t */
+{{/body}}
 
-#define debug_print_uint8_t(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+void debug_print_uint8_t(char *variable_name, uint8_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
+} /* debug_print_uint8_t */
+{{/body}}
 
-#define debug_print_int16_t(variable_name, value, indentation) \
-	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+void debug_print_int16_t(char *variable_name, int16_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_int64_t(variable_name, (int64_t)value, indentation);
+} /* debug_print_int16_t */
+{{/body}}
 
-#define debug_print_uint16_t(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+void debug_print_uint16_t(char *variable_name, uint16_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
+} /* debug_print_uint16_t */
+{{/body}}
 
-#define debug_print_int32_t(variable_name, value, indentation) \
-	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+void debug_print_int32_t(char *variable_name, int32_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_int64_t(variable_name, (int64_t)value, indentation);
+} /* debug_print_int32_t */
+{{/body}}
 
-#define debug_print_uint32_t(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+void debug_print_uint32_t(char *variable_name, uint32_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
+} /* debug_print_uint32_t */
+{{/body}}
 
+ void debug_print_byte(char *variable_name, byte value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_int64_t(variable_name, (int64_t)value, indentation);
+} /* debug_print_byte */
+{{/body}}
 
-#define debug_print_byte(variable_name, value, indentation) \
-	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+void debug_print_octet(char *variable_name, octet value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
+} /* debug_print_octet */
+{{/body}}
 
-#define debug_print_octet(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+void debug_print_short(char *variable_name, short value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_int64_t(variable_name, (int64_t)value, indentation);
+} /* debug_print_short */
+{{/body}}
 
-#define debug_print_short(variable_name, value, indentation) \
-	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+void debug_print_unsignedshort(char *variable_name, unsignedshort value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
+} /* debug_print_unsignedshort */
+{{/body}}
 
-#define debug_print_unsignedshort(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+void debug_print_long(char *variable_name, long value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_int64_t(variable_name, (int64_t)value, indentation);
+} /* debug_print_long */
+{{/body}}
 
-#define debug_print_long(variable_name, value, indentation) \
-	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+void debug_print_unsignedlong(char *variable_name, unsignedlong value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
+} /* debug_print_unsignedlong */
+{{/body}}
 
-#define debug_print_unsignedlong(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+void debug_print_longlong(char *variable_name, longlong value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_int64_t(variable_name, (int64_t)value, indentation);
+} /* debug_print_longlong */
+{{/body}}
 
-#define debug_print_longlong(variable_name, value, indentation) \
-	debug_print_int64_t(variable_name, (int64_t)value, indentation)
+void debug_print_unsignedlonglong(char *variable_name, unsignedlonglong value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
+} /* debug_print_unsignedlonglong */
+{{/body}}
 
-#define debug_print_unsignedlonglong(variable_name, value, indentation) \
-	debug_print_uint64_t(variable_name, (uint64_t)value, indentation)
+void debug_print_boolean(char *variable_name, boolean value, unsigned int indentation){{#private_header}};{{/private_header}}
+{{#body}}
+{
+	debug_print_bool(variable_name, (uint64_t)value, indentation);
+} /* debug_print_boolean */
+{{/body}}
 
-#define debug_print_boolean(variable_name, value, indentation) \
-	debug_print_bool(variable_name, (uint64_t)value, indentation)
-{{/header}}
-
-void debug_print_int64_t(char *variable_name, int64_t value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_int64_t(char *variable_name, int64_t value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s%s :  %lli\n", indentation, "", variable_name, value);
 } /* debug_print_int64_t */
 
 {{/body}}
-void debug_print_uint64_t(char *variable_name, uint64_t value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_uint64_t(char *variable_name, uint64_t value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s%s :  %llu\n", indentation, "", variable_name, value);
 } /* debug_print_uint64_t */
 
 {{/body}}
-void debug_print_float(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_float(char *variable_name, float value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s%s :  %f\n", indentation, "", variable_name, value);
 } /* debug_print_float */
 
 {{/body}}
-void debug_print_double(char *variable_name, double value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_double(char *variable_name, double value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s%s :  %lf\n", indentation, "", variable_name, value);
 } /* debug_print_double */
 
 {{/body}}
-void debug_print_bool(char *variable_name, bool value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_bool(char *variable_name, bool value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s%s :  %s\n", indentation, "", variable_name, (value)?"TRUE":"FALSE");
 } /* debug_print_bool */
 
 {{/body}}
-void debug_print_string(char *variable_name, char * value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_string(char *variable_name, char * value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s%s :  \"%s\"\n", indentation, "", variable_name, value);
@@ -1233,7 +1297,7 @@ static jerry_value_t debug_evaluate_script(jerry_char_t jerry_script[])
 } /* debug_evaluate_script */
 
 {{/body}}
-void debug_print_message(char *message){{#header}};{{/header}}
+void debug_print_message(char *message){{#private_header}};{{/private_header}}
 {{#body}}
 {
     jerry_value_t global_object = jerry_get_global_object();
@@ -1248,28 +1312,28 @@ void debug_print_message(char *message){{#header}};{{/header}}
 } /* debug_print_message */
 
 {{/body}}
-void debug_print__object(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+void debug_print__object(char *variable_name, _object value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
 	printf("%*s<object> :  \"%s\"\n", indentation, "", variable_name);
 } /* debug_print__object */
 
 {{/body}}
-void debug_print_this(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_this(char *variable_name, float value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s<this pointer>\n", indentation, "");
 } /* debug_print_this */
 
 {{/body}}
-void debug_print_{{{Interpreter.Type}}}(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_{{{Interpreter.Type}}}(char *variable_name, {{{Interpreter.Type}}} value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     printf("%*s<this pointer>\n", indentation, "");
 } /* debug_print_{{{Interpreter.Type}}} */
 
 {{/body}}
-void debug_print_object_fields({{{Interpreter.Type}}} thing){{#header}};{{/header}}
+void debug_print_object_fields({{{Interpreter.Type}}} thing){{#private_header}};{{/private_header}}
 {{#body}}
 {
     static bool first_time = true;
@@ -1296,7 +1360,7 @@ void debug_print_object_fields({{{Interpreter.Type}}} thing){{#header}};{{/heade
 } /* debug_print_object_fields */
 
 {{/body}}
-void debug_print_any(char *variable_name, any value, unsigned int indentation){{#header}};{{/header}}
+void debug_print_any(char *variable_name, any value, unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     switch(value.union_type)
@@ -1342,7 +1406,7 @@ void debug_print_any(char *variable_name, any value, unsigned int indentation){{
 {{/body}}
 void debug_print_ArrayBuffer(char *variable_name,
                              ArrayBuffer value,
-                             unsigned int indentation){{#header}};{{/header}}
+                             unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
     debug_print_uint32_t(variable_name, value.length, indentation);
@@ -1363,7 +1427,7 @@ void debug_print_ArrayBuffer(char *variable_name,
 }; /* debug_print_ArrayBuffer */
 
 {{/body}}
-void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#header}};{{/header}}
+void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#private_header}};{{/private_header}}
 {{#body}}
 {
     bool printed_at_least_one = false;
@@ -1406,7 +1470,7 @@ void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#header}};{{
 
 {{/body}}
 /* CAUTION: THIS FUNCTION LEAKS! */
-char *debug_itoa(int x){{#header}};{{/header}}
+char *debug_itoa(int x){{#private_header}};{{/private_header}}
 {{#body}}
 {
 #define MAX_STRING_LENGTH 10
@@ -1418,7 +1482,7 @@ char *debug_itoa(int x){{#header}};{{/header}}
 {{/body}}
 /* this will give a list of all of the objects that are resident (that
    have been compiled into the interpreter) */
-void debug_list_all_objects(void){{#header}};{{/header}}
+void debug_list_all_objects(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} prototypes_holder = get_prototypes_holder();
@@ -1428,8 +1492,9 @@ void debug_list_all_objects(void){{#header}};{{/header}}
 
 {{/body}}
 {{/debug_printing}}
-{{#header}}
-
-#endif /* UTILITY_FUNCTIONS__H_ */
 {{/header}}
+{{^body}}
+
+#endif /* {{#private_header}}PRIVATE_{{/private_header}}UTILITY_FUNCTIONS__H_ */
+{{/body}}
 {{/OBEYFORMATTING}}

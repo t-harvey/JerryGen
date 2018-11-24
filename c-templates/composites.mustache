@@ -27,11 +27,11 @@ under the License.
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
 {{#composites}}
-{{#header}}
+{{^body}}
 
-#ifndef {{{compositeName}}}_H_
-#define {{{compositeName}}}_H_
-{{/header}}
+#ifndef {{#private_header}}PRIVATE_{{/private_header}}{{{compositeName}}}_H_
+#define {{#private_header}}PRIVATE_{{/private_header}}{{{compositeName}}}_H_
+{{/body}}
 
 #include "jerryscript.h"
 
@@ -40,18 +40,18 @@ struct {{{compositeName}}}_struct;
 typedef struct {{{compositeName}}}_struct {{{compositeName}}};
 
 {{/header}}
-{{#header}}
-#include "{{{utilities_filename}}}.h"
+{{^body}}
+#include "{{{utilities_filename}}}{{#private_header}}_private{{/private_header}}.h"
 {{#externalTypes}}
-#include "{{{type}}}.h"
+#include "{{{type}}}{{#private_header}}_private{{/private_header}}.h"
 {{/externalTypes}}
 {{#non_intrinsic_types}}
-#include "{{{type_name}}}.h"
+#include "{{{type_name}}}{{#private_header}}_private{{/private_header}}.h"
 {{/non_intrinsic_types}}
-{{/header}}
-{{#body}}
-#include "{{{compositeName}}}.h"
 {{/body}}
+{{^header}}
+#include "{{{compositeName}}}{{#body}}_private{{/body}}.h"
+{{/header}}
 
 /* this variable is used in composite types to denote a field of type
    {{{compositeName}}} -- this should be considered a read-only value */
@@ -68,12 +68,12 @@ struct {{{compositeName}}}_struct {
     } value;
 };
 {{/header}}
-
+{{^header}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
 /* for unions, we'll arbitrarily pick the first field as the default
    type */
-{{{compositeName}}} {{{compositeName}}}_constructor(void){{#header}};{{/header}}
+{{{compositeName}}} {{{compositeName}}}_constructor(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{compositeName}}} new_{{{compositeName}}};
@@ -94,7 +94,7 @@ struct {{{compositeName}}}_struct {
     than "get_..._value" -- but b/c Jerryscript already has get_*_value
     for all of the builtin types, it's easier to follow that naming
     scheme for composites and interfaces...}}
-{{{compositeName}}} {{{Interpreter.interpreter}}}_get_{{{compositeName}}}_value({{{Interpreter.Type}}} composite_value){{#header}};{{/header}}
+{{{compositeName}}} {{{Interpreter.interpreter}}}_get_{{{compositeName}}}_value({{{Interpreter.Type}}} composite_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{{compositeName}}} return_struct;
@@ -119,7 +119,7 @@ struct {{{compositeName}}}_struct {
 
 /* like all the {{{Interpreter.interpreter}}}_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
-{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{compositeName}}}({{{compositeName}}} x){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{compositeName}}}({{{compositeName}}} x){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{! TODO: handle arrays }}
@@ -139,7 +139,7 @@ struct {{{compositeName}}}_struct {
 } /* {{{Interpreter.interpreter}}}_create_{{{compositeName}}} */
 {{/body}}
 
-bool {{{Interpreter.interpreter}}}_value_is_{{{compositeName}}}({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}_value_is_{{{compositeName}}}({{{Interpreter.Type}}} thing_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     {{#j_to_c_type_list}}
@@ -151,7 +151,7 @@ bool {{{Interpreter.interpreter}}}_value_is_{{{compositeName}}}({{{Interpreter.T
 } /* {{{Interpreter.interpreter}}}_value_is_{{{compositeName}}} */
 {{/body}}
 
-void initialize_{{{compositeName}}}_(void){{#header}};{{/header}}
+void initialize_{{{compositeName}}}_(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     /* the only thing to initialize for composites is their external
@@ -180,13 +180,10 @@ static void register_initialize_{{{compositeName}}}(void)
 
 } /* register_initialize_{{{compositeName}}} */
 {{/body}}
-
-
 {{#debug_printing}}
-{{! TODO: THIS DOES NOT HANDLE ARRAYS! }}
 void debug_print_{{{compositeName}}} (char *variable_name,
      				      {{{compositeName}}} value,
-				      unsigned int indentation){{#header}};{{/header}}
+				      unsigned int indentation){{#private_header}};{{/private_header}}
 {{#body}}
 {
    /* we can get into infinite recursion, with one structure printing
@@ -211,10 +208,10 @@ void debug_print_{{{compositeName}}} (char *variable_name,
 } /* debug_print_{{{compositeName}}} */
 {{/body}}
 {{/debug_printing}}
-
-{{#header}}
-
-#endif /* {{{compositeName}}}_H_ */
 {{/header}}
+{{^body}}
+
+#endif /* {{#private_header}}PRIVATE_{{/private_header}}{{{compositeName}}}_H_ */
+{{/body}}
 {{/composites}}
 {{/OBEYFORMATTING}}

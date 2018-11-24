@@ -20,11 +20,11 @@
 #include <unistd.h>
 
 #include "jerryscript.h"
-#include "jerryscript-ext/handler.h"
+#include "handler.h"
 #include "jerryscript-port.h"
 #include "jerryscript-port-default.h"
 
-#include "webidl_compiler_utilities.h"
+#include "webidl_compiler_utilities_private.h"
 
 /**
  * Maximum size of source code

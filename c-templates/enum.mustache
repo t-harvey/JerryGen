@@ -27,15 +27,19 @@ under the License.
 /* AUTOMATICALLY GENERATED ON {{timestamp}} */
 {{/print_generation_message}}
 {{#enums}}
-{{#header}}
-#ifndef {{{enumName}}}_ENUM_H_
-#define {{{enumName}}}_ENUM_H_
-{{/header}}
+{{^body}}
+#ifndef {{#private_header}}PRIVATE_{{/private_header}}{{{enumName}}}_ENUM_H_
+#define {{#private_header}}PRIVATE_{{/private_header}}{{{enumName}}}_ENUM_H_
+{{/body}}
 
-#include "{{{utilities_filename}}}.h"
+#include "{{{utilities_filename}}}{{^header}}_private{{/header}}.h"
 
-{{#body}}
+{{#private_header}}
 #include "{{{enumName}}}.h"
+
+{{/private_header}}
+{{#body}}
+#include "{{{enumName}}}_private.h"
 
 {{/body}}
 {{#header}}
@@ -46,20 +50,24 @@ typedef enum { {{#members}}{{{indentation}}}{{{C_name}}}{{^finalMember}},{{{new_
 {{#body}}
 static int number_of_{{{enumName}}} = {{{members.length}}};
 {{/body}}
-{{#header}}
-
-/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
-
-{{/header}}
+{{^private_header}}
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{enumName}}}_uid;
+{{/private_header}}
+{{^header}}
+{{#private_header}}
+
+/* these are the support functions and definitions that are used by the
+   generated code, but should not be used by the programmer */
+
+{{/private_header}}
 
 {{! TODO: what if the "members" list is empty?!?"}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for enums, just return the
    first symbol in the list */
-{{{enumName}}} {{{enumName}}}_constructor(void){{#header}};{{/header}}
+{{{enumName}}} {{{enumName}}}_constructor(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
     return {{{members.0.C_name}}};
@@ -75,7 +83,7 @@ static char *{{{enumName}}}_Javascript_strings[] = { {{#members}}{{{indentation}
 {{^onlyOneMember}}};{{/onlyOneMember}}
 
 {{/body}}
-{{{enumName}}} {{{Interpreter.interpreter}}}_get_{{{enumName}}}_value({{{Interpreter.Type}}} value){{#header}};{{/header}}
+{{{enumName}}} {{{Interpreter.interpreter}}}_get_{{{enumName}}}_value({{{Interpreter.Type}}} value){{#private_header}};{{/private_header}}
 {{#body}}
 {
 {{! TODO: check that enum_index doesn't return -1! }}
@@ -85,7 +93,7 @@ static char *{{{enumName}}}_Javascript_strings[] = { {{#members}}{{{indentation}
 
 {{/body}}
 {{^original_arg_handling}}
-{{#header}}
+{{#private_header}}
 /* this one has to use its own function, b/c Jerryscript doesn't have
    a floating-point version */
 #define {{{Interpreter.interpreter}}}_arg_{{{enumName}}}(x, z) \
@@ -93,13 +101,13 @@ static char *{{{enumName}}}_Javascript_strings[] = { {{#members}}{{{indentation}
                              (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
                                              (uintptr_t)z}), \
                               {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}})
-{{/header}}
+{{/private_header}}
 
 /* the transform function for enums requires us to use the pre-defined
    transform function for strings to grab that result and convert the
    string to the enum */
 jerry_value_t {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p,
-                                       const jerryx_arg_t *c_arg_p){{#header}};{{/header}}
+                                       const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
 {{#body}}
 {
     char temp_buffer[{{{longest_Javascript_name_length}}}+1];
@@ -145,14 +153,14 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to_{{{enumName}}}(jerryx_arg_js_
 
 {{/body}}
 {{/original_arg_handling}}
-{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{enumName}}}({{{enumName}}} x){{#header}};{{/header}}
+{{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{enumName}}}({{{enumName}}} x){{#private_header}};{{/private_header}}
 {{#body}}
 {
     return {{{Interpreter.interpreter}}}_create_string ((const jerry_char_t *) {{{enumName}}}_Javascript_strings[x]);
 } /* {{{Interpreter.interpreter}}}_create_{{{enumName}}} */
 
 {{/body}}
-bool {{{Interpreter.interpreter}}}_value_is_{{{enumName}}}({{{Interpreter.Type}}} thing_value){{#header}};{{/header}}
+bool {{{Interpreter.interpreter}}}_value_is_{{{enumName}}}({{{Interpreter.Type}}} thing_value){{#private_header}};{{/private_header}}
 {{#body}}
 {
     if (!jerry_value_is_string(thing_value))
@@ -173,11 +181,22 @@ bool {{{Interpreter.interpreter}}}_value_is_{{{enumName}}}({{{Interpreter.Type}}
 {{! the following greatly(!) simplifies the code elsewhere, b/c we
     assume every type has this function, even though enums don't need to
     do anything }}
-{{#header}}
+{{#private_header}}
 /* this can be ignored; it simplifies the definition of interfaces
    that include this type... */
 #define initialize_{{{enumName}}}_()
+{{/private_header}}
+
+{{#body}}
+/* every type needs a uid (supplied by webidl_utilities), so set it up here */
+__attribute__((constructor))
+static void register_{{{enumName}}}_uid(void)
+{
+    {{{enumName}}}_uid = get_type_uid();
+} /* register_{{{enumName}}}_uid */
+{{/body}}
 {{/header}}
+{{^private_header}}
 {{#debug_printing}}
 
 void debug_print_{{{enumName}}} (char *variable_name,
@@ -193,18 +212,10 @@ void debug_print_{{{enumName}}} (char *variable_name,
 } /* debug_print_{{{enumName}}} */
 {{/body}}
 {{/debug_printing}}
+{{/private_header}}
+{{^body}}
 
-{{#body}}
-/* every type needs a uid (supplied by webidl_utilities), so set it up here */
-__attribute__((constructor))
-static void register_{{{enumName}}}_uid(void)
-{
-    {{{enumName}}}_uid = get_type_uid();
-} /* register_{{{enumName}}}_uid */
+#endif /* {{#private_header}}PRIVATE_{{/private_header}}{{{enumName}}}_ENUM_H_ */
 {{/body}}
-{{#header}}
-
-#endif /* {{{enumName}}}_ENUM_H_ */
-{{/header}}
 {{/enums}}
 {{/OBEYFORMATTING}}
