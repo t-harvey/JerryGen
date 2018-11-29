@@ -538,6 +538,29 @@ static void register_initialize_{{{interfaceName}}}(void)
 } /* {{{Interpreter.interpreter}}}_get_{{{interfaceName}}}_value */
 
 {{/body}}
+{{^original_arg_handling}}
+
+{{#private_header}}
+#define {{{Interpreter.interpreter}}}_arg_{{{interfaceName}}}(x, z) \
+            jerryx_arg_custom(x, \
+                             (uintptr_t)&((uintptr_t []){(uintptr_t)JERRYX_ARG_COERCE, \
+                                                         (uintptr_t)z}), \
+                              {{{Interpreter.interpreter}}}_arg_to_{{{interfaceName}}})
+
+{{/private_header}}
+{{{Interpreter.Type}}}
+{{{Interpreter.interpreter}}}_arg_to_{{{interfaceName}}}(jerryx_arg_js_iterator_t *js_arg_iter_p,
+                                       const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
+{{#body}}
+{
+    {{{Interpreter.Type}}} interface_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
+
+    /* TODO: do type checking... */
+    return interface_value;
+} /* {{{Interpreter.interpreter}}}_arg_to_{{{interfaceName}}} */
+{{/body}}
+
+{{/original_arg_handling}}
 /* like all the {{{Interpreter.interpreter}}}_create_* functions, this one takes a C
    variable and creates its Jerryscript/Javascript equivalent */
 {{{Interpreter.Type}}} {{{Interpreter.interpreter}}}_create_{{{interfaceName}}}({{{interfaceName}}} x){{#private_header}};{{/private_header}}

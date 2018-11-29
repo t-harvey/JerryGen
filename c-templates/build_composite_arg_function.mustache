@@ -59,7 +59,7 @@
     {
         conversion_function =
                {{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(({{{C_Type}}} *)(&(destination->value.{{{webidl_name}}}_field)),
-					{{#last_in_list}}extra_info[1]{{/last_in_list}}{{^last_in_list}}INTERPRETER_ARG_OPTIONAL{{/last_in_list}});
+					{{#last_in_list}}extra_info[1]{{/last_in_list}}{{^last_in_list}}INTERPRETER_ARG_REQUIRED{{/last_in_list}});
 	jerry_release_value(conversion_result);
         conversion_result = conversion_function.func(js_arg_iter_p, &conversion_function);
         if (!jerry_value_is_error(conversion_result))

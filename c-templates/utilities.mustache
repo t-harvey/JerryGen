@@ -306,6 +306,9 @@ typedef any JSON;
 #define JSON_constructor any_constructor
 #define initialize_JSON_ initialize_any_
 #define debug_print_JSON debug_print_any
+{{^original_arg_handling}}
+#define {{{Interpreter.interpreter}}}_arg_JSON {{{Interpreter.interpreter}}}_arg_any
+{{/original_arg_handling}}
 
 {{/private_header}}
 {{^header}}
@@ -737,6 +740,10 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 /* for brevity, "x" == value to be defined, and "z" = optional-flag value) */
 #define {{{Interpreter.interpreter}}}_arg_number        jerryx_arg_number
 #define {{{Interpreter.interpreter}}}_arg_bool(x, z) jerryx_arg_boolean(x, COERCION_POLICY, (jerryx_arg_optional_t)z)
+#define {{{Interpreter.interpreter}}}_arg_byte(x, z)      jerryx_arg_int8(x, ROUNDING_POLICY, \
+				     		       	 CLAMPING_POLICY, \
+						       	 COERCION_POLICY, \
+						       	 (jerryx_arg_optional_t)z)
 #define {{{Interpreter.interpreter}}}_arg_int8_t(x, z)    jerryx_arg_int8(x, ROUNDING_POLICY, \
 				     		       	 CLAMPING_POLICY, \
 						       	 COERCION_POLICY, \
@@ -770,6 +777,7 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 			                     (uintptr_t)z}), \
 			      {{{Interpreter.interpreter}}}_arg_to_string)
 
+#define {{{Interpreter.interpreter}}}_arg_Error {{{Interpreter.interpreter}}}_arg_string
 #define {{{Interpreter.interpreter}}}_arg__object(x, z) \
             jerryx_arg_custom(x, \
 	    		     (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
@@ -818,14 +826,20 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to_string(jerryx_arg_js_iterator
 {{#body}}
 {
     jerry_value_t string_value = jerryx_arg_js_iterator_pop(js_arg_iter_p);
+    uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
     string temp = NULL;
 
     /* TODO: really, we should be checking to see if we can coerce whatever
        the value is into a string -- I think(?) the only error condition
        here would be if "string_value" is undefined... */
-    if (!jerry_value_is_string(string_value))
+    if (jerry_value_is_undefined(string_value) &&
+        extra_info[1] == JERRYX_ARG_OPTIONAL)
+       return string_value;
+    else if (!jerry_value_is_string(string_value))
+    {
 	return jerry_create_error(JERRY_ERROR_TYPE,
                              	  (const jerry_char_t *) "Expected a string.");
+    }
 
     temp = {{{Interpreter.interpreter}}}_get_string_value(string_value);
     if (temp == NULL)
@@ -862,6 +876,29 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to__object(jerryx_arg_js_iterato
 {{> build_composite_arg_function}}
 
 {{/arg_function}}
+
+{{#private_header}}
+#define {{{Interpreter.interpreter}}}_arg_{{{Interpreter.Type}}}(x, z) \
+            jerryx_arg_custom(x, \
+                             (uintptr_t)&((uintptr_t []){(uintptr_t)JERRYX_ARG_NO_COERCE, \
+                                                         (uintptr_t)z}), \
+                              {{{Interpreter.interpreter}}}_arg_to_{{{Interpreter.Type}}})
+
+{{/private_header}}
+{{{Interpreter.Type}}}
+{{{Interpreter.interpreter}}}_arg_to_{{{Interpreter.Type}}}(jerryx_arg_js_iterator_t *js_arg_iter_p,
+                                       const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
+{{#body}}
+{
+    uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
+    {{{Interpreter.Type}}} stack_top = jerryx_arg_js_iterator_pop(js_arg_iter_p);
+
+    if (!jerry_value_is_error(stack_top))
+        *(({{{Interpreter.Type}}}*)(c_arg_p->dest)) = stack_top;
+
+    return stack_top;
+} /* {{{Interpreter.interpreter}}}_arg_to_{{{interfaceName}}} */
+{{/body}}
 
 {{/original_arg_handling}}
 {{{Interpreter.Type}}} {{{Interpreter.interpreter}}}__get_property({{{Interpreter.Type}}} thing, string property){{#private_header}};{{/private_header}}

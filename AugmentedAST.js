@@ -1321,7 +1321,17 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 	this.dictionaries[d.name] = d;
 	d.dictionaryName = d.name;
 	// augment and add members
-	for(var i = 0 ; i < d.members.length; i++){
+	for(var i = 0 ; i < d.members.length; i++)
+	{
+	    /* if the user declares an array with "sequence",
+	       getConversionTypes will catch it; the problem is that the user
+	       can also declare an array with "[]" (technically, this isn't
+	       legal WebIDL, but it parses/builds), in which case, the idlType
+	       structure will have a field called "array" whose value is "1"
+	       (or "true"?) -- to keep the code simple, we'll just catch the
+	       latter case and make it look like the former... */
+	    if (d.members[i].idlType.array > 0)
+		d.members[i].idlType.sequence = true;
 	    d.members[i].memberName = d.members[i].name;
 	                                           /* "name" is too generic */
 	    d.members[i].C_and_Jerryscript_Types = this.getConversionTypes(d.members[i].idlType);

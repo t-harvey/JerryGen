@@ -75,7 +75,7 @@ corresponding to the type of thing we're processing... (search for
       {{#arguments}}
 	{{#C_and_Jerryscript_Types}}
 	{{^variadic}}	  
-	{{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(&{{{name}}}, {{#optional}}INTERPRETER_ARG_OPTIONAL){{/optional}}{{^optional}}INTERPRETER_ARG_REQUIRED{{/optional}}){{^finalParam}},{{/finalParam}}
+	{{{Interpreter.interpreter}}}_arg_{{{C_Type}}}(&{{{name}}}, {{#optional}}INTERPRETER_ARG_OPTIONAL{{/optional}}{{^optional}}INTERPRETER_ARG_REQUIRED{{/optional}}){{^finalParam}},{{/finalParam}}
 	{{/variadic}}
 	{{/C_and_Jerryscript_Types}}
       {{/arguments}}
@@ -91,13 +91,13 @@ corresponding to the type of thing we're processing... (search for
 							  args_cnt,
                                                           mapping,
                                                        	  {{{number_of_non_variadic_params}}}+1);
-    {{/number_of_non_variadic_params}}
 
     if (jerry_value_is_error(get_args_result))
     {
 	fprintf(stderr, "ERROR IN PARAMETERS.\n");
 	return get_args_result;
     }
+    {{/number_of_non_variadic_params}}
 
     {{! unfortunately, looping through all of the arguments is the only
     	way to get to the final (maybe variadic) parameter... }}

@@ -226,28 +226,28 @@ register_js_function (const char *name_p, /**< name of the function */
 /**
  * Command line option IDs
  */
-typedef enum
-{
-  OPT_HELP,
-  OPT_VERSION,
-  OPT_MEM_STATS,
-  OPT_PARSE_ONLY,
-  OPT_SHOW_OP,
-  OPT_SHOW_RE_OP,
-  OPT_DEBUG_SERVER,
-  OPT_DEBUG_PORT,
-  OPT_DEBUGGER_WAIT_SOURCE,
-  OPT_EXEC_SNAP,
-  OPT_EXEC_SNAP_FUNC,
-  OPT_LOG_LEVEL,
-  OPT_ABORT_ON_FAIL,
-  OPT_NO_PROMPT
-} main_opt_id_t;
+#define  OPT_HELP                 1<<01
+#define  OPT_VERSION              1<<02
+#define  OPT_MEM_STATS            1<<03
+#define  OPT_PARSE_ONLY           1<<04
+#define  OPT_SHOW_OP              1<<05
+#define  OPT_SHOW_RE_OP           1<<06
+#define  OPT_DEBUG_SERVER         1<<07
+#define  OPT_DEBUG_PORT           1<<08
+#define  OPT_DEBUGGER_WAIT_SOURCE 1<<09
+#define  OPT_EXEC_SNAP            1<<10
+#define  OPT_EXEC_SNAP_FUNC       1<<11
+#define  OPT_LOG_LEVEL            1<<12
+#define  OPT_ABORT_ON_FAIL        1<<13
+#define  OPT_NO_PROMPT            1<<14
+#define  OPT_ECHO_COMMAND         1<<15
+typedef int32_t main_opt_id_t;
 
 int
 main (int argc,
       char **argv)
 {
+    main_opt_id_t options = 0;
     bool filename_given = false;
     size_t size_of_input = 0;
     if (argc > 1)
@@ -263,6 +263,8 @@ main (int argc,
 	    fprintf(stdout, "CAN'T FIND FILE: >%s<; RUNNING THE REPL.\n",
 		    argv[1]);
     }
+    if (argc > 2)
+	options |= OPT_ECHO_COMMAND;
 
     /* initialize engine */
     jerry_init(JERRY_INIT_EMPTY);
@@ -309,6 +311,9 @@ main (int argc,
       if (len > 0)
       {
         /* Evaluate the line */
+	if (options & OPT_ECHO_COMMAND)
+	  fprintf(stdout, "**********Evaluating: >%s<\n", buffer);
+	fflush(stdout);
         jerry_value_t ret_val_eval = jerry_eval (buffer, len, false);
 	fflush(stdout);
 

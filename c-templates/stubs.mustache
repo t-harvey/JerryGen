@@ -138,7 +138,7 @@ extern void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
 {{{interfaceName}}} require_{{{interfaceName}}}(void){{#header}};{{/header}}
 {{#body}}
 {
-    /* the {{{interface}}}_constructor creates a new {{{interfaceName}}
+    /* the {{{interfaceName}}}_constructor creates a new {{{interfaceName}}
        filled in with default values */
     {{{interfaceName}}} return_value = {{{interfaceName}}}_constructor();
 
@@ -167,7 +167,6 @@ extern void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
-    *error = 0;
     {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(this, error);
     if (*error){{#C_and_Jerryscript_Types}}
 	{{^voidReturnType}}{{^return_is_this}}/* we return a (meaningless) default value here so the compiler doesn't complain */{{/return_is_this}}{{/voidReturnType}}

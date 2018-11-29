@@ -49,6 +49,9 @@ under the License.
 #define {{{typedefName}}}_constructor {{{ultimate_typename_C_type}}}_constructor 
 #define initialize_{{{typedefName}}}_ initialize_{{{ultimate_typename_C_type}}}_
 #define debug_print_{{{typedefName}}} debug_print_{{{ultimate_typename_C_type}}}
+{{^original_arg_handling}}
+#define {{{Interpreter.interpreter}}}_arg_{{{typedefName}}} {{{Interpreter.interpreter}}}_arg_{{{ultimate_typename_C_type}}}
+{{/original_arg_handling}}
 {{/private_header}}
 #endif /* {{#private_header}}private_{{/private_header}}TYPEDEF_DEFINES_FOR_{{{typedefName}}}_H_ */
 {{/typedefs}}

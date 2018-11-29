@@ -27,7 +27,7 @@ print("listener_list = " + listener_list);
 var setMaxListeners_result = new_BLE.setMaxListeners(5);
 
 var disconnect_result = new_BLE.disconnect("string address");
-var uuids = [ 1, "two", 3.0, 4 ];
+var uuids = [ "1", "two", "3.0", "4d" ];
 var startAdvertising_result1 = new_BLE.startAdvertising("string name", uuids, "optional string url");
 var startAdvertising_result2 = new_BLE.startAdvertising("string name", uuids);
 var stopAdvertising_result = new_BLE.stopAdvertising();
@@ -69,7 +69,7 @@ var nc_init = new CharacteristicInit("uuid_string", ["read", "write"], [new Desc
 
 var newCharacteristic_result = new_BLE.newCharacteristic(nc_init);
 
-var nd_init = new DescriptorInit(new DescriptorInit("di_uuid", "d1_value"));
+var nd_init = new DescriptorInit("di_uuid", "d1_value");
 
 var newDescriptor_result = new_BLE.newDescriptor(nd_init);
 
@@ -189,7 +189,7 @@ var drawString_result = new_GFXContext.drawString(52, 53, "string str", [4,6,8],
 print("****************** GPIO ****************************");
 
 var new_GPIO = require("GPIO");
-var new_GPIOPin =  new_GPIO.open( new GPIOPin("new pin", false, "in"));
+var new_GPIOPin =  new_GPIO.open( new GPIOInit("new pin", false, "in"));
 
 var read_result = new_GPIOPin.read();
 var write_result = new_GPIOPin.write(10);
@@ -281,6 +281,7 @@ var new_Resource_Init = new ResourceInit(resourcePath, resourceTypes, interfaces
 print(typeof new_OCFServer);
 print(typeof new_OCFServer.register);
 
+var temp_resource_init = new ResourceInit(resourcePath, resourceTypes, interfaces, discoverable, observable, secure, slow, register_properties);
 var register_result = new_OCFServer.register(new ResourceInit(resourcePath, resourceTypes, interfaces, discoverable, observable, secure, slow, register_properties));
 var register_result2 = new_OCFServer.register(new_Resource_Init);
 
