@@ -63,12 +63,10 @@ typedef struct {
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{dictionaryName}}}_uid;
-{{/private_header}}
-{{^header}}
 
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
-{{{dictionaryName}}} {{{dictionaryName}}}_constructor(void){{#private_header}};{{/private_header}}
+{{{dictionaryName}}} {{{dictionaryName}}}_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
     {{{dictionaryName}}} new_{{{dictionaryName}}};
@@ -92,6 +90,8 @@ typedef struct {
 } /* {{{dictionaryName}}}_constructor */
 
 {{/body}}
+{{/private_header}}
+{{^header}}
 {{^original_arg_handling}}
 {{#is_array_object}}
 {{#private_header}}

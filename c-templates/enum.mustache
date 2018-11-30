@@ -54,6 +54,17 @@ static int number_of_{{{enumName}}} = {{{members.length}}};
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
 {{#header}}extern {{/header}}int {{{enumName}}}_uid;
+
+{{! TODO: what if the "members" list is empty?!?"}}
+/* all WebIDL constructs have a constructor function, so that C code
+   can build any of these constructs -- for enums, just return the
+   first symbol in the list */
+{{{enumName}}} {{{enumName}}}_constructor(void){{#header}};{{/header}}
+{{#body}}
+{
+    return {{{members.0.C_name}}};
+} /* {{{enumName}}}_constructor */
+{{/body}}
 {{/private_header}}
 {{^header}}
 {{#private_header}}
@@ -62,17 +73,6 @@ static int number_of_{{{enumName}}} = {{{members.length}}};
    generated code, but should not be used by the programmer */
 
 {{/private_header}}
-
-{{! TODO: what if the "members" list is empty?!?"}}
-/* all WebIDL constructs have a constructor function, so that C code
-   can build any of these constructs -- for enums, just return the
-   first symbol in the list */
-{{{enumName}}} {{{enumName}}}_constructor(void){{#private_header}};{{/private_header}}
-{{#body}}
-{
-    return {{{members.0.C_name}}};
-} /* {{{enumName}}}_constructor */
-{{/body}}
 
 {{! we first need strings that match the enumeration values }}
 {{#body}}

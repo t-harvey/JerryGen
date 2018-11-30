@@ -38,7 +38,9 @@ under the License.
 
 {{#header}}
 #include "jerryscript.h"
+{{^original_arg_handling}}
 #include "arg.h"
+{{/original_arg_handling}}
 
 {{/header}}
 {{^header}}
@@ -257,14 +259,17 @@ bool {{{Interpreter.interpreter}}}_value_is_ArrayBuffer({{{Interpreter.Type}}} A
 }; /* {{{Interpreter.interpreter}}}_value_is_ArrayBuffer */
 
 {{/body}}
-ArrayBuffer ArrayBuffer_constructor(void){{#private_header}};{{/private_header}}
+{{/header}}
+{{^private_header}}
+ArrayBuffer ArrayBuffer_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
     return (ArrayBuffer){0, NULL};
 }; /* ArrayBuffer_constructor */
 
 {{/body}}
-
+{{/private_header}}
+{{^header}}
 /* this is a null call, since ArrayBuffer exists on the Javascript side */
 void initialize_ArrayBuffer_(void){{#private_header}};{{/private_header}}
 {{#body}}
@@ -303,7 +308,11 @@ typedef any JSON;
 #define {{{Interpreter.interpreter}}}_get_JSON_value {{{Interpreter.interpreter}}}_get_any_value
 #define {{{Interpreter.interpreter}}}_create_JSON {{{Interpreter.interpreter}}}_create_any
 #define {{{Interpreter.interpreter}}}_value_is_JSON {{{Interpreter.interpreter}}}_value_is_any
+{{/private_header}}
+{{#header}}
 #define JSON_constructor any_constructor
+{{/header}}
+{{#private_header}}
 #define initialize_JSON_ initialize_any_
 #define debug_print_JSON debug_print_any
 {{^original_arg_handling}}
@@ -311,10 +320,10 @@ typedef any JSON;
 {{/original_arg_handling}}
 
 {{/private_header}}
-{{^header}}
+{{^private_header}}
 /* for the any type, we'll aribtrarily make the default value a long
    and set it to zero */
-any any_constructor(void){{#private_header}};{{/private_header}}
+any any_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
     any new_any;
@@ -323,6 +332,8 @@ any any_constructor(void){{#private_header}};{{/private_header}}
     return new_any;
 } /* any_constructor */
 {{/body}}
+{{/private_header}}
+{{^header}}
 
 /* NOTE: Jerryscript only has three types that "value" can be: string,
    boolean, or number (double) ... */
@@ -593,12 +604,12 @@ void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header
 {{#header}}
 #ifndef INTERFACE_EXTRACT
 #define INTERFACE_EXTRACT(this, InterfaceName, AttributeName) \
-	extract_##InterfaceName##_##AttributeName(this)
+	get_##InterfaceName##_##AttributeName(this)
 #endif /* INTERFACE_EXTRACT */
 
 #ifndef INTERFACE_INSERT
 #define INTERFACE_INSERT(this, InterfaceName, AttributeName, value) \
-	insert_##InterfaceName##_##AttributeName(this, value)
+	set_##InterfaceName##_##AttributeName(this, value)
 #endif /* INTERFACE_INSERT */
 {{/header}}
 {{^header}}
@@ -632,8 +643,12 @@ void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header
 
 #define {{{Interpreter.interpreter}}}_get_this_value(x) (x)
 #define {{{Interpreter.interpreter}}}_get_{{{Interpreter.Type}}}_value(x) (x)
+{{/private_header}}
+{{#header}}
 #define this_constructor() 0
 #define {{{Interpreter.Type}}}_constructor() 0
+{{/header}}
+{{#private_header}}
 
 /* we check value types using their C-type names, although the checks
    translate into checking for synonymous Javascript types */
@@ -701,12 +716,15 @@ void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header
 
 #define {{{Interpreter.interpreter}}}_create_bool   jerry_create_boolean
 
+{{/private_header}}
+{{#header}}
 #define double_constructor() (0.0)
 #define float_constructor() (0.0)
 #define long_constructor() (0) 
 #define short_constructor() (0) 
 #define void_constructor() (0) 
-
+{{/header}}
+{{#private_header}}
 #ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
 #define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
 { \

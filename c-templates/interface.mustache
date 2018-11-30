@@ -88,26 +88,9 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 
 {{/inheritance}}
 {{^private_header}}
-void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
-				      {{{interfaceName}}}_Native_Object *new_value){{#header}};{{/header}}
-{{#body}}
-{
-    Native_Object_set(this, new_value, &{{{interfaceName}}}_checksum);
-}; /* {{{interfaceName}}}_Native_Object_set */
-
-{{/body}}
-{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} this,
-				      {{{Interpreter.error_type}}} *error_check){{#header}};{{/header}}
-{{#body}}
-{
-    return Native_Object_get(this, &{{{interfaceName}}}_checksum, error_check);
-}; /* {{{interfaceName}}}_Native_Object_get */
-{{/body}}
-{{/private_header}}
-{{^header}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
-{{{interfaceName}}} {{{interfaceName}}}_constructor(void){{#private_header}};{{/private_header}}
+{{{interfaceName}}} {{{interfaceName}}}_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
     {{{interfaceName}}} new_{{{interfaceName}}} = create_empty_{{{interfaceName}}}();
@@ -128,7 +111,7 @@ void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
 } /* {{{interfaceName}}}_constructor */
 
 {{/body}}
-{{/header}}
+{{/private_header}}
 {{/repress_stubs}}
 {{#hasAttributes}}
 {{^private_header}}
@@ -164,15 +147,15 @@ void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
 {{/C_and_Jerryscript_Types}}
 {{/attributes}} {{! ATTRIBUTE GETTERS/SETTERS}}
 {{/private_header}}
+
 {{/hasAttributes}}
-{{^header}}
-
-/********************* IGNORE FUNCTIONS BELOW THIS LINE *********************/
-
+{{^private_header}}
 /* this variable is used in composite types to denote a field of type
    {{{interfaceName}}} -- this should be considered a read-only value */
-{{#private_header}}extern {{/private_header}}int {{{interfaceName}}}_uid;
+{{#header}}extern {{/header}}int {{{interfaceName}}}_uid;
 
+{{/private_header}}
+{{^header}}
 {{#repress_stubs}}
 /* each Javascript object can have a single C object associated with
    it, which we call a Native_Object ("native" to the C code); these

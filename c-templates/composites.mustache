@@ -68,12 +68,12 @@ struct {{{compositeName}}}_struct {
     } value;
 };
 {{/header}}
-{{^header}}
+{{^private_header}}
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs */
 /* for unions, we'll arbitrarily pick the first field as the default
    type */
-{{{compositeName}}} {{{compositeName}}}_constructor(void){{#private_header}};{{/private_header}}
+{{{compositeName}}} {{{compositeName}}}_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
     {{{compositeName}}} new_{{{compositeName}}};
@@ -87,6 +87,8 @@ struct {{{compositeName}}}_struct {
 } /* {{{compositeName}}}_constructor */
 
 {{/body}}
+{{/private_header}}
+{{^header}}
 {{^original_arg_handling}}
 {{> build_composite_arg_function}}
 {{/original_arg_handling}}

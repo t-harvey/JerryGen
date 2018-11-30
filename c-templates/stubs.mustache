@@ -28,12 +28,10 @@ under the License.
 #ifndef {{{interfaceName}}}_STUBS_HEADER_FILE
 #define {{{interfaceName}}}_STUBS_HEADER_FILE 1
 #include "{{{utilities_filename}}}.h"
-#include "{{{interfaceName}}}.h"
 {{/header}}
 {{^header}}
 #include "{{{utilities_filename}}}_private.h"
 #include "{{{interfaceName}}}{{#body}}_private{{/body}}.h"
-#include "{{{interfaceName}}}_stubs.h"
 {{/header}}
 
 {{#header}}
@@ -66,6 +64,9 @@ typedef struct {
     /* USER CODE GOES HERE */
 
 } {{{interfaceName}}}_Native_Object;
+{{#header}}
+#include "{{{interfaceName}}}.h"
+{{/header}}
 
 {{/inheritance}}
 {{/header}}
@@ -122,11 +123,33 @@ extern void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
                                       {{{interfaceName}}}_Native_Object *new_value);
 {{/header}}
 {{/inheritance}}
+
+{{^private_header}}
+void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
+				      {{{interfaceName}}}_Native_Object *new_value){{#header}};{{/header}}
+{{#body}}
+{
+    Native_Object_set(this, new_value, &{{{interfaceName}}}_checksum);
+}; /* {{{interfaceName}}}_Native_Object_set */
+
+{{/body}}
+{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} this,
+				      {{{Interpreter.error_type}}} *error_check){{#header}};{{/header}}
+{{#body}}
+{
+    return Native_Object_get(this, &{{{interfaceName}}}_checksum, error_check);
+}; /* {{{interfaceName}}}_Native_Object_get */
+
+{{/body}}
+{{/private_header}}
 {{#body}}
 
 /******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
-{{/body}}
 
+{{/body}}
+{{#header}}
+#include "{{{interfaceName}}}_stubs.h"
+{{/header}}
 /* {{{interfaceName}}} */
 {{#is_module}}
 {{#body}}

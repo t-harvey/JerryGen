@@ -94,26 +94,29 @@ typedef {{{Interpreter.Type}}} {{{callbackName}}};
 typedef {{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} (* {{{callbackName}}}_callback) ({{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalArgument}}, {{/finalArgument}}{{/arguments}});
 
 {{/header}}
-{{^header}}
-{{#private_header}}
-/* these are the support functions and definitions that are used by the
-   generated code, but should not be used by the programmer */
-
-{{/private_header}}
+{{^private_header}}
 /* this variable is used in composite types to denote a field of type
    {{{callbackName}}} -- this should be considered a read-only value */
-{{#private_header}}extern {{/private_header}}int {{{callbackName}}}_uid;
+{{#header}}extern {{/header}}int {{{callbackName}}}_uid;
 
 /* all WebIDL constructs have a constructor function, so that C code
    can build any of these constructs -- for callbacks, we just return
    a NULL pointer */
-{{{callbackName}}} {{{callbackName}}}_constructor(void){{#private_header}};{{/private_header}}
+{{{callbackName}}} {{{callbackName}}}_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
     return jerry_create_undefined();
 } /* {{{callbackName}}}_constructor */
 
 {{/body}}
+
+{{/private_header}}
+{{^header}}
+{{#private_header}}
+/* these are the support functions and definitions that are used by the
+   generated code, but should not be used by the programmer */
+
+{{/private_header}}
 {{#private_header}}
 #define {{{Interpreter.interpreter}}}_arg_{{{callbackName}}}(x, z) \
 	jerryx_arg_function(x, (jerryx_arg_optional_t)z)
