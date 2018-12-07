@@ -29,10 +29,10 @@ under the License.
 #define {{{interfaceName}}}_STUBS_HEADER_FILE 1
 #include "{{{utilities_filename}}}.h"
 {{/header}}
-{{^header}}
+{{#body}}
 #include "{{{utilities_filename}}}_private.h"
-#include "{{{interfaceName}}}{{#body}}_private{{/body}}.h"
-{{/header}}
+#include "{{{interfaceName}}}_private.h"
+{{/body}}
 
 {{#header}}
 {{#externalTypes}}
@@ -57,14 +57,15 @@ under the License.
    destroyed -- when a Javascript object is destroyed, the interpreter
    will call a user function to deallocate the associated Native_Object;
    thus, when we assign a Native_Object to a Javascript object using
-   Native_Object_set, we also give it a deallocator for that
-   Native_Object (note that the function can be null if there isn't
-   any memory to free) */
+   {{{interfaceName}}}_Native_Object_set, we also give it a deallocator
+   for that Native_Object (note that the function can be null if there
+   isn't any memory to free) */
 typedef struct {
     /* USER CODE GOES HERE */
 
 } {{{interfaceName}}}_Native_Object;
 {{#header}}
+
 #include "{{{interfaceName}}}.h"
 {{/header}}
 
@@ -93,19 +94,11 @@ typedef struct {
    {{{inheritance}}}_stubs.h file */
   {{/body}}
   {{#header}}
-#define {{{interfaceName}}}_Native_Object_deallocator {{{inheritance}}}_Native_Object_deallocator
 #define {{{interfaceName}}}_Native_Object_create {{{inheritance}}}_Native_Object_create
+#define {{{interfaceName}}}_Native_Object_deallocator {{{inheritance}}}_Native_Object_deallocator
   {{/header}}
 {{/inheritance}}
 {{^inheritance}}
-void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header}};{{/header}}
-{{#body}}
-{
-	/* USER CODE GOES HERE */
-
-} /* {{{interfaceName}}}_Native_Object_deallocator */
-
-{{/body}}
 {{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_create(void){{#header}};{{/header}}
 {{#body}}
 {
@@ -115,42 +108,37 @@ void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header
  
     return new_object;
 } /* {{{interfaceName}}}_Native_Object_create */
+
+{{/body}}
+void {{{interfaceName}}}_Native_Object_deallocator(void *native_object){{#header}};{{/header}}
+{{#body}}
+{
+	/* USER CODE GOES HERE */
+
+} /* {{{interfaceName}}}_Native_Object_deallocator */
+
 {{/body}}
 {{#header}}
-extern {{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} this,
+
+extern {{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{interfaceName}}} this,
                                       {{{Interpreter.error_type}}} *error_check);
-extern void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
+extern void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
                                       {{{interfaceName}}}_Native_Object *new_value);
 {{/header}}
 {{/inheritance}}
 
-{{^private_header}}
-void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
-				      {{{interfaceName}}}_Native_Object *new_value){{#header}};{{/header}}
-{{#body}}
-{
-    Native_Object_set(this, new_value, &{{{interfaceName}}}_checksum);
-}; /* {{{interfaceName}}}_Native_Object_set */
+{{#header}}
 
-{{/body}}
-{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_get({{{Interpreter.Type}}} this,
-				      {{{Interpreter.error_type}}} *error_check){{#header}};{{/header}}
-{{#body}}
-{
-    return Native_Object_get(this, &{{{interfaceName}}}_checksum, error_check);
-}; /* {{{interfaceName}}}_Native_Object_get */
+/* operations in the interface: */
 
-{{/body}}
-{{/private_header}}
+{{/header}}
 {{#body}}
 
 /******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
 
-{{/body}}
-{{#header}}
-#include "{{{interfaceName}}}_stubs.h"
-{{/header}}
 /* {{{interfaceName}}} */
+
+{{/body}}
 {{#is_module}}
 {{#body}}
 /**
@@ -179,7 +167,7 @@ void {{{interfaceName}}}_Native_Object_set({{{Interpreter.Type}}} this,
  *
  */ 
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{#return_is_this}}{{{Interpreter.Type}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}} this{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}{{{interfaceName}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{interfaceName}}} this{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error){{#header}};{{/header}}
 {{#body}}
 {
     {{#arguments}}

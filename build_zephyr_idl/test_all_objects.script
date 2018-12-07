@@ -80,9 +80,9 @@ print(new_Board);
 
 print("*************** Buffer *****************************");
 
-/*var byte_array = new ArrayBuffer(10);*/
+var byte_array = new ArrayBuffer(12);
 
-var new_Buffer = new Buffer(4, [1, 2, 1, 2]);
+var new_Buffer = new Buffer(12, byte_array);
 print("new_Buffer.length = " + new_Buffer.length);
 print("new_Buffer.buffer = " + new_Buffer.buffer);
 
@@ -159,7 +159,7 @@ var unlinkSync_result = new_FS.unlinkSync("string path");
 var rmdirSync_result = new_FS.rmdirSync("string path");
 var writeSync_result = new_FS.writeSync(new FileDescriptor(), "(string or Buffer) data", 10, 20, 30);
 var writeSync_result2 = new_FS.writeSync(new FileDescriptor(), new_Buffer, 10, 20, 30);
-var readSync_result = new_FS.readSync(new FileDescriptor, new Buffer(10), 10, 10, 10);
+var readSync_result = new_FS.readSync(new FileDescriptor, new Buffer(10, new ArrayBuffer(12)), 10, 10, 10);
 var truncateSync_result = new_FS.truncateSync("string path", 43);
 var mkdirSync_result = new_FS.mkdirSync("string path");
 var readdirSync_result = new_FS.readdirSync("string path");

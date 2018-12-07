@@ -38,16 +38,35 @@ module.exports = {
        finagling, but are otherwise the same) */
     generate_C_files: function(augAST, parameters, object_type, compiler)
     {
+	/* the inner loop, below, handles creating both the .h and .c files --
+	   the Hogan scripts are set up to take the "header_or_body" value
+	   to create one kind or the other */
+	let header_or_body = [ ["generate_header"        , ".h"        ],
+			       ["generate_private_header", "_private.h"],
+			       ["generate_body"          , ".c"        ] ];
+	/* we have a couple of different combinations of header and
+	   C files, so we take the above array and control which of
+	   those kinds of files we're going to make with this array */
+	let indices = [];
+	if (object_type === "stubs") /* doesn't need a private .h file */
+	    indices = [ 0, 2 ];
+	else if (object_type === "typedefs")  /* only needs .h files */
+	    indices = [ 0, 1 ];
+	else
+	    indices = [ 0, 1, 2 ];
+
 	let compiling_stubs = false;
 	if (object_type === "stubs")
 	{
 	    compiling_stubs = true;
 	    /* we need to compile a stubs file for each interface, so
-	       that's what we'll really iterate through... */
+	       we'll actually be iterating through the interfaces list
+	       to create the corresponding stubs files... */
 	    object_type = "interfaces";
 	}
 
-	let object_list = augAST[object_type]; // store off the object list
+	let object_list = augAST[object_type]; /* store a copy of the object
+						  list, as explained below */
 	var returned = [];
 
 	for(let object_name in object_list)
@@ -55,22 +74,17 @@ module.exports = {
 	    if (object_list[object_name].dont_print_this_thing_out)
 		continue;
 
+	    /* since each WebIDL construct creates its own .c/.h files and
+	       our simplistic implementation is restricted to creating only
+	       a single file at any time, we'll clear the list of objects
+	       we're creating files for and then stick a single object
+	       onto the list to process it */
 	    augAST[object_type] = {}; // not strictly necessary...
 	    augAST[object_type] = {[object_name] : object_list[object_name]};
 
-	    /* this loop handles creating both the .h and .c files -- the
-	       Hogan scripts are set up to take the "header_or_body" value
-	       to create one kind or the other */
-	    let header_or_body = [["generate_header"        , ".h"        ],
-				  ["generate_private_header", "_private.h"],
-				  ["generate_body"          , ".c"         ] ];
-
-	    let number_of_files_to_create = header_or_body.length;
-	    if (object_type === "typedefs") /* only needs a .h file */
-		number_of_files_to_create = 2;
-
-	    for (var index = 0; index < number_of_files_to_create; index++)
+	    for (var runner = 0; runner < indices.length; runner++)
 	    {
+		let index = indices[runner];
 		let kind_of_file = header_or_body[index][0];
 		let extension    = header_or_body[index][1];
 		

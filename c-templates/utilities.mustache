@@ -611,7 +611,47 @@ void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header
 #define INTERFACE_INSERT(this, InterfaceName, AttributeName, value) \
 	set_##InterfaceName##_##AttributeName(this, value)
 #endif /* INTERFACE_INSERT */
+
 {{/header}}
+{{#private_header}}
+#define this_constructor jerry_create_undefined
+#define {{{Interpreter.Type}}}_constructor jerry_create_undefined
+
+#define int8_t_constructor() (0)
+#define uint8_t_constructor() (0)
+#define int16_t_constructor() (0)
+#define uint16_t_constructor() (0)
+#define int32_t_constructor() (0)
+#define uint32_t_constructor() (0)
+#define int64_t_constructor() (0)
+#define uint64_t_constructor() (0)
+#define float_constructor() (0.0)
+#define double_constructor() (0.0)
+#define bool_constructor() (false)
+
+#define double_constructor() (0.0)
+#define long_constructor() (0)
+#define short_constructor() (0)
+#define void_constructor() (0)
+
+{{/private_header}}
+{{^original_arg_handling}}
+{{#header}}
+
+/* for strict parameter-checking (e.g., a "boolean" parameter has to
+   have a "true/false" value, it can't be an integer), comment out the
+   first #define, and un-comment the second... */
+#define COERCION_POLICY                 JERRYX_ARG_COERCE
+// #define COERCION_POLICY              JERRYX_ARG_NO_COERCE
+
+#define ROUNDING_POLICY 	     JERRYX_ARG_ROUND
+#define CLAMPING_POLICY 	     JERRYX_ARG_CLAMP
+typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
+	      INTERPRETER_ARG_REQUIRED=JERRYX_ARG_REQUIRED
+} {{{Interpreter.interpreter}}}_arg_optional_flag_enum_type;
+
+{{/header}}
+{{/original_arg_handling}}
 {{^header}}
 {{#private_header}}
 
@@ -644,10 +684,6 @@ void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header
 #define {{{Interpreter.interpreter}}}_get_this_value(x) (x)
 #define {{{Interpreter.interpreter}}}_get_{{{Interpreter.Type}}}_value(x) (x)
 {{/private_header}}
-{{#header}}
-#define this_constructor() 0
-#define {{{Interpreter.Type}}}_constructor() 0
-{{/header}}
 {{#private_header}}
 
 /* we check value types using their C-type names, although the checks
@@ -717,13 +753,6 @@ void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header
 #define {{{Interpreter.interpreter}}}_create_bool   jerry_create_boolean
 
 {{/private_header}}
-{{#header}}
-#define double_constructor() (0.0)
-#define float_constructor() (0.0)
-#define long_constructor() (0) 
-#define short_constructor() (0) 
-#define void_constructor() (0) 
-{{/header}}
 {{#private_header}}
 #ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR
 #define GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, C_type_identifier) \
@@ -736,27 +765,18 @@ void initialize_all_webidl_constructs(void){{#private_header}};{{/private_header
 #endif /* ifndef GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR */
 
 {{/private_header}}
-
 {{^original_arg_handling}}
 {{#private_header}}
-
-/* for strict parameter-checking (e.g., a "boolean" parameter has to
-   have a "true/false" value, it can't be an integer), comment out the
-   first #define, and un-comment the second... */
-#define COERCION_POLICY                 JERRYX_ARG_COERCE
-/* #define COERCION_POLICY              JERRYX_ARG_NO_COERCE */
-
-#define ROUNDING_POLICY 	     JERRYX_ARG_ROUND
-#define CLAMPING_POLICY 	     JERRYX_ARG_CLAMP
-typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
-	      INTERPRETER_ARG_REQUIRED=JERRYX_ARG_REQUIRED
-} {{{Interpreter.interpreter}}}_arg_optional_flag_enum_type;
-
 /* all of the {{{Interpreter.interpreter}}}_arg_* functions take a pointer to the
    result and a the optional flag (defined above, either
    INTERPRETER_ARG_OPTIONAL or INTERPRETER_ARG_REQUIRED) */
 /* for brevity, "x" == value to be defined, and "z" = optional-flag value) */
-#define {{{Interpreter.interpreter}}}_arg_number        jerryx_arg_number
+#define {{{Interpreter.interpreter}}}_arg_number(x, z) \
+            jerryx_arg_custom(x, \
+	    		     (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
+			                     (uintptr_t)z}), \
+			      {{{Interpreter.interpreter}}}_arg_to_double)
+	
 #define {{{Interpreter.interpreter}}}_arg_bool(x, z) jerryx_arg_boolean(x, COERCION_POLICY, (jerryx_arg_optional_t)z)
 #define {{{Interpreter.interpreter}}}_arg_byte(x, z)      jerryx_arg_int8(x, ROUNDING_POLICY, \
 				     		       	 CLAMPING_POLICY, \
@@ -811,8 +831,53 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 	    		     (uintptr_t)&((uintptr_t []){(uintptr_t)COERCION_POLICY, \
 			                     (uintptr_t)z}), \
 			      {{{Interpreter.interpreter}}}_arg_to_float)
-#define {{{Interpreter.interpreter}}}_arg_double(x, z)  jerryx_arg_number(x, COERCION_POLICY, (jerryx_arg_optional_t)z)
+#define {{{Interpreter.interpreter}}}_arg_double(x, z)  {{{Interpreter.interpreter}}}_arg_number(x, z)
+
 {{/private_header}}
+
+/* the transform function for "numbers" (i.e., doubles) will return
+   NaN if it converts either: an actual floating-point value == NaN,
+   or a non-number (like a structure) that simply gets passed to the
+   {{{Interpreter.interpreter}}}_get_number function; this is ugly,
+   so we'll wrap the builtin get_number with our own that will check
+   to see if the result is NaN and then makes a second check to ensure
+   that the Javascript thing is actually a number and not one of the
+   other things */
+{{#body}}
+#include <math.h>
+{{/body}}
+jerry_value_t {{{Interpreter.interpreter}}}_arg_to_double(jerryx_arg_js_iterator_t *js_arg_iter_p,
+			               const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
+{{#body}}
+{
+    double result = 0.0;
+    uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
+    /* we naively access c_arg_p as if we know(!) that there are two
+       parameters, one for the coercion flag, and one for the optional flag */
+    jerryx_arg_t get_double = jerryx_arg_number(&result,
+						     extra_info[0],
+					             extra_info[1]);
+    jerry_value_t convert_to_double_result =
+            	     get_double.func(js_arg_iter_p, &get_double);
+
+    if (!jerry_value_is_error(convert_to_double_result))
+    {
+        if (isnan(result))
+	{
+	    /* TODO: is this really necessary (i.e., does
+	       convert_to_doube_result already have this value? */
+	    jerryx_arg_js_iterator_restore(js_arg_iter_p);
+	    jerry_value_t top_of_stack =
+	                           jerryx_arg_js_iterator_pop(js_arg_iter_p);
+	    if (!jerry_value_is_number(top_of_stack))
+	        return jerry_create_error(JERRY_ERROR_TYPE,
+                             	  (const jerry_char_t *) "Expected a number.");
+	}
+        *((double*)(c_arg_p->dest)) = (float)result;
+    }
+    return convert_to_double_result;
+} /* {{{Interpreter.interpreter}}}_arg_to_double */
+{{/body}}
 
 /* the transform function for floating-point numbers is defined only
    for doubles, so we need a wrapper that will call the version for
@@ -826,7 +891,7 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to_float(jerryx_arg_js_iterator_
     /* we naively access c_arg_p as if we know(!) that there are two
        parameters, one for the coercion flag, and one for the optional flag */
     jerryx_arg_t get_double = {{{Interpreter.interpreter}}}_arg_number(&intermediate_result,
-						     extra_info[0],
+						     //extra_info[0],
 					             extra_info[1]);
     jerry_value_t convert_to_double_result =
             	     get_double.func(js_arg_iter_p, &get_double);
@@ -1470,7 +1535,8 @@ void debug_print_ArrayBuffer(char *variable_name,
     int ENTRIES_PER_ROW = 8;
 #define LAST_IN_ROW !((j+1)%ENTRIES_PER_ROW)
     int j = 0;
-    printf("%*s", data_indent, "");
+    if (value.length > 0)
+        printf("%*s", data_indent, "");
     for (j = 0; j < value.length; j++)
 	printf("0x%02X%s%*s", value.data[j],
 	                    (LAST_IN_ROW)?"\n":"  ",

@@ -51,12 +51,8 @@ typedef struct {{{compositeName}}}_struct {{{compositeName}}};
 {{/body}}
 {{^header}}
 #include "{{{compositeName}}}{{#body}}_private{{/body}}.h"
+
 {{/header}}
-
-/* this variable is used in composite types to denote a field of type
-   {{{compositeName}}} -- this should be considered a read-only value */
-{{#header}}extern {{/header}}int {{{compositeName}}}_uid;
-
 {{#header}}
 struct {{{compositeName}}}_struct {
     int union_type;
@@ -67,6 +63,7 @@ struct {{{compositeName}}}_struct {
 {{/c_and_j_type_list}}
     } value;
 };
+
 {{/header}}
 {{^private_header}}
 /* all WebIDL constructs have a constructor function, so that C code
@@ -87,6 +84,10 @@ struct {{{compositeName}}}_struct {
 } /* {{{compositeName}}}_constructor */
 
 {{/body}}
+
+/* this variable is used in composite types to denote a field of type
+   {{{compositeName}}} -- this should be considered a read-only value */
+{{#header}}extern {{/header}}int {{{compositeName}}}_uid;
 {{/private_header}}
 {{^header}}
 {{^original_arg_handling}}
