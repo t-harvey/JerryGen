@@ -1,0 +1,42 @@
+The purpose of this test is to ensure that we get a correct
+compilation, regardless of the typedefs employed and the chaining of
+those typedefs.  (I.e., typedef a to b to c to d...)
+
+This is the first of two tests: the .idl file has a cycle in the chain of
+typedefs and so we should fail to build anything and exit gracefully
+with an error message.
+
+(Note that WebIDL specifically disallows chains of typedefs; we
+implement them b/c we think that users might want them.)
+
+[ TODO: update the text (I split a single directory with two .idl
+files into a directory with one .idl file each) ]
+
+For the following commands, we assume that the user is in the examples
+directory inside the Jerryscript directory, with the generator
+directory at the same level in the file hierarchy as Jerryscript.
+
+To compile cycle.idl:
+../../generator/generate.js --package=cycle ../../generator/unit_tests/typedef_test/cycle.idl
+
+To compile chain.idl:
+
+../../generator/generate.js --debug_printing=on --output_utility_files --package=typedef_chain_test ../../generator/unit_tests/typedef_test/chain.idl
+
+
+...because chain.idl contains a reference to the Buffer type defined
+in the Zephyr codes, we also need compile that .idl file, which, for
+convenience' sake, we'll just put into the same directory as our chain
+test:
+
+../../generator/generate.js --debug_printing=on --output_utility_files --package=typedef_chain_test ../../generator/zephyr/buffer.idl
+
+Now, cd into typedef_chain_test and run the compile command:
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
+
+...the result should be an a.out executable and no warnings or error
+messages.
+
+The full set of commands:
+
+../../generator/generate.js --debug_printing=on --output_utility_files --package=typedef_chain_test ../../generator/unit_tests/typedef_test/chain.idl && ../../generator/generate.js --debug_printing=on --output_utility_files --package=typedef_chain_test ../../generator/zephyr/buffer.idl && cd typedef_chain_test && gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm

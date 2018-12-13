@@ -1,0 +1,17 @@
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  1
+   param2 :  2.000000
+   param3 :  "three"
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  1
+   param2 :  2.000000
+   param3 :  ""
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  1
+   param2 :  0.000000
+   param3 :  ""
+PARAMETERS TO "check_optional_parameters" :
+   param1 :  0
+   param2 :  0.000000
+   param3 :  ""
+

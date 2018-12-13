@@ -75,9 +75,9 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
     Native_Object is still valid; note that this has a global linkage,
     since the support routines need this value }}
 {{#inheritance}}
-{{#body}}
+{{#private_header}}
 #define {{{interfaceName}}}_checksum {{{inheritance}}}_checksum
-{{/body}}
+{{/private_header}}
 {{/inheritance}}
 {{^inheritance}}
 {{^header}}

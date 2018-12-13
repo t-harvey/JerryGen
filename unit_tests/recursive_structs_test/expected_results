@@ -1,0 +1,7 @@
+ERROR: there is a cycle in structure definitions:
+    >int1<  is a field of  >int3<
+    >int3<  is a field of  >dict3<
+    >dict3<  is a field of  >dict2<
+    >dict2<  is a field of  >int2<
+    >int2<  is a field of  >dict1<
+    >dict1<  is a field of  >int1<

@@ -1,0 +1,66 @@
+enum1 is of type Enum1:			TRUE
+not_either_enum is of type Enum1:	FALSE
+
+
+dict1 is of type Dictionary1: 			TRUE
+   dict1:
+      enum_array_field:
+      [
+         0: Enum1_EnumString3
+         1: Enum1_EnumString1
+         2: Enum1_EnumString2
+      ]
+      long_field :  0
+      octet_field :  0
+dict1_from_scratch is of type Dictionary1: 	FALSE
+
+interface1 is of type Interface1: 		TRUE
+interface1_from_scratch is of type Interface1: 		TRUE
+calling interface1_from_scratch.interface_function1:
+random_number: 4
+d_a: 
+    [object Object]
+e_a: 
+    EnumString1
+l_or_d_a: 
+    1
+    2
+    3
+PARAMETERS TO "interface_function1" :
+   x :  5
+   dictionary1_array:
+   [
+      0:
+         enum_array_field:
+         [
+            0: Enum1_EnumString3
+            1: Enum1_EnumString1
+            2: Enum1_EnumString2
+         ]
+         long_field :  0
+         octet_field :  0
+   ]
+   enum1_array:
+   [
+      0: Enum1_EnumString1
+   ]
+   long_or_dict1_array:
+   [
+      0 with union type >long<:
+          :  1
+      1 with union type >long<:
+          :  2
+      2 with union type >Dictionary1<:
+         :
+            enum_array_field:
+            [
+               0: Enum1_EnumString3
+               1: Enum1_EnumString1
+               2: Enum1_EnumString2
+            ]
+            long_field :  0
+            octet_field :  0
+      3 with union type >long<:
+          :  3
+   ]
+RETURN_VALUE :  0

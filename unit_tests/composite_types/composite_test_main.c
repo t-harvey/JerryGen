@@ -12,7 +12,7 @@
 #include "jerryscript-port-default.h"
 
 
-#include "webidl_compiler_utilities.h"
+#include "webidl_compiler_utilities_private.h"
 
 #define _STRINGIFY(s...) #s
 #define STRINGIFY(s...) _STRINGIFY(s)
@@ -73,8 +73,8 @@ int main()
     /* we'll create some variables of each WebIDL construct and test them;
        after that, we'll build composite types and experiment with them */
 
-#include "Enum1.h"
-#include "Enum2.h"
+#include "Enum1_private.h"
+#include "Enum2_private.h"
     jerry_char_t enums_script[] = STRINGIFY(
 				       var enum1 = "EnumString1";
 				       var enum2 = "EnumString1a";
@@ -104,9 +104,9 @@ jerry_release_value(not_either_enum_value);
 
     fprintf(stdout, "\n");
 
-#include "Callback1.h"
-#include "Callback2.h"
-#include "Callback3.h"
+#include "Callback1_private.h"
+#include "Callback2_private.h"
+#include "Callback3_private.h"
     jerry_char_t callbacks_script[] = STRINGIFY(
 		var callback1 = function(float_argument)
 		    {
@@ -159,8 +159,8 @@ jerry_release_value(callback2_value);
     fprintf(stdout, "\tcallback3 is of type Callback3: %s\n", boolean_print(interpreter_value_is_Callback3(callback3_value)));
 jerry_release_value(callback3_value);
 
-#include "Dictionary1.h"
-#include "Dictionary2.h"
+#include "Dictionary1_private.h"
+#include "Dictionary2_private.h"
     jerry_char_t dictionaries_script[] = STRINGIFY(
 		var dict1 = new Dictionary1(1.0, 1, callback1) ;
 		var dict2 = new Dictionary2;
@@ -195,9 +195,9 @@ jerry_release_value(dict2_value);
     fprintf(stdout, "dict12_from_scratch is of type Dictionary2: \t%s\n", boolean_print(interpreter_value_is_Dictionary2(dict12_value)));
 jerry_release_value(dict12_value);
 
-#include "Interface1.h"
-#include "Interface2.h"
-#include "Interface3.h"
+#include "Interface1_private.h"
+#include "Interface2_private.h"
+#include "Interface3_private.h"
     jerry_char_t interfaces_script[] = STRINGIFY(
 		var interface1 = new Interface1(1, 1.0, callback3);
 		var interface2 = new Interface2;

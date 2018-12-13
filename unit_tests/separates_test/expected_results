@@ -1,0 +1,15 @@
+PARAMETERS TO "show_object" :
+   x :  1
+   y :  2
+   separate4_dict:
+      separate3_field:
+         separate1_field:
+            separate1_int :  0
+            separate1_octet :  1
+         separate2_field:
+            separate1_field:
+               separate1_int :  0
+               separate1_octet :  1
+            separate2_octet :  3
+         separate3_octet :  7
+      separate4_octet :  15

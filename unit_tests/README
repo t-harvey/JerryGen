@@ -1,0 +1,11 @@
+To create a new unit test:
+1) the directory name and the .idl file need to be named the same
+thing.
+2) if you want to use a main() different than the one in the
+"template" directory, it must have "*main*.c" somewhere in the name.
+3) the expected results should be in a file called "expected_results".
+4) the input script should be in a file named "input.script" -- if it
+doesn't exist, the a.out produced by the compile command will not be run.
+
+
+To run all of the tests, go to the template directory and run: run_all.script.

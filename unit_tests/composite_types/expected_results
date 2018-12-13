@@ -1,0 +1,98 @@
+enum1 is of type Enum1:			TRUE
+	enum1 is of type Enum2:		  FALSE
+enum2 is of type Enum1:			FALSE
+	enum2 is of type Enum2:		  TRUE
+not_either_enum is of type Enum1:	FALSE
+	not_either_enum is of type Enum2: FALSE
+
+callback1 is of type Enum1:	FALSE
+enum1 is of type Callback1:	FALSE
+
+callback1 is of type Callback1: 	TRUE
+	callback1 is of type Callback2: TRUE
+	callback1 is of type Callback3: FALSE
+callback2 is of type Callback1: 	TRUE
+	callback2 is of type Callback2: TRUE
+	callback2 is of type Callback3: FALSE
+callback3 is of type Callback1: 	FALSE
+	callback3 is of type Callback2: FALSE
+	callback3 is of type Callback3: TRUE
+
+dict1 is of type Dictionary1: 			TRUE
+	dict1 is of type Dictionary2: 		FALSE
+dict2 is of type Dictionary1: 			FALSE
+	dict2 is of type Dictionary2: 		FALSE
+dict12_from_scratch is of type Dictionary1: 	FALSE
+dict12_from_scratch is of type Dictionary2: 	FALSE
+
+interface1 is of type Interface1: 		TRUE
+	interface1 is of type Interface2: 	FALSE
+	interface1 is of type Interface3: 	FALSE
+interface2 is of type Interface1: 		FALSE
+	interface2 is of type Interface2: 	TRUE
+	interface2 is of type Interface3: 	FALSE
+interface3 is of type Interface1: 		TRUE
+	interface3 is of type Interface2: 	TRUE
+	interface3 is of type Interface3: 	TRUE
+interface12 is of type Interface1: 		TRUE
+	interface12 is of type Interface2: 	TRUE
+	interface12 is of type Interface3: 	TRUE
+**************** COMPOSITE TYPES ********************
+FIRST! CALL (with '1' and 'bob' as parameters) :
+PARAMETERS TO "interface4_function1" :
+   l_or_i1 with union type >long<:
+       :  1
+   l_or_f_or_s with union type >string<:
+       :  "bob"
+RETURN_VALUE :  0
+SECOND CALL (with interface1(-1, -2.0) and 1.0 as parameters) :
+PARAMETERS TO "interface4_function1" :
+   l_or_i1 with union type >Interface1<:
+      :
+         long_attribute :  -1
+         float_attribute :  -2.000000
+   l_or_f_or_s with union type >float<:
+       :  1.000000
+RETURN_VALUE :  0
+Explicitly Nested: 1.0
+PARAMETERS TO "show_explicitly_nested" :
+   explicitly_nested_arg with union type >float<:
+       :  1.000000
+Explicitly Nested: 'bob'
+PARAMETERS TO "show_explicitly_nested" :
+   explicitly_nested_arg with union type >string<:
+       :  "bob"
+Explicitly Nested: 2
+PARAMETERS TO "show_explicitly_nested" :
+   explicitly_nested_arg with union type >float<:
+       :  2.000000
+Explicitly Nested: true
+PARAMETERS TO "show_explicitly_nested" :
+   explicitly_nested_arg with union type >float<:
+       :  1.000000
+PARAMETERS TO "show_nested_dictionaries" :
+   implicitly_nested_arg with union type >composite_of_composites<:
+      :
+         composite_of_composites_field with union type >single_composite1<:
+            :
+               single_composite_field with union type >float<:
+                   :  1.000000
+PARAMETERS TO "show_nested_dictionaries" :
+   implicitly_nested_arg with union type >long<:
+       :  1
+PARAMETERS TO "foo" :
+   intrinsic_arg with union type >double<:
+       :  1.000000
+RETURN_VALUE :  0
+PARAMETERS TO "foo" :
+   intrinsic_arg with union type >string<:
+       :  "bob"
+RETURN_VALUE :  0
+PARAMETERS TO "foo" :
+   intrinsic_arg with union type >double<:
+       :  1.000000
+RETURN_VALUE :  0
+PARAMETERS TO "foo" :
+   intrinsic_arg with union type >Enum1<:
+      : Enum1_EnumString1
+RETURN_VALUE :  0

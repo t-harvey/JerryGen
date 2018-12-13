@@ -1,0 +1,41 @@
+PARAMETERS TO "check_variadic_arrays" :
+   arrays:
+   [
+      0:
+      [
+         0 with union type >float<:
+             :  1.000000
+         1 with union type >float<:
+             :  2.000000
+         2 with union type >float<:
+             :  3.000000
+      ]
+      1:
+      [
+         0 with union type >float<:
+             :  4.000000
+         1 with union type >float<:
+             :  5.000000
+         2 with union type >float<:
+             :  6.000000
+      ]
+      2:
+      [
+         0 with union type >string<:
+             :  "seven"
+         1 with union type >string<:
+             :  "eight"
+      ]
+   ]
+PARAMETERS TO "check_any_array" :
+   any_params:
+   [
+      0 :  1.000000
+      1 :  2.000000
+      2 :  "three"
+   ]
+PARAMETERS TO "check_any_array" :
+   any_params:
+   [
+   ]
+

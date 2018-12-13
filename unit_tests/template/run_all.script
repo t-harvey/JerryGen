@@ -1,0 +1,17 @@
+#! /bin/sh
+if [ ! $# -eq 2 ]
+then
+    echo "Usage: "`basename $0`" <directory of generator> <directory of Jerryscript>"
+else
+    generator_dir=`realpath $1`
+    jerryscript_dir=`realpath $2`
+
+    directories=`ls $generator_dir/unit_tests | grep -v template | grep -v run_by_hand | grep -v README`
+    for i in $directories
+    #for i in `ls -d $generator_dir/unit_tests/[v]* | grep -v run_by_hand | grep -v template | grep -v README `
+    do
+        idl_file_name=`basename $i`
+    echo "**************************"$idl_file_name"**************************"
+        $generator_dir/unit_tests/template/run_it.script $generator_dir $jerryscript_dir $idl_file_name
+    done
+fi

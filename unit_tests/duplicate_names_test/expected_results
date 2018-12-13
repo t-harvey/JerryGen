@@ -1,0 +1,41 @@
+ERROR: duplicate names in the input file:
+	The name "field1" is used 2 times in the dictionary named "test08".
+	The name "field2" is used 2 times in the dictionary named "test08".
+	The name "arg1" is used 2 times in the callback named "test03".
+	The name "arg2" is used 2 times in the callback named "test03".
+	The name "attribute1" is used 2 times in the interface named "test09".
+	The name "operation1" is used 2 times in the interface named "test10".
+	The name "attribute1" is used 2 times in the interface named "test11".
+	The name "arg1" is used 2 times in the operation named "operation2" in the interface named "test12".
+	The name "F" is used 12 times in the interface named "test13".
+	The name "N" is used 4 times in the operation named "F" in the interface named "test13".
+	The name "N" is used 4 times in the operation named "F" in the interface named "test13".
+	The name "N" is used 4 times in the operation named "F" in the interface named "test13".
+	The name "N" is used 4 times in the operation named "F" in the interface named "test13".
+	The name "N" is used 4 times in the operation named "F" in the interface named "test13".
+	The name "N" is used 4 times in the operation named "F" in the interface named "test13".
+	The name "test02" is duplicated in 2 callbacks.
+	The name "test04" is duplicated in 1 callback and 1 dictionary.
+	The name "test05" is duplicated in 1 callback and 1 interface.
+	The name "test06" is duplicated in 1 dictionary and 1 interface.
+	The name "test07" is duplicated in 1 callback, 1 dictionary, and 1 interface.
+	The name "duptest01" is duplicated in 3 callbacks.
+	The name "duptest02" is duplicated in 3 dictionaries.
+	The name "duptest03" is duplicated in 3 interfaces.
+	The name "duptest04" is duplicated in 1 callback and 1 dictionary.
+	The name "duptest05" is duplicated in 1 callback and 1 interface.
+	The name "duptest06" is duplicated in 1 dictionary and 1 interface.
+	The name "duptest07" is duplicated in 2 callbacks and 1 dictionary.
+	The name "duptest08" is duplicated in 2 callbacks and 1 interface.
+	The name "duptest09" is duplicated in 2 dictionaries and 1 interface.
+	The name "duptest10" is duplicated in 1 callback and 2 dictionaries.
+	The name "duptest11" is duplicated in 1 callback and 2 interfaces.
+	The name "duptest12" is duplicated in 1 dictionary and 2 interfaces.
+	The name "duptest13" is duplicated in 1 callback, 1 dictionary, and 1 interface.
+	The name "duptest14" is duplicated in 1 callback, 1 dictionary, and 2 interfaces.
+	The name "duptest15" is duplicated in 1 callback, 2 dictionaries, and 1 interface.
+	The name "duptest16" is duplicated in 1 callback, 2 dictionaries, and 2 interfaces.
+	The name "duptest17" is duplicated in 2 callbacks, 1 dictionary, and 1 interface.
+	The name "duptest18" is duplicated in 2 callbacks, 1 dictionary, and 2 interfaces.
+	The name "duptest19" is duplicated in 2 callbacks, 2 dictionaries, and 1 interface.
+	The name "duptest20" is duplicated in 2 callbacks, 2 dictionaries, and 2 interfaces.

@@ -1,50 +1,58 @@
 
-#include "call_callback_stubs.h"
+#include "webidl_compiler_utilities_private.h"
+#include "call_callback_private.h"
 
-#undef DEBUG_PRINTING
-#include "call_callback_stubs.h"
+#define DEBUG_PRINTING 1
 
-static jerry_error_t error_check; /* examine this if the value of native_object
-    		  	             might be wrong after a call to
-				     Native_Object_get() */
+#include "call_callback_stubs.h"
 
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
-void Native_Object_call_callback_deallocator(void *native_object)
+call_callback_Native_Object *call_callback_Native_Object_create(void)
 {
-	/* USER CODE GOES HERE */
-
-} /* Native_Object_call_callback_deallocator */
-
-Native_Object_call_callback *Native_Object_call_callback_create(void)
-{
-    Native_Object_call_callback *new_object = (Native_Object_call_callback *)malloc(sizeof(Native_Object_call_callback));
+    call_callback_Native_Object *new_object = (call_callback_Native_Object *)malloc(sizeof(call_callback_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* Native_Object_call_callback_create */
+} /* call_callback_Native_Object_create */
+
+void call_callback_Native_Object_deallocator(void *native_object)
+{
+	/* USER CODE GOES HERE */
+
+} /* call_callback_Native_Object_deallocator */
 
 
-jerry_object_native_info_t call_callback_checksum = {Native_Object_call_callback_deallocator};
 
 /******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
 
 /* call_callback */
+
 /**
  *
  */ 
-void call_callback_call_it_body(JSON thing, print_it callback, Interpreter_Type self)
+void call_callback_call_it(call_callback this, JSON thing, print_it callback, Interpreter_Error_Type *error)
 {
 	print_it _temp__for_callback = callback;
-#define callback(...) (run_print_it_function(_temp__for_callback, self, __VA_ARGS__))
-    /* EXAMINE THE VALUE OF "ERROR_CHECK" IF THERE COULD BE AN ERROR
-       WITH AN OBJECT'S Native_Object */    
-    Native_Object_call_callback *native_object = Native_Object_get(self, &call_callback_checksum, &error_check);
+#define callback(...) (run_print_it_function(_temp__for_callback, this, __VA_ARGS__))
+    call_callback_Native_Object *native_object = call_callback_Native_Object_get(this, error);
+    if (*error)
+	
+        
+	return;
+
+#ifdef DEBUG_PRINTING
+   printf("PARAMETERS TO \"call_it\" :\n");
+   extern void debug_print_JSON(char *, JSON, unsigned int);
+    debug_print_JSON("thing", thing, DEBUG_INDENTATION_WIDTH);
+   extern void debug_print_print_it(char *, print_it, unsigned int);
+    debug_print_print_it("callback", callback, DEBUG_INDENTATION_WIDTH);
+#endif /* DEBUG_PRINTING */
 
     /* USER CODE GOES HERE */
     callback(thing);
 
 #undef callback
-}; /* call_callback_call_it_body */
+}; /* call_callback_call_it */
 

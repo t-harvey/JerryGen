@@ -2,15 +2,14 @@ The purpose of this test is to ensure that we get a correct
 compilation, regardless of the typedefs employed and the chaining of
 those typedefs.  (I.e., typedef a to b to c to d...)
 
-There are two tests: the first, cycle.idl, has a cycle in the chain of
-typedefs and so we should fail to build anything and exit gracefully
-with an error message.
-
-The second test, chain.idl, has a chain of typedefs but should build
-and compile correctly.
+This is the second of two tests: this second test, chain.idl, has a
+chain of typedefs but should build and compile correctly.
 
 (Note that WebIDL specifically disallows chains of typedefs; we
 implement them b/c we think that users might want them.)
+
+[ TODO: update the text (I split a single directory with two .idl
+files into a directory with one .idl file each) ]
 
 For the following commands, we assume that the user is in the examples
 directory inside the Jerryscript directory, with the generator

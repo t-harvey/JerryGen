@@ -1,0 +1,82 @@
+interface_even_farther_interface_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >false<  (boolean)
+	d = >undefined<  (undefined)
+	e = >undefined<  (undefined)
+	f = >undefined<  (undefined)
+PARAMETERS TO "print_my_name" :
+	The function "print_my_name" takes no parameters.
+interface_farthest_interface_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = >0<  (number)
+	e = >undefined<  (undefined)
+	f = >undefined<  (undefined)
+PARAMETERS TO "print_my_name" :
+	The function "print_my_name" takes no parameters.
+interface_middle_interface_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = ><  (string)
+	e = ><  (string)
+	f = >undefined<  (undefined)
+PARAMETERS TO "print_my_name" :
+	The function "print_my_name" takes no parameters.
+interface_nearest_interface_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = ><  (string)
+	e = >false<  (boolean)
+	f = >false<  (boolean)
+PARAMETERS TO "print_my_name" :
+	The function "print_my_name" takes no parameters.
+interface_interface_compilation
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = ><  (string)
+	e = >false<  (boolean)
+	f = >false<  (boolean)
+PARAMETERS TO "print_my_name" :
+	The function "print_my_name" takes no parameters.
+dictionary_even_farther_dictionary_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >false<  (boolean)
+	d = >undefined<  (undefined)
+	e = >undefined<  (undefined)
+	f = >undefined<  (undefined)
+dictionary_farthest_interface_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = >0<  (number)
+	e = >undefined<  (undefined)
+	f = >undefined<  (undefined)
+dictionary_middle_dictionary_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = ><  (string)
+	e = ><  (string)
+	f = >undefined<  (undefined)
+dictionary_nearest_dictionary_ancestor
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = ><  (string)
+	e = >false<  (boolean)
+	f = >false<  (boolean)
+dictionary_dictionary_compilation
+	a = >false<  (boolean)
+	b = >false<  (boolean)
+	c = >0<  (number)
+	d = ><  (string)
+	e = >false<  (boolean)
+	f = >false<  (boolean)
+******************** LAST CALL ******************
+

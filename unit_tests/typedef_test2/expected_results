@@ -1,0 +1,15 @@
+Creating directory... (/Users/a0179262/work/examples/typedef_test2)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/long_typedef.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/long_typedef_private.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/long_typedef_typedef.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/long_typedef_typedef_private.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/Buffer_typedef.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/Buffer_typedef_private.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/typedef_test_object.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/typedef_test_object_private.h)
+Creating C File... (/Users/a0179262/work/examples/typedef_test2/typedef_test_object.c)
+Creating C Stubs File: >/Users/a0179262/work/examples/typedef_test2/typedef_test_object_stubs.h<
+Creating C Stubs File: >/Users/a0179262/work/examples/typedef_test2/typedef_test_object_stubs.c<
+Creating C Utilities File: >/Users/a0179262/work/examples/typedef_test2/webidl_compiler_utilities.h<
+Creating C Utilities File: >/Users/a0179262/work/examples/typedef_test2/webidl_compiler_utilities_private.h<
+Creating C Utilities File: >/Users/a0179262/work/examples/typedef_test2/webidl_compiler_utilities.c<

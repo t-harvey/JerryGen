@@ -12,7 +12,7 @@
 #include "jerryscript-port-default.h"
 
 
-#include "webidl_compiler_utilities.h"
+#include "webidl_compiler_utilities_private.h"
 
 #define _STRINGIFY(s...) #s
 #define STRINGIFY(s...) _STRINGIFY(s)
@@ -73,7 +73,7 @@ int main()
     /* we'll create some variables of each WebIDL construct and test them;
        after that, we'll build composite types and experiment with them */
 
-#include "Enum1.h"
+#include "Enum1_private.h"
     jerry_char_t enums_script[] = STRINGIFY(
 				       var enum1 = "EnumString1";
 				       var not_either_enum = "NotEnumString";
@@ -94,7 +94,7 @@ jerry_release_value(not_either_enum_value);
 
     fprintf(stdout, "\n");
 
-#include "Dictionary1.h"
+#include "Dictionary1_private.h"
     jerry_char_t dictionaries_script[] = STRINGIFY(
 		var dict1 = new Dictionary1(["EnumString3",  "EnumString1", "EnumString2"]) ;
 
@@ -119,7 +119,7 @@ jerry_release_value(not_either_enum_value);
 
     fprintf(stdout, "dict1_from_scratch is of type Dictionary1: \t%s\n", boolean_print(interpreter_value_is_Dictionary1(dict1_from_scratch_value)));
 
-#include "Interface1.h"
+#include "Interface1_private.h"
     jerry_char_t interfaces_script[] = STRINGIFY(
 		var interface1 = new Interface1([1, 2, 3], dict1_from_scratch);
 

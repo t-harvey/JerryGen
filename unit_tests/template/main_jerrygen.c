@@ -321,11 +321,11 @@ main (int argc,
         {
           /* Print return value */
           const jerry_value_t args[] = { ret_val_eval };
-          jerry_value_t ret_val_print = jerryx_handler_print (jerry_create_undefined (),
+/*          jerry_value_t ret_val_print = jerryx_handler_print (jerry_create_undefined (),
                                                               jerry_create_undefined (),
                                                               args,
-                                                              1);
-          jerry_release_value (ret_val_print);
+                                                              1); 
+          jerry_release_value (ret_val_print);*/
           jerry_release_value (ret_val_eval);
           ret_val_eval = jerry_run_all_enqueued_jobs ();
 

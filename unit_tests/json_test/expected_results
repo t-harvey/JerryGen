@@ -1,0 +1,14 @@
+PARAMETERS TO "call_it" :
+   thing :  1.000000
+   callback -- CALLBACK FUNCTION (Native Javascript implementation)
+JSON value: 1
+PARAMETERS TO "call_it" :
+   thing :  2.000000
+   callback -- CALLBACK FUNCTION (Native Javascript implementation)
+JSON value: 2
+PARAMETERS TO "call_it" :
+   thing :  "three"
+   callback -- CALLBACK FUNCTION (Native Javascript implementation)
+JSON value: three
+************************ LAST CALL ******************
+

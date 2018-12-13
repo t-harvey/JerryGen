@@ -1,19 +1,11 @@
 
-#include "webidl_compiler_utilities.h"
-#include "any_type_test.h"
-#include "any_type_test_stubs.h"
+#include "webidl_compiler_utilities_private.h"
+#include "any_type_test_private.h"
 
-#define DEBUG_PRINTING 1
-
+#undef DEBUG_PRINTING
 #include "any_type_test_stubs.h"
 
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
-
-void any_type_test_Native_Object_deallocator(void *native_object)
-{
-	/* USER CODE GOES HERE */
-
-} /* any_type_test_Native_Object_deallocator */
 
 any_type_test_Native_Object *any_type_test_Native_Object_create(void)
 {
@@ -24,34 +16,28 @@ any_type_test_Native_Object *any_type_test_Native_Object_create(void)
     return new_object;
 } /* any_type_test_Native_Object_create */
 
+void any_type_test_Native_Object_deallocator(void *native_object)
+{
+	/* USER CODE GOES HERE */
+
+} /* any_type_test_Native_Object_deallocator */
+
+
+
 /******************* END OF NATIVE-OBJECT FUNCTIONS *******************/
 
 /* any_type_test */
+
 /**
  *
  */ 
-any any_type_test_do_something(Interpreter_Type *self, type_sent_in arg1_type, any arg1, type_sent_in arg2_type, any arg2)
+any any_type_test_do_something(any_type_test this, type_sent_in arg1_type, any arg1, type_sent_in arg2_type, any arg2, Interpreter_Error_Type *error)
 {
-
-
-
-
-    Interpreter_Error_Type error_check;
-    any_type_test_Native_Object *native_object = any_type_test_Native_Object_get(*self, &error_check);
-    if (error_check)
-    {
-        *self = error_check;
+    any_type_test_Native_Object *native_object = any_type_test_Native_Object_get(this, error);
+    if (*error)
 	/* we return a (meaningless) default value here so the compiler doesn't complain */
+        
 	return any_constructor();
-    }
-
-#ifdef DEBUG_PRINTING
-   printf("PARAMETERS TO \"do_something\" :\n");
-    debug_print_type_sent_in("arg1_type", arg1_type, DEBUG_INDENTATION_WIDTH);
-    debug_print_any("arg1", arg1, DEBUG_INDENTATION_WIDTH);
-    debug_print_type_sent_in("arg2_type", arg2_type, DEBUG_INDENTATION_WIDTH);
-    debug_print_any("arg2", arg2, DEBUG_INDENTATION_WIDTH);
-#endif /* DEBUG_PRINTING */
 
     /* USER CODE GOES HERE */
   any return_value;
@@ -158,6 +144,5 @@ any any_type_test_do_something(Interpreter_Type *self, type_sent_in arg1_type, a
     }
 
     return return_value;
-
 }; /* any_type_test_do_something */
 

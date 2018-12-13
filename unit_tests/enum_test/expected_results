@@ -1,0 +1,10 @@
+PARAMETERS TO "debug_print_it" :
+   x:
+      enum_value: values_ENUM_ONE
+PARAMETERS TO "debug_print_it" :
+   x:
+      enum_value: values_ENUM_TWO
+PARAMETERS TO "debug_print_it" :
+   x:
+      enum_value: values_ENUM_THREE
+CLEANING UP

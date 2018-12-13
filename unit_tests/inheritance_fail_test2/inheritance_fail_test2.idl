@@ -1,0 +1,20 @@
+interface farthest_interface_ancestor : interface_compilation {
+    attribute long c;
+    attribute long d;
+    void print_my_name();
+};
+
+interface middle_interface_ancestor : farthest_interface_ancestor {
+    attribute string d;
+    attribute string e;
+    void print_my_name();
+};
+
+interface nearest_interface_ancestor : middle_interface_ancestor {
+    attribute boolean e;
+    attribute boolean f;
+    void print_my_name();
+};
+
+interface interface_compilation : nearest_interface_ancestor
+{ attribute long NEW;};

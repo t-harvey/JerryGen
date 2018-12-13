@@ -1,0 +1,3 @@
+ERROR: there is a cycle in inheritance:
+    >middle_dictionary_ancestor<  inherits from  >farthest_dictionary_ancestor<
+    >farthest_dictionary_ancestor<  inherits from  >middle_dictionary_ancestor<

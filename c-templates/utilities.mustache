@@ -1246,8 +1246,9 @@ void register_prototype(char * object_name, {{{Interpreter.Type}}} new_prototype
 } /* register_prototype */
 
 {{/body}}
+{{/header}}
 {{#debug_printing}}
-
+{{^private_header}}
 /************ DEBUG VARIABLES AND FUNCTIONS (FOR BASIC C TYPES) ***********/
 /* when the indentation gets too large, it may mean that we've hit
    some infinite recursion; this value stops us at a reasonable limit */
@@ -1256,147 +1257,147 @@ void register_prototype(char * object_name, {{{Interpreter.Type}}} new_prototype
 /* this is, essentially, the size of a tab */
 #define DEBUG_INDENTATION_WIDTH 3
 
-void debug_print_int8_t(char *variable_name, int8_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_int8_t(char *variable_name, int8_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_int64_t(variable_name, (int64_t)value, indentation);
 } /* debug_print_int8_t */
 {{/body}}
 
-void debug_print_uint8_t(char *variable_name, uint8_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_uint8_t(char *variable_name, uint8_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
 } /* debug_print_uint8_t */
 {{/body}}
 
-void debug_print_int16_t(char *variable_name, int16_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_int16_t(char *variable_name, int16_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_int64_t(variable_name, (int64_t)value, indentation);
 } /* debug_print_int16_t */
 {{/body}}
 
-void debug_print_uint16_t(char *variable_name, uint16_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_uint16_t(char *variable_name, uint16_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
 } /* debug_print_uint16_t */
 {{/body}}
 
-void debug_print_int32_t(char *variable_name, int32_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_int32_t(char *variable_name, int32_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_int64_t(variable_name, (int64_t)value, indentation);
 } /* debug_print_int32_t */
 {{/body}}
 
-void debug_print_uint32_t(char *variable_name, uint32_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_uint32_t(char *variable_name, uint32_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
 } /* debug_print_uint32_t */
 {{/body}}
 
- void debug_print_byte(char *variable_name, byte value, unsigned int indentation){{#private_header}};{{/private_header}}
+ void debug_print_byte(char *variable_name, byte value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_int64_t(variable_name, (int64_t)value, indentation);
 } /* debug_print_byte */
 {{/body}}
 
-void debug_print_octet(char *variable_name, octet value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_octet(char *variable_name, octet value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
 } /* debug_print_octet */
 {{/body}}
 
-void debug_print_short(char *variable_name, short value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_short(char *variable_name, short value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_int64_t(variable_name, (int64_t)value, indentation);
 } /* debug_print_short */
 {{/body}}
 
-void debug_print_unsignedshort(char *variable_name, unsignedshort value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_unsignedshort(char *variable_name, unsignedshort value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
 } /* debug_print_unsignedshort */
 {{/body}}
 
-void debug_print_long(char *variable_name, long value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_long(char *variable_name, long value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_int64_t(variable_name, (int64_t)value, indentation);
 } /* debug_print_long */
 {{/body}}
 
-void debug_print_unsignedlong(char *variable_name, unsignedlong value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_unsignedlong(char *variable_name, unsignedlong value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
 } /* debug_print_unsignedlong */
 {{/body}}
 
-void debug_print_longlong(char *variable_name, longlong value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_longlong(char *variable_name, longlong value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_int64_t(variable_name, (int64_t)value, indentation);
 } /* debug_print_longlong */
 {{/body}}
 
-void debug_print_unsignedlonglong(char *variable_name, unsignedlonglong value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_unsignedlonglong(char *variable_name, unsignedlonglong value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_uint64_t(variable_name, (uint64_t)value, indentation);
 } /* debug_print_unsignedlonglong */
 {{/body}}
 
-void debug_print_boolean(char *variable_name, boolean value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_boolean(char *variable_name, boolean value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	debug_print_bool(variable_name, (uint64_t)value, indentation);
 } /* debug_print_boolean */
 {{/body}}
 
-void debug_print_int64_t(char *variable_name, int64_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_int64_t(char *variable_name, int64_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s%s :  %lli\n", indentation, "", variable_name, value);
 } /* debug_print_int64_t */
 
 {{/body}}
-void debug_print_uint64_t(char *variable_name, uint64_t value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_uint64_t(char *variable_name, uint64_t value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s%s :  %llu\n", indentation, "", variable_name, value);
 } /* debug_print_uint64_t */
 
 {{/body}}
-void debug_print_float(char *variable_name, float value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_float(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s%s :  %f\n", indentation, "", variable_name, value);
 } /* debug_print_float */
 
 {{/body}}
-void debug_print_double(char *variable_name, double value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_double(char *variable_name, double value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s%s :  %lf\n", indentation, "", variable_name, value);
 } /* debug_print_double */
 
 {{/body}}
-void debug_print_bool(char *variable_name, bool value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_bool(char *variable_name, bool value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s%s :  %s\n", indentation, "", variable_name, (value)?"TRUE":"FALSE");
 } /* debug_print_bool */
 
 {{/body}}
-void debug_print_string(char *variable_name, char * value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_string(char *variable_name, char * value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s%s :  \"%s\"\n", indentation, "", variable_name, value);
@@ -1417,7 +1418,7 @@ static jerry_value_t debug_evaluate_script(jerry_char_t jerry_script[])
 } /* debug_evaluate_script */
 
 {{/body}}
-void debug_print_message(char *message){{#private_header}};{{/private_header}}
+void debug_print_message(char *message){{#header}};{{/header}}
 {{#body}}
 {
     jerry_value_t global_object = jerry_get_global_object();
@@ -1432,28 +1433,28 @@ void debug_print_message(char *message){{#private_header}};{{/private_header}}
 } /* debug_print_message */
 
 {{/body}}
-void debug_print__object(char *variable_name, _object value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print__object(char *variable_name, _object value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
 	printf("%*s<object> :  \"%s\"\n", indentation, "", variable_name);
 } /* debug_print__object */
 
 {{/body}}
-void debug_print_this(char *variable_name, float value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_this(char *variable_name, float value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s<this pointer>\n", indentation, "");
 } /* debug_print_this */
 
 {{/body}}
-void debug_print_{{{Interpreter.Type}}}(char *variable_name, {{{Interpreter.Type}}} value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_{{{Interpreter.Type}}}(char *variable_name, {{{Interpreter.Type}}} value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     printf("%*s<this pointer>\n", indentation, "");
 } /* debug_print_{{{Interpreter.Type}}} */
 
 {{/body}}
-void debug_print_object_fields({{{Interpreter.Type}}} thing){{#private_header}};{{/private_header}}
+void debug_print_object_fields({{{Interpreter.Type}}} thing){{#header}};{{/header}}
 {{#body}}
 {
     static bool first_time = true;
@@ -1480,7 +1481,7 @@ void debug_print_object_fields({{{Interpreter.Type}}} thing){{#private_header}};
 } /* debug_print_object_fields */
 
 {{/body}}
-void debug_print_any(char *variable_name, any value, unsigned int indentation){{#private_header}};{{/private_header}}
+void debug_print_any(char *variable_name, any value, unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     switch(value.union_type)
@@ -1526,7 +1527,7 @@ void debug_print_any(char *variable_name, any value, unsigned int indentation){{
 {{/body}}
 void debug_print_ArrayBuffer(char *variable_name,
                              ArrayBuffer value,
-                             unsigned int indentation){{#private_header}};{{/private_header}}
+                             unsigned int indentation){{#header}};{{/header}}
 {{#body}}
 {
     debug_print_uint32_t(variable_name, value.length, indentation);
@@ -1548,7 +1549,7 @@ void debug_print_ArrayBuffer(char *variable_name,
 }; /* debug_print_ArrayBuffer */
 
 {{/body}}
-void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#private_header}};{{/private_header}}
+void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#header}};{{/header}}
 {{#body}}
 {
     bool printed_at_least_one = false;
@@ -1591,7 +1592,7 @@ void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#private_hea
 
 {{/body}}
 /* CAUTION: THIS FUNCTION LEAKS! */
-char *debug_itoa(int x){{#private_header}};{{/private_header}}
+char *debug_itoa(int x){{#header}};{{/header}}
 {{#body}}
 {
 #define MAX_STRING_LENGTH 10
@@ -1603,7 +1604,7 @@ char *debug_itoa(int x){{#private_header}};{{/private_header}}
 {{/body}}
 /* this will give a list of all of the objects that are resident (that
    have been compiled into the interpreter) */
-void debug_list_all_objects(void){{#private_header}};{{/private_header}}
+void debug_list_all_objects(void){{#header}};{{/header}}
 {{#body}}
 {
     {{{Interpreter.Type}}} prototypes_holder = get_prototypes_holder();
@@ -1612,8 +1613,8 @@ void debug_list_all_objects(void){{#private_header}};{{/private_header}}
 } /* debug_list_all_objects */
 
 {{/body}}
+{{/private_header}}
 {{/debug_printing}}
-{{/header}}
 {{^body}}
 
 #endif /* {{#private_header}}PRIVATE_{{/private_header}}UTILITY_FUNCTIONS__H_ */

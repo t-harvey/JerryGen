@@ -6,6 +6,4 @@ interface typedef_test_object{
 
 typedef long long_typedef;
 typedef long_typedef long_typedef_typedef;
-
-[ExternalInterface=(Buffer)]
-typedef Buffer Buffer_typedef;
+typedef long Buffer_typedef;

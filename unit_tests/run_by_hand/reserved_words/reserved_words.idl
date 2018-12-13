@@ -7,7 +7,7 @@ interface int {
     long bob(any any);
 };
 
-[ExternalInterface=(octet)]
+[ExternalInterface=(octet2)]
 interface interface {
     attribute long any;
     attribute any long;
@@ -19,18 +19,51 @@ interface javascript {
     try yield(class continue);
 };
 
+dictionary for {
+};
+
+dictionary if {
+};
+
+dictionary case {
+};
+
+dictionary inline {
+};
+
+dictionary struct {
+};
+
+dictionary register {
+};
+
+dictionary extern {
+};
+
+dictionary while {
+};
+
+dictionary sizeof {
+};
+
+dictionary restrict {
+};
+
+dictionary default {
+};
+
 typedef long bool;
-typedef long for;
+typedef long for2;
 typedef long restrict;
-typedef long default;
-typedef long if;
+typedef long default2;
+typedef long if2;
 typedef long sizeof;
-typedef long while;
-typedef long case;
+typedef long while2;
+typedef long case2;
 typedef long extern;
 typedef long inline;
 typedef long struct;
 typedef long register;
-typedef long export;
-typedef long try;
-typedef long class;
+typedef long export2;
+typedef long try2;
+typedef long class2;

@@ -1,0 +1,6 @@
+PARAMETERS TO "call_it" :
+   <object> :  "thing"
+   callback -- CALLBACK FUNCTION (Native Javascript implementation)
+x.a = 1     x.b = 2
+************************ LAST CALL ******************
+

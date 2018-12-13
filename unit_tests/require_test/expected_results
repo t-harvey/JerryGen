@@ -1,0 +1,4 @@
+ERROR parsing script!
+	>var new_bob = new bob;<
+New failed (correctly so).
+Require worked.
