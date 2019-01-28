@@ -1,0 +1,5 @@
+[ExternalDictionary=(level33)]
+dictionary level32 { 
+    long i32;
+    level33 x32;
+};

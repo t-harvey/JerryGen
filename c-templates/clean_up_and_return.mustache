@@ -1,0 +1,72 @@
+{{! The purpose of this code is to isolate the cleanup code for
+    handler-type calls, as it's big and complicated, and so that it can be
+    used in different files }}
+{{! This is the sister to demarshal_args.mustache, so it assumes
+    that the surrounding routine has defined a variable called "error"
+    and that this code starts with a label that the args code will
+    do a goto to. }}
+{{! We change the delimiters here, as both interface-operations and
+callbacks use this code -- we preprocess this to add the field-name
+corresponding to the type of thing we're processing... (search for
+"thingName") }}
+{{=<% %>=}}
+<%thingName%>_clean_up_and_exit:
+    {{! if the return value is a string (or array of strings), we want
+        to enter it into the Jerryscript environment _before_ we
+        deallocate our local strings, as it's possible that the return
+        value is just a copy of one of args }}
+    {{#C_and_Jerryscript_Types.is_string}}
+    {{{Interpreter.Type}}} string_value = 0;
+    /* put the string into Jerryscript before we cleanup any string arguments */
+    if (!jerry_value_is_error(error))
+         string_value = jerry_create_string((const jerry_char_t *)return_value);
+
+    {{/C_and_Jerryscript_Types.is_string}}
+    {{! FREE MALLOC'D STRINGS}}
+    {{#arguments}}
+        {{#C_and_Jerryscript_Types}}
+	        {{#is_string}}
+		{{! TODO: free array of strings! }}
+		{{^is_array}}
+    if ({{{name}}} && strlen({{{name}}}) != 0) free({{{name}}});
+		{{/is_array}}
+       		{{/is_string}}
+        {{/C_and_Jerryscript_Types}}
+
+    {{/arguments}}
+    if (jerry_value_is_error(error))
+    {
+    {{#is_constructor}}
+        jerry_release_value(new_interface);
+    {{/is_constructor}}
+        return error;
+    }
+    else
+{{#is_constructor}}
+        return new_interface; {{! declared in interface.mustache }}
+{{/is_constructor}}
+{{^is_constructor}}
+    {{#C_and_Jerryscript_Types}}
+        {{#return_is_this}}
+{{! return values get free'd by the interpreter, so if you don't
+    return a copy of the "this" pointer, the _2nd_ (nth?) time you return
+    the this pointer, the interpreter will raise an exception... }}
+    /* return a reference back to this interface */
+        return jerry_acquire_value(this_val);
+        {{/return_is_this}}
+        {{^return_is_this}}
+            {{#voidReturnType}}
+        /* void return value */
+        return jerry_create_undefined();
+            {{/voidReturnType}}
+            {{^voidReturnType}}
+                {{^is_string}}
+        return {{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{Jerryscript_Type}}}(return_value);
+                {{/is_string}}
+                {{#is_string}}
+         return string_value;
+                {{/is_string}}
+            {{/voidReturnType}}
+        {{/return_is_this}}
+    {{/C_and_Jerryscript_Types}}
+{{/is_constructor}}

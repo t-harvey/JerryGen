@@ -179,11 +179,22 @@ extern void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
     {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(this, error);
-    if (*error){{#C_and_Jerryscript_Types}}
-	{{^voidReturnType}}{{^return_is_this}}/* we return a (meaningless) default value here so the compiler doesn't complain */{{/return_is_this}}{{/voidReturnType}}
+    if (*error)
+{{#C_and_Jerryscript_Types}}
+    {{#voidReturnType}}
+        return;
+    {{/voidReturnType}}
+    {{^voidReturnType}}
+        {{#return_is_this}}
+	return this;
+	{{/return_is_this}}
+	{{^return_is_this}}
+	/* we return a (meaningless) default value here so the compiler doesn't complain */
         {{#default_value_extern}}{{{C_Type}}} {{/default_value_extern}}{{{default_value_extern}}}
-	return{{^voidReturnType}}{{^return_is_this}} {{{default_value}}}{{/return_is_this}}{{#return_is_this}} this{{/return_is_this}}{{/voidReturnType}};
-	{{/C_and_Jerryscript_Types}}
+	return {{{default_value}}};
+	{{/return_is_this}}
+    {{/voidReturnType}}
+{{/C_and_Jerryscript_Types}}
 
 {{#debug_printing}}
 #ifdef DEBUG_PRINTING
@@ -203,7 +214,12 @@ extern void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
 
 {{/debug_printing}}
     /* USER CODE GOES HERE */
+{{^debug_printing}}
+{{#is_constructor}}
 
+    return this;
+{{/is_constructor}}
+{{/debug_printing}}
 {{#debug_printing}}
 {{#C_and_Jerryscript_Types}}
 {{^voidReturnType}}
@@ -226,8 +242,8 @@ extern void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
 {{/C_and_Jerryscript_Types}}
 {{/debug_printing}}
     {{! we need to undo the #defines for callbacks }}
-
     {{#arguments}}
+
         {{#C_and_Jerryscript_Types}}
 	{{#callback}}
 #undef {{{name}}}

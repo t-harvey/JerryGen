@@ -12,6 +12,13 @@ interface unique_interface_name {
      long operation2(long arg1, double arg2);
 }; // unique_interface_name
 
+// an enum with no name conflicts (should produce no errors)
+enum unique_enum_name { "unique_name1", "unique_name2", "unique_name3" };
+
+// an enum with name conflicts (should produce errors)
+enum unique_enum_name2 { "same_name1", "same_name1", "same_name2",
+			 "same_name2" };
+
 // two callbacks that share the same name (notice that the argument
 // lists contain similar names, but that's not a conflict)
 callback test02 = void (long arg1, double arg2);
@@ -91,7 +98,7 @@ interface test13 {
 
 
 // to test the sentence that describes name duplicates between WebIDL
-// constructs: for each of the three constructs, there are three values
+// constructs: for each of the four constructs, there are three values
 // we care about: none, one, and more-than-one; 
 
 // three callbacks
@@ -103,6 +110,11 @@ callback   duptest01 = void (long arg1, double arg2);
 dictionary duptest02 { long field1; };
 dictionary duptest02 { long field1; };
 dictionary duptest02 { long field1; };
+
+// three enums
+enum duptest03a {"arg1", "arg2"};
+enum duptest03a {"arg1", "arg2"};
+enum duptest03a {"arg1", "arg2"};
 
 // three interfaces
 interface  duptest03 { attribute double F; }; 
@@ -117,6 +129,10 @@ dictionary duptest04 { long field1; };
 callback   duptest05 = void (long arg1, double arg2);
 interface  duptest05 { attribute double F; }; 
 
+// one callback and one enum
+callback   duptest05a = void (long arg1, double arg2);
+enum       duptest05a { "doubleF" };
+
 // one dictionary and one interface
 dictionary duptest06 { long field1; };
 interface  duptest06 { attribute double F; }; 
@@ -126,25 +142,35 @@ callback   duptest07 = void (long arg1, double arg2);
 callback   duptest07 = void (long arg1, double arg2);
 dictionary duptest07 { long field1; };
 
+// two callbacks and one enum
+callback   duptest08a = void (long arg1, double arg2);
+callback   duptest08a = void (long arg1, double arg2);
+enum       duptest08a { "attribute double F;" }; 
+
 // two callbacks and one interface
 callback   duptest08 = void (long arg1, double arg2);
 callback   duptest08 = void (long arg1, double arg2);
 interface  duptest08 { attribute double F; }; 
-
-// two dictionaries and one interface
-dictionary duptest09 { long field1; };
-dictionary duptest09 { long field1; };
-interface  duptest09 { attribute double F; }; 
 
 // one callback and two dictionaries
 callback   duptest10 = void (long arg1, double arg2);
 dictionary duptest10 { long field1; };
 dictionary duptest10 { long field1; };
 
+// one callback and two enums
+callback   duptest11a = void (long arg1, double arg2);
+enum       duptest11a { "string" };
+enum       duptest11a { "string" };
+
 // one callback and two interfaces
 callback   duptest11 = void (long arg1, double arg2);
 interface  duptest11 { attribute double F; }; 
 interface  duptest11 { attribute double F; }; 
+
+// one dictionary and two enums
+dictionary duptest12a { long field1; };
+enum       duptest12a { "nothing" };
+enum       duptest12a { "nothing" };
 
 // one dictionary and two interfaces
 dictionary duptest12 { long field1; };
@@ -156,11 +182,33 @@ callback   duptest13 = void (long arg1, double arg2);
 dictionary duptest13 { long field1; };
 interface  duptest13 { attribute double F; }; 
 
+// one callback, one interface, and one enum
+callback   duptest13a = void (long arg1, double arg2);
+enum       duptest13a { "long field1;" };
+interface  duptest13a { attribute double F; }; 
+
+// one callback, one dictionary, and one enum
+callback   duptest13b = void (long arg1, double arg2);
+dictionary duptest13b { long field1; };
+enum       duptest13b { "attribute double F;" }; 
+
+// one callback, one enum, and two interfaces
+callback   duptest14a = void (long arg1, double arg2);
+enum       duptest14a { "long field1;" };
+interface  duptest14a { attribute double F; }; 
+interface  duptest14a { attribute double F; }; 
+
 // one callback, one dictionary, and two interfaces
 callback   duptest14 = void (long arg1, double arg2);
 dictionary duptest14 { long field1; };
 interface  duptest14 { attribute double F; }; 
 interface  duptest14 { attribute double F; }; 
+
+// one callback, two dictionaries, and one enum
+callback   duptest15a = void (long arg1, double arg2);
+dictionary duptest15a { long field1; };
+dictionary duptest15a { long field1; };
+enum       duptest15a { "attribute double F;" }; 
 
 // one callback, two dictionaries, and one interface
 callback   duptest15 = void (long arg1, double arg2);
@@ -168,12 +216,25 @@ dictionary duptest15 { long field1; };
 dictionary duptest15 { long field1; };
 interface  duptest15 { attribute double F; }; 
 
+// one callback, two dictionaries, and two enums
+callback   duptest16a = void (long arg1, double arg2);
+dictionary duptest16a { long field1; };
+dictionary duptest16a { long field1; };
+enum       duptest16a { "attribute double F;" }; 
+enum       duptest16a { "attribute double F;" }; 
+
 // one callback, two dictionaries, and two interfaces
 callback   duptest16 = void (long arg1, double arg2);
 dictionary duptest16 { long field1; };
 dictionary duptest16 { long field1; };
 interface  duptest16 { attribute double F; }; 
 interface  duptest16 { attribute double F; }; 
+
+// two callbacks, one dictionary, and one enum
+callback   duptest17a = void (long arg1, double arg2);
+callback   duptest17a = void (long arg1, double arg2);
+dictionary duptest17a { long field1; };
+enum       duptest17a { "attribute double F;" }; 
 
 // two callbacks, one dictionary, and one interface
 callback   duptest17 = void (long arg1, double arg2);
@@ -202,4 +263,20 @@ dictionary duptest20 { long field1; };
 dictionary duptest20 { long field1; };
 interface  duptest20 { attribute double F; }; 
 interface  duptest20 { attribute double F; }; 
+
+// one callback, one dictionary, one enum, and one interface
+callback   duptest21 = void (long arg1, double arg2);
+dictionary duptest21 { long field1; };
+enum       duptest21 { "long field1;" };
+interface  duptest21 { attribute double F; }; 
+
+// two callbacks, two dictionaries, two enum2, and two interfaces
+callback   duptest22 = void (long arg1, double arg2);
+callback   duptest22 = void (long arg1, double arg2);
+dictionary duptest22 { long field1; };
+dictionary duptest22 { long field1; };
+enum       duptest22 { "long field1;" };
+enum       duptest22 { "long field1;" };
+interface  duptest22 { attribute double F; }; 
+interface  duptest22 { attribute double F; }; 
 

@@ -1,0 +1,59 @@
+[ Constructor ]
+interface single_constructor_taking_no_params
+{
+    attribute long value;
+};
+
+[ Constructor(optional long a, optional double b, optional bool c) ]
+interface single_constructor_all_optional_params
+{
+    attribute long value;
+};
+
+[ Constructor(), Constructor(long x), ]
+interface two_constructors_nothing_difficult
+{
+    attribute long value;
+};
+
+[ Constructor(long x, optional long y), Constructor(string z), ]
+interface two_constructors_one_with_optional_param
+{
+    attribute long value;
+};
+
+[ Constructor(long x, long y), Constructor(long x, string y), ]
+interface two_constructors_with_similar_params
+{
+    attribute long value;
+};
+
+[ Constructor(long x, long y, string z), Constructor(long x, long... y), ]
+interface two_constructors_with_similar_params_one_variadic
+{
+    attribute long value;
+};
+
+[Constructor(long x, double... y), Constructor(string a, double...b), ]
+interface two_similar_constructors_both_with_variadics
+{
+    attribute long value;
+};
+
+[ Constructor, Constructor(optional double z), ]
+interface two_constructors_one_empty_one_optional_parameter
+{
+    attribute long value;
+};
+
+[ Constructor(bool... x), Constructor(bool a, bool b, bool c, string d), ]
+interface two_constructors_one_variadic_one_lost_of_the_same_type
+{
+    attribute long value;
+};
+
+[ Constructor(long x, long y, long... z), Constructor(long a, long b, long c, long d, long e, long f), ]
+interface two_constructors_taking_the_same_params_but_one_with_variadic
+{
+    attribute long value;
+};

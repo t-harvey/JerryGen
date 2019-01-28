@@ -1,0 +1,13 @@
+var l1 = new level1(1); 
+var l2 = new level2(2, l1); 
+var l3 = new level3(3, l2); 
+var l4 = new level4(4, l3); 
+var l5 = new level5(5, l4); 
+var l6 = new level6(6, l5); 
+var l7 = new level7(7, l6); 
+var l8 = new level8(8, l7); 
+var l9 = new level9(9, l8); 
+var l10 = new level10(10, l9); 
+var print_it = require("really_big"); 
+var top = new_top_level(l10);
+print_it(top);

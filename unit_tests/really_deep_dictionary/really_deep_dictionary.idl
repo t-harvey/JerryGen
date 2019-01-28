@@ -1,0 +1,9 @@
+[ExternalDictionary=(level1)]
+dictionary top_level {
+    level1 top;
+};
+
+[ReturnFromRequire]
+interface really_big {
+    void print_it(top_level x);
+};

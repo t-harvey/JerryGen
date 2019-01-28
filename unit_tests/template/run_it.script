@@ -1,13 +1,19 @@
 #!/bin/sh
-if [ ! $# -eq 3 ]
+for i in "$@"
+do
+    echo "PARAM: >"$i"<"
+done
+if [ ! $# -ge 4 ]
 then
-    echo "Usage: "`basename $0`" <directory of generator> <directory of Jerryscript> <.idl file directory>"
+    echo "Usage: "`basename $0`" <directory of generator> <directory of Jerryscript> <.idl file directory> <arg_handling ("new" or "original")>"
 else
     generator_dir=`realpath $1`
     tests_dir=$generator_dir/unit_tests
     jerryscript_dir=`realpath $2`
     idl_dir=$3
     this_test_dir=$tests_dir/$idl_dir
+    arg_handling=$4
+    generator_command=$generator_dir/generate.js" --arg_handling="$arg_handling" "
 
 # see if there's a specialized "main" routine for this test
 # if there is, then it won't take an input file...
@@ -29,8 +35,8 @@ echo "    INPUT_SCRIPT = >"$input_script"<"
     if [ -z "$main_file_exists" -a ! -e "$input_script" ]
     then
 
-   echo "$generator_dir/generate.js --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl > ./${idl_dir}_results 2>&1"
-         $generator_dir/generate.js --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl > ./${idl_dir}_results 2>&1
+   echo "$generator_command --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl > ./${idl_dir}_results 2>&1"
+         $generator_command --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl > ./${idl_dir}_results 2>&1
 echo "diff ./${idl_dir}_results $this_test_dir/expected_results "
         diff ./${idl_dir}_results $this_test_dir/expected_results 
 echo "done diff'ing"
@@ -44,8 +50,8 @@ echo "done diff'ing"
 	else
 	    include_string=""
 	fi
-echo "$generator_dir/generate.js $include_string --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl"
-        $generator_dir/generate.js $include_string --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl
+echo "$generator_command $include_string --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl"
+        $generator_command $include_string --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl
 echo "copying"
         cp $this_test_dir/*_stubs.c $idl_dir/. 2> /dev/null
 echo "done copying."
@@ -53,15 +59,33 @@ echo "done copying."
 # KLUDGE!  TODO: make running a special script a general function
         if [ $idl_dir = "inheritance_test" ]
 	then
-       echo "$generator_dir/generate.js --debug_printing --stubs=overwrite --package=inheritance_test $this_test_dir/includes.idl"
-	     $generator_dir/generate.js --debug_printing --stubs=overwrite --package=inheritance_test $this_test_dir/includes.idl
+       echo "$generator_command --debug_printing --stubs=overwrite --package=inheritance_test $this_test_dir/includes.idl"
+	     $generator_command --debug_printing --stubs=overwrite --package=inheritance_test $this_test_dir/includes.idl
 	     $this_test_dir/inject_stubs.script inheritance_test $this_test_dir/inject_print_my_name_code.awk
 	elif [ $idl_dir = "separates_test" ]
 	then
 	    for i in `ls $this_test_dir/separates_test[2-4].idl `
 	    do
-  echo "$generator_dir/generate.js $include_string --debug_printing --stubs=overwrite --package=$idl_dir $this_test_dir/$i"
-                $generator_dir/generate.js $include_string --debug_printing --stubs=overwrite --package=$idl_dir $i
+  echo "$generator_command $include_string --debug_printing --stubs=overwrite --package=$idl_dir $this_test_dir/$i"
+                $generator_command $include_string --debug_printing --stubs=overwrite --package=$idl_dir $i
+	    done
+	elif [ $idl_dir = "sep_cutdown" ]
+	then
+	    for i in `ls $this_test_dir/separates_test[2-4].idl `
+	    do
+  echo "$generator_command $include_string --debug_printing --stubs=overwrite --package=$idl_dir $this_test_dir/$i"
+                $generator_command $include_string --debug_printing --stubs=overwrite --package=$idl_dir $i
+	    done
+	elif [ $idl_dir = "really_deep_dictionary" ]
+	then
+	    i=1
+	    file_count=`ls $this_test_dir/level*.idl | wc -l `
+	    echo "FILE_COUNT = "$file_count
+	    while [[ i -le $file_count ]]
+	    do
+          echo "$generator_command $include_string --debug_printing --stubs=overwrite --package=$idl_dir $this_test_dir/level${i}.idl"
+                $generator_command $include_string --debug_printing --stubs=overwrite --package=$idl_dir $this_test_dir/level${i}.idl
+		let i=i+1
 	    done
 	fi
 

@@ -1,0 +1,5 @@
+[ExternalDictionary=(level100)]
+dictionary level99 { 
+    long i99;
+    level100 x99;
+};

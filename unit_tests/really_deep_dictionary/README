@@ -1,0 +1,14 @@
+This test is designed to test a really big data structure that looks
+like this:
+
+dictionary level1 {
+    level2 x1;
+};
+
+dictionary level2 {
+    level3 x2;
+};
+
+...etc.
+
+The code was generated from a script, 

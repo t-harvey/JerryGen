@@ -55,11 +55,11 @@ print("***********************calling x.foo5(z) <-- w/ strict type checking: sho
 x.foo5(z);
 print("***********************calling x.foo5(4.3)");
 x.foo5(4.3);
-print("***********************calling x.foo(1.0, z) <-- w/ strict type checking: should be an error (1st param wants a boolean, given a float)");");
+print("***********************calling x.foo(1.0, z) <-- w/ strict type checking: should be an error (1st param wants a boolean, given a float);");
 x.foo(1.0, z);
 print("***********************calling x.foo4(\"\")");
 x.foo4("");
-print("***********************calling x.foo(0.0, <simple_dictionary-lookalike>)");
+print("***********************setting up not_a_simple_dictionary <simple_dictionary-lookalike>)");
 var not_a_simple_dictionary = {};
 not_a_simple_dictionary.z = true;
 not_a_simple_dictionary.array = z2;

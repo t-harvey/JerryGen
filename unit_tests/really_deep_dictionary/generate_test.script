@@ -1,0 +1,70 @@
+#! /bin/sh
+if [ ! $# -eq 3 ]
+then
+    echo "Usage: "`basename $0`" <number of levels> <generator dir> <Jerryscript dir>"
+else
+    depth=$1
+    generator_dir=$2
+    jerryscript_dir=$3
+    rm input.script > /dev/null 2>&1
+    file_count=`ls *.idl 2>&1 |  wc -l `
+
+# remove old files
+    i=1
+    while [[ $i -le $file_count ]]
+    do
+	if [ -e level${i}.idl ]
+	then
+	    rm level${i}.idl
+	fi
+	let i=i+1
+    done
+
+# build .idl files
+    i=1
+    j=2
+    while [[ $i -le $depth ]]
+    do
+        filename=level${i}.idl
+	if [[ $i -lt $depth ]]
+	then
+            echo "[ExternalDictionary=(level${j})]" >> $filename
+	fi
+        echo "dictionary level${i} { " >> $filename
+        echo "    long i${i};" >> $filename
+	if [[ $i -ne $depth ]]
+	then
+	    echo "    level${j} x${i};" >> $filename
+	fi
+	echo "};" >> $filename
+	let i=i+1
+	let j=j+1
+    done
+
+# build input.script file
+    rm input.script > /dev/null 2>&1
+    i=$depth
+    j=i+1+1
+
+    while [[ $i -gt 0 ]]
+    do
+	if [[ $i -eq $depth ]]
+	then
+            echo "var l${i} = new level${i}($i); " > input.script
+	else
+            echo "var l${i} = new level${i}($i, l${j}); " >> input.script
+	fi
+	let i=i-1
+	let j=j-1
+    done
+
+    echo 'var big = require("really_big"); ' >> input.script
+    echo "var top = new top_level(l${j});" >> input.script
+    echo "big.print_it(top);" >> input.script
+
+    # now, run the code to generate the expected_results file (ignore
+    # any diffs that get reported; that's expected)
+    ../template/run_it.script $generator_dir $jerryscript_dir really_deep_dictionary original
+    cp really_deep_dictionary/results ./expected_results
+    rm -r really_deep_dictionary
+fi

@@ -1,0 +1,7 @@
+ var sep1 = new separate1(0, 1);
+ var sep2 = new separate2(sep1, 3);
+ var sep3 = new separate3(sep1, sep2, 7);
+ var sep4 = new separate4(sep3, 15);
+ var sep_interface = new separate_interface;
+
+ sep_interface.show_object(1, 2, sep4);

@@ -16,11 +16,11 @@ specific language governing permissions and limitations
 under the License.
 */
 
-var fs = require('fs');
-var hogan = require('hogan.js');
-var _ = require('lodash');
+let fs = require('fs');
+let hogan = require('hogan.js');
+let _ = require('lodash');
 
-var CHoganHelpers = require("./CHoganHelpers.js");
+let CHoganHelpers = require("./CHoganHelpers.js");
 
 
 /* opens and reads the Mustache file */
@@ -47,16 +47,26 @@ Interface Code generation
 
 module.exports.genCString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
 
-    var precompile = hogan.compile(getMustacheTemplate('demarshal_args'));
-    var demarshal_template = precompile.render({thingName: "{{{operationName}}}"});
-    var compiled_template = hogan.compile(demarshal_template);
+    let precompile_prologue =
+	         hogan.compile(getMustacheTemplate('demarshal_args'));
+    let demarshal_template =
+	         precompile_prologue.render({thingName: "{{{operationName}}}"});
+    let compiled_demarshal_template = hogan.compile(demarshal_template);
+
+    let precompile_epilogue =
+	         hogan.compile(getMustacheTemplate('clean_up_and_return'));
+    let clean_up_template =
+	         precompile_epilogue.render({thingName: "{{{operationName}}}"});
+    let compiled_clean_up_template = hogan.compile(clean_up_template);
+
     return hogan.compile(getMustacheTemplate('interface')).render(
-	                                context,
-					{demarshal_args: compiled_template});
+	               context,
+		       {demarshal_args:      compiled_demarshal_template,
+			clean_up_and_return: compiled_clean_up_template});
 };
 
 
@@ -66,7 +76,7 @@ Dictionary Code generation
 
 module.exports.genDictionaryString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
 
@@ -80,7 +90,7 @@ Typedef Code generation
 
 module.exports.genTypedefString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
 
@@ -94,7 +104,7 @@ Enum Code generation
 
 module.exports.genEnumString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
 
@@ -108,15 +118,26 @@ Callback Code generation
 
 module.exports.genCallbackString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
 
-    var precompile = hogan.compile(getMustacheTemplate('demarshal_args'));
-    var demarshal_template = precompile.render({thingName: "{{{callbackName}}}"});
-    var compiled_template = hogan.compile(demarshal_template);
+    let precompile_prologue =
+	         hogan.compile(getMustacheTemplate('demarshal_args'));
+    let demarshal_template =
+	         precompile_prologue.render({thingName: "{{{callbackName}}}"});
+    let compiled_demarshal_template = hogan.compile(demarshal_template);
 
-    return hogan.compile(getMustacheTemplate('callback')).render(context, {demarshal_args: compiled_template});
+    let precompile_epilogue =
+	         hogan.compile(getMustacheTemplate('clean_up_and_return'));
+    let clean_up_template =
+	         precompile_epilogue.render({thingName: "{{{callbackName}}}"});
+    let compiled_clean_up_template = hogan.compile(clean_up_template);
+
+    return hogan.compile(getMustacheTemplate('callback')).render(
+	               context,
+		       {demarshal_args:      compiled_demarshal_template,
+			clean_up_and_return: compiled_clean_up_template});
 }; /* genCallbackString */
 
 
@@ -126,7 +147,7 @@ Dictionary Code generation
 
 module.exports.genDictionaryTypesString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
 
@@ -141,16 +162,16 @@ Composite-type Code generation
 
 module.exports.genCompositeString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
     
-    var precompile = hogan.compile(
+    let precompile = hogan.compile(
 	                 getMustacheTemplate('build_composite_arg_function'));
-    var composite_template = precompile.render(
+    let composite_template = precompile.render(
 	                                 {thingName: "{{{compositeName}}}",
 					  thingType: "Composite"});
-    var compiled_template = hogan.compile(composite_template);
+    let compiled_template = hogan.compile(composite_template);
 
 	return hogan.compile(getMustacheTemplate("composites")).render(context, {build_composite_arg_function: compiled_template});
 }; /* genCompositeString */
@@ -163,7 +184,7 @@ Stubs Code generation
 
 module.exports.genStubsString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     set_type_of_file(context, header_or_body);
 
@@ -177,16 +198,16 @@ Utilities Code generation
 
 module.exports.genUtilitiesString = function(ast, moduleName, header_or_body)
 {
-    var context = CHoganHelpers.getContext(ast, moduleName);
+    let context = CHoganHelpers.getContext(ast, moduleName);
 
     /* there's no such thing as a private header for the utilities */
     set_type_of_file(context, header_or_body);
 
-    var precompile = hogan.compile(
+    let precompile = hogan.compile(
 	                 getMustacheTemplate('build_composite_arg_function'));
-    var any_template = precompile.render({thingName: "any",
+    let any_template = precompile.render({thingName: "any",
 					  thingType: "any"});
-    var compiled_template = hogan.compile(any_template);
+    let compiled_template = hogan.compile(any_template);
 
     /* to make the compiled_template work, we need to add to the context
        the data structure that the template expects: */

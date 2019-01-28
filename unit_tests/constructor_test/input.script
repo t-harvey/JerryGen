@@ -1,0 +1,18 @@
+var sctnp1 = new single_constructor_taking_no_params;
+var sctnp2 = new single_constructor_taking_no_params();
+
+var tcnd1 = new two_constructors_nothing_difficult();
+var tcnd2 = new two_constructors_nothing_difficult(5);
+var tcnd3 = new two_constructors_nothing_difficult("string");
+
+var tcowop1 = new two_constructors_one_with_optional_param(5);
+var tcowop2 = new two_constructors_one_with_optional_param(5, 6);
+var tcowop3 = new two_constructors_one_with_optional_param("string");
+
+var tcwsp1 = new two_constructors_with_similar_params(5, 6);
+var tcwsp2 = new two_constructors_with_similar_params(5, "six");
+
+var tcwspov1 = new two_constructors_with_similar_params_one_variadic(1);
+var tcwspov2 = new two_constructors_with_similar_params_one_variadic(2, 2);
+var tcwspov3 = new two_constructors_with_similar_params_one_variadic(3, 3, "four");
+var tcwspov4 = new two_constructors_with_similar_params_one_variadic(4, 4, 5);

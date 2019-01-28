@@ -59,6 +59,7 @@ typedef jerry_object_native_info_t {{{Interpreter.checksum_type}}};
 typedef {{{Interpreter.Type}}} _object;
 typedef string Error;
 
+#define {{{Interpreter.interpreter}}}_create_error jerry_create_error
 #define {{{Interpreter.interpreter}}}_get_Error_value {{{Interpreter.interpreter}}}_get_string_value
 #define {{{Interpreter.interpreter}}}_create_Error(x) {{{Interpreter.interpreter}}}_create_string((const jerry_char_t *)x)
 #define {{{Interpreter.interpreter}}}_value_is_Error {{{Interpreter.interpreter}}}_value_is_string
@@ -955,6 +956,7 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to__object(jerryx_arg_js_iterato
 
 {{/body}}
 
+{{! #include for the composite function: }}
 {{#arg_function}}
 {{> build_composite_arg_function}}
 
@@ -981,6 +983,35 @@ jerry_value_t {{{Interpreter.interpreter}}}_arg_to__object(jerryx_arg_js_iterato
 
     return stack_top;
 } /* {{{Interpreter.interpreter}}}_arg_to_{{{interfaceName}}} */
+{{/body}}
+
+{{#private_header}}
+#define {{{Interpreter.interpreter}}}_arg_ArrayBuffer(x, z) \
+            jerryx_arg_custom(x, \
+                             (uintptr_t)&((uintptr_t []){(uintptr_t)JERRYX_ARG_NO_COERCE, \
+                                                         (uintptr_t)z}), \
+                              {{{Interpreter.interpreter}}}_arg_to_arraybuffer)
+
+{{/private_header}}
+{{{Interpreter.Type}}}
+{{{Interpreter.interpreter}}}_arg_to_ArrayBuffer(jerryx_arg_js_iterator_t *js_arg_iter_p,
+                                       const jerryx_arg_t *c_arg_p){{#private_header}};{{/private_header}}
+{{#body}}
+{
+    uintptr_t *extra_info = (uintptr_t*)(c_arg_p->extra_info);
+    {{{Interpreter.Type}}} stack_top = jerryx_arg_js_iterator_pop(js_arg_iter_p);
+
+    if (!jerry_value_is_error(stack_top))
+    {
+        if ({{{Interpreter.interpreter}}}_value_is_ArrayBuffer(stack_top))
+	    *((ArrayBuffer*)(c_arg_p->dest)) = {{{Interpreter.interpreter}}}_get_ArrayBuffer_value(stack_top);
+	else
+	    return jerry_create_error(JERRY_ERROR_TYPE,
+                      (const jerry_char_t *) "Can't retrieve the ArrayBuffer");
+    }
+
+    return stack_top;
+} /* {{{Interpreter.interpreter}}}_arg_to_ArrayBuffer */
 {{/body}}
 
 {{/original_arg_handling}}
@@ -1177,6 +1208,54 @@ static {{{Interpreter.Type}}} get_prototypes_holder(void)
 } /* get_prototypes_holder */
 
 {{/body}}
+/* all of the interfaces have an is_<interface> function, and one of
+   those checks is whether or not the interface has a function that
+   with a particular name and a particular number of parameters --
+   this function is that check for an operation */
+bool
+webidl_utilities_has_operation({{{Interpreter.Type}}} interface, string operation_name, int target_number_of_parameters){{#private_header}};{{/private_header}}
+{{#body}}
+{
+    if (!{{{Interpreter.interpreter}}}__has_own_property(interface, operation_name))
+    {
+        /* check to see if this object inherited the operation */
+        if ({{{Interpreter.interpreter}}}__has_property(interface, operation_name))
+	{
+	    jerry_value_t parent = jerry_get_prototype(interface);
+	    bool parent_has_operation = {{{Interpreter.interpreter}}}__has_own_property(parent, operation_name);
+
+	    /* TODO: IF YOU RELEASE THE jerry_value_t FOR THE PROTOTYPE, THE
+   	       INTERPRETER THROWS AN EXCEPTION:
+	    jerry_release_value(parent);
+	    */
+	    if (!parent_has_operation)
+	        return false;
+	}
+	else
+            return false;
+    }
+    else
+    {
+        jerry_value_t length_property = 
+                           jerry_create_string((const jerry_char_t *)"length");
+        jerry_value_t field = {{{Interpreter.interpreter}}}__get_property(interface,
+                                                         operation_name);
+        jerry_value_t length_value =
+	                     jerry_get_property(field, length_property);
+	int number_of_parameters = (int)jerry_get_number_value(length_value);
+        jerry_release_value(length_value);
+        jerry_release_value(field);
+	jerry_release_value(length_property);
+
+        if (number_of_parameters != target_number_of_parameters)
+            return false;
+    }
+
+    /* fall-through indicates success */
+    return true;
+} /* webidl_utilities_has_operation */
+
+{{/body}}
 void webidl_utilities_cleanup(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
@@ -1252,7 +1331,7 @@ void register_prototype(char * object_name, {{{Interpreter.Type}}} new_prototype
 /************ DEBUG VARIABLES AND FUNCTIONS (FOR BASIC C TYPES) ***********/
 /* when the indentation gets too large, it may mean that we've hit
    some infinite recursion; this value stops us at a reasonable limit */
-#define DEBUG_RECURSION_DEPTH_TOO_BIG 40
+#define DEBUG_RECURSION_DEPTH_TOO_BIG 400
 
 /* this is, essentially, the size of a tab */
 #define DEBUG_INDENTATION_WIDTH 3

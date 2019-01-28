@@ -8,21 +8,9 @@ PARAMETERS TO "baz" :
       0 :  4.000000
    ]
 ***********************executing: x.baz(a(true), b(2), d(true)); <-- should be an error with strict type checking (third param is a bool, not a float)
-PARAMETERS TO "baz" :
-   a :  FALSE
-   b :  0
-   c:
-   [
-      0 :  0.000000
-   ]
+Incorrect type for parameter 0 in call to function >baz<
 ***********************executing: x.baz(d(true), e("17.0"), e("17.0")); <-- should be an error with strict type checking (2nd and 3rd params are a strings, not a numbers)
-PARAMETERS TO "baz" :
-   a :  TRUE
-   b :  0
-   c:
-   [
-      0 :  0.000000
-   ]
+Incorrect type for parameter 1 in call to function >baz<
 ***********************executing: x.foo(4.0, z);
 PARAMETERS TO "foo" :
    y :  4.000000
@@ -45,25 +33,7 @@ PARAMETERS TO "foo" :
       ]
 RETURN_VALUE :  0.000000
 ***********************executing: x.foo(z, z) <-- should be an error
-PARAMETERS TO "foo" :
-   z:
-      z :  TRUE
-      array:
-      [
-         0:
-         [
-            0 :  1
-            1 :  2
-            2 :  3
-         ]
-         1:
-         [
-            0 :  4
-            1 :  5
-            2 :  66
-         ]
-      ]
-RETURN_VALUE :  0.000000
+Incorrect type for parameter 0 in call to function >foo<
 ***********************executing: x.bar(z3([7, 8, 9]), 'a')
 PARAMETERS TO "bar" :
    a:
@@ -74,12 +44,7 @@ PARAMETERS TO "bar" :
    ]
    b: simple_enum_a
 ***********************executing: x.bar('the') <-- should be an error
-Too few parameters to function >bar<
-PARAMETERS TO "bar" :
-   a:
-   [
-   ]
-   b: simple_enum_b
+Incorrect type for parameter 0 in call to function >bar<
 ***********************executing: x.bar([4.2], 'a')
 PARAMETERS TO "bar" :
    a:
@@ -88,28 +53,12 @@ PARAMETERS TO "bar" :
    ]
    b: simple_enum_a
 ***********************executing: x.bar([4.2], 'ab') <-- should be an error)
-PARAMETERS TO "bar" :
-   a:
-   [
-      0 :  4
-   ]
-   b: the value passed in is not a valid simple_enum value
+Incorrect type for parameter 1 in call to function >bar<
 ***********************executing: x.bar("4", 'ab') <-- should be an error
-PARAMETERS TO "bar" :
-   a:
-   [
-   ]
-   b: simple_enum_a
+Incorrect type for parameter 0 in call to function >bar<
 ***********************changing z.z to 4.32
 ***********************calling x.foo(4.0, new simple_dictionary( 5, [] )) -- should be an error with strict type checking (new-dict.z is a number, not a boolean)
-PARAMETERS TO "foo" :
-   y :  4.000000
-   z:
-      z :  FALSE
-      array:
-      [
-      ]
-RETURN_VALUE :  0.000000
+Incorrect type for parameter 1 in call to function >foo<
 ***********************calling x.foo2(true)
 PARAMETERS TO "foo2" :
    x with union type >boolean<:
@@ -135,43 +84,24 @@ PARAMETERS TO "foo4" :
    x with union type >boolean<:
        :  TRUE
 ***********************calling x.foo4(4.3) <-- w/ strict type checking: should be an error
-PARAMETERS TO "foo4" :
+Incorrect type for parameter 0 in call to function >foo4<
 ***********************calling x.foo4(undef) <-- w/ strict type checking: should be an error
-PARAMETERS TO "foo4" :
+Incorrect type for parameter 0 in call to function >foo4<
 ***********************calling x.foo2("4.3") <-- w/ strict type checking: should be an error (param needs a float, given a string)
-PARAMETERS TO "foo2" :
+Incorrect type for parameter 0 in call to function >foo2<
 ***********************calling x.foo5(z) <-- w/ strict type checking: should be an error (z.z is a float, not a boolean)
-PARAMETERS TO "foo5" :
+Incorrect type for parameter 0 in call to function >foo5<
 ***********************calling x.foo5(4.3)
 PARAMETERS TO "foo5" :
    x with union type >double<:
        :  4.300000
-Script Error: Error
-PARAMETERS TO "foo" :
-   y :  1.000000
-   z:
-      z :  FALSE
-      array:
-      [
-         0:
-         [
-            0 :  1
-            1 :  2
-            2 :  3
-         ]
-         1:
-         [
-            0 :  4
-            1 :  5
-            2 :  66
-         ]
-      ]
-RETURN_VALUE :  0.000000
+***********************calling x.foo(1.0, z) <-- w/ strict type checking: should be an error (1st param wants a boolean, given a float);
+Incorrect type for parameter 1 in call to function >foo<
 ***********************calling x.foo4("")
 PARAMETERS TO "foo4" :
    x with union type >string<:
        :  ""
-***********************calling x.foo(0.0, <simple_dictionary-lookalike>)
+***********************setting up not_a_simple_dictionary <simple_dictionary-lookalike>)
 ***********************calling x.foo("t0.0", not_a_simple_dictionary)
 PARAMETERS TO "foo" :
    y :  "t0.0"

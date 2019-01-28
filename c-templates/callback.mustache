@@ -126,6 +126,7 @@ run_{{{callbackName}}}_function_handler(
              const {{{Interpreter.Type}}} *args_p, /**< function arguments */
              const jerry_length_t args_cnt) /**< number of function arguments */
 {
+    {{{Interpreter.error_type}}} error = 0;
     {{> demarshal_args}}
 
 {{#C_and_Jerryscript_Types}}
@@ -137,49 +138,8 @@ put out the declaration with an assignment from "run" routine }}
 {{#arguments}}{{{indentation}}}{{{name}}}{{{separator}}}{{/arguments}}{{#arguments.length}};{{/arguments.length}}
 
 {{/C_and_Jerryscript_Types}}
-    {{! if the return value is a string (or array of strings), we want
-        to enter it into the Jerryscript environment _before_ we
-        deallocate our local strings, as it's possible that the return
-        value is just a copy of one of args }}
-    {{#C_and_Jerryscript_Types}}
-        {{#is_string}}
-    {{! DOES THE FOLLOWING COVER ALL OF THE PERMUTATIONS? }}
-    /* put the string into Jerryscript before we cleanup any string arguments */
-    {{{Interpreter.Type}}} string_value = jerry_create_string({{^is_array}}(const jerry_char_t *){{/is_array}}return_value);
-        {{/is_string}}
-    {{/C_and_Jerryscript_Types}}
-    {{! FREE MALLOC'D STRINGS}}
-    {{#arguments}}
-        {{#C_and_Jerryscript_Types}}
-	    {{^callback}}
-	        {{#is_string}}
-		{{^is_array}}
-    if ({{{name}}} != NULL) free({{{name}}});
-		{{/is_array}}
-       		{{/is_string}}
-    	    {{/callback}}
-        {{/C_and_Jerryscript_Types}}
-    {{/arguments}}
-    {{#C_and_Jerryscript_Types}}
-        {{#return_is_this}}
-    /* return a reference back to this interface */
-    return jerry_acquire_value(this_val);
-        {{/return_is_this}}
-        {{^return_is_this}}
-            {{#voidReturnType}}
-    /* void return value */
-    return jerry_create_undefined();
-            {{/voidReturnType}}
-            {{^voidReturnType}}
-                {{^is_string}}
-    return {{{Interpreter.interpreter}}}_create_{{{Jerryscript_Type}}}(return_value);
-                {{/is_string}}
-                {{#is_string}}
-     return string_value;
-                {{/is_string}}
-            {{/voidReturnType}}
-        {{/return_is_this}}
-    {{/C_and_Jerryscript_Types}}
+{{> clean_up_and_return}}
+
 } /* run_{{{callbackName}}}_function_handler */
 
 {{/body}}

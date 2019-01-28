@@ -1,0 +1,6 @@
+The purpose of this test is to exercise the code that builds
+constructors.  The test will ensure that we can correctly compile
+constructors with zero parameters, many parameters, optional
+parameters, and variadic parameters.  We then need to test that the
+correct constructor gets called for various inputs.
+

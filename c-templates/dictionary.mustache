@@ -158,6 +158,10 @@ jerryx_arg_t
 {
     /* the set up of the jerryx_arg_t is cribbed from
        https://tinyurl.com/yc8qjpna */
+    {{! Note that the code from the documentation cannot be used for
+        any struct with more than one of the same type field, since
+	the code relies on "static" to create the prop_mapping data
+	structure... }}
     static const char *prop_name_p[] = { {{#members}}"{{{memberName}}}"{{^finalMember}}, {{/finalMember}}{{/members}} };
     static jerryx_arg_t prop_mapping[{{{members.length}}}];
     {{#members}}

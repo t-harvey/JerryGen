@@ -1,0 +1,5 @@
+[ExternalDictionary=(level65)]
+dictionary level64 { 
+    long i64;
+    level65 x64;
+};

@@ -1,0 +1,3 @@
+dictionary level100 { 
+    long i100;
+};

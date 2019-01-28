@@ -30,19 +30,21 @@ AugmentedAST.error_codes = error_codes;
 
 /* we need to keep track of all of the WebIDL constructs' names so
  * that we can detect if we see the same name used twice */
-var names_seen = {};
+var construct_names_seen = {};
 
 /* that's "record" as in, "write down", rather than "plastic disk with
    music on it..." */
-/* SIDE EFFECT: populates the (function-level) global variable names_seen */
+/* SIDE EFFECT: populates the (function-level) global variable 
+   construct_names_seen */
 var record_name = function(name, kind)
 {
     /* if this is the first time we've seen this name, set up the
        new entry */
-    if (names_seen[name] === undefined)
-	names_seen[name] = {callback: 0, dictionary: 0, interface: 0};
+    if (construct_names_seen[name] === undefined)
+	construct_names_seen[name] = {callback:  0, dictionary: 0,
+				      interface: 0, enum: 0};
     
-    names_seen[name][kind]++;
+    construct_names_seen[name][kind]++;
 } /* record_name */
 
 
@@ -96,7 +98,7 @@ AugmentedAST.prototype.primitiveTypes = ['any', 'ArrayBuffer', 'boolean',
 					 'unsigned long long', 'float',
                                          'unrestricted float', 'double',
 					 'unrestricted double', 'DOMString',
-					 'void', 'string', 'this',
+					 'void', 'string', 'this', 'ByteString',
 					 'object', 'Error', 'JSON' ];
 
 /* we store multi-word C types (like "unsigned int") as a space-removed
@@ -296,6 +298,7 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 			       float:    0.0  ,
 			       double:   0.0  ,
 			       string:   "\"\"" ,
+			       "ByteString": "\"\"" ,
 			       bool:     false,
 			       Error: "\"\"", 
 			    };
@@ -583,7 +586,7 @@ AugmentedAST.prototype.set_external_types = function(thing)
     {
 	/* so the parser will let the extAttrs array have entries that
 	   are undefined -- this is a bug in the parser we should chase
-	   down, but there are only three places where this matters, so
+	   down, but there are only three(?) places where this matters, so
 	   we'll just check for it in those three places, for now; TODO */
 	if (extAttr === undefined)
 	    continue;
@@ -621,14 +624,15 @@ AugmentedAST.prototype.set_external_types = function(thing)
 } /* AugmentedAST.set_external_types */
 
 
-/* look through "thing"'s external attributes and see if the user has
-   specified that this thing is to be created by "require" rather than "new" */
-/* SIDE EFFECT: sets "is_module" flag for "thing" */
-AugmentedAST.prototype.set_is_module = function(thing)
+/* look through the interface's external attributes and see if the user has
+   specified that the interface is to be created by "require" rather
+   than "new" */
+/* SIDE EFFECT: sets "is_module" flag for "theInterface" */
+AugmentedAST.prototype.set_is_module = function(theInterface)
 {
-    thing.is_module = false;
+    theInterface.is_module = false;
 
-    for (let extAttr of thing.extAttrs)
+    for (let extAttr of theInterface.extAttrs)
     {
 	/* the parser will let the extAttrs array have entries that
 	   are undefined -- this is a bug in the parser we should chase
@@ -637,12 +641,298 @@ AugmentedAST.prototype.set_is_module = function(thing)
 	if (extAttr === undefined)
 	    continue;
 
-	if (extAttr.name != undefined &&
-	    extAttr.name == "ReturnFromRequire")
-	    thing.is_module = true;
+	if (extAttr.name != undefined && extAttr.name == "ReturnFromRequire")
+	    theInterface.is_module = true;
     }
 } /* AugmentedAST.set_is_module */
 
+
+/* this function sets up the fields for operations, both constructors
+   and regular operations */
+AugmentedAST.prototype.build_operation_fields = function(operation,
+							 interfaceName)
+{
+    // we add schema type info to the operation first
+    operation.C_and_Jerryscript_Types =
+	                            this.getConversionTypes(operation.idlType);
+
+    if (operation.C_and_Jerryscript_Types.C_Type === "void")
+	operation.voidReturnType = true;
+
+    /* TODO: WHY?!? */
+    operation.interfaceName = interfaceName;
+
+    if(operation.extAttrs && operation.extAttrs.length > 0)
+	for(var i = 0; i < operation.extAttrs.length; i++)
+	    if(operation.extAttrs[i].name == "ThrowsRPCError")
+		operation.ThrowsRPCError = operation.extAttrs[i];
+
+    for(i = 0; i < operation.arguments.length; i++)
+    {
+	operation.arguments[i].C_and_Jerryscript_Types =
+	    this.getConversionTypes(operation.arguments[i].idlType, 
+				    operation.arguments[i].variadic);
+	operation.arguments[i].paramIndex = i;
+	/* TODO: we don't allow default values for composites! */
+	if (operation.arguments[i].default != undefined)
+	    operation.arguments[i].C_and_Jerryscript_Types.default_value =
+	                            operation.arguments[i].default.value;
+	if (i == operation.arguments.length-1)
+	    /* only the last item in a list is marked with this
+	       field; this lets us make a comma-separated list (by
+	       not putting a comma after this last item) inside of
+	       Hogan */
+	    operation.arguments[i].finalParam = true;
+    }
+    this.fix_names_and_types(operation, "operation");
+}; /* AugmentedAST.build_operation_fields */
+
+
+/* look through the attributes and add any constructors to the interface's
+   list of constructors */
+/* SIDE EFFECT: adds a "constructors" list to "theInterface" */
+/* TODO: we should check to ensure that all of the constructors have
+   unique type signatures */
+AugmentedAST.prototype.set_constructors = function(theInterface)
+{
+    let interfaceName = theInterface.name;
+    let constructor_count = 0;
+    let saw_ReturnFromRequire = false;
+
+    /* once we have a list of constructors, we need to ensure that
+       they are put out in an order than ensures that the more
+       restrictive signatures are considered first -- here, f_a is
+       "more restrictive" than f_b if f_a has more parameters than
+       f_b; we'll use a straightforward bucket sort and then build the
+       list in that order so the Mustache code can just put the calls
+       out; we go to some trouble to ensure that the order in the
+       WebIDL file is the order that the Mustache code will put them
+       out, at least until we do the analysis suggested in the TODO
+       below this comment */
+    /* TODO: it would be nice to do the analysis to ensure that no two
+       signatures are the same, which would require pairwise
+       comparison of the elements in each bucket */
+    let sort_constructors = function(theInterface)
+    {
+	let original_list = theInterface.constructors;
+	let buckets = [];
+	let saw_a_variadic = false;
+
+	/* first, sort using a simple count of parameters; gather statistics
+	   about each call's mix of parameter types (optional and variadic) */
+	for(let i=0; i< original_list.length; i++)
+	{
+	    original_list[i].position_in_list = i;
+	    original_list[i].optional_count = 0;
+	    original_list[i].variadic_count = 0; /* 0 or 1, obviously, but it
+						makes the math more natural */
+	    let next_constructor = original_list[i];
+	    let param_count = next_constructor.arguments.length;
+	    for(let j in next_constructor.arguments)
+	    {
+		if (next_constructor.arguments[j].optional)
+		    original_list[i].optional_count++;
+
+		if (next_constructor.arguments[j].variadic)
+		{
+		    /* variadics count as optional */
+		    original_list[i].optional_count++;
+
+		    original_list[i].variadic_count = 1;
+		    saw_a_variadic = true;
+		}
+	    }
+	    if (buckets[param_count] === undefined)
+		buckets[param_count] = [];
+	    buckets[param_count].push(next_constructor);
+	}
+
+	/* now fill in the buckets -- including expanding optionals
+	   and variadics - optional parameters let us put a
+	   constructor in buckets for fewer parameters (b/c they can
+	   have fewer parameters than the max), and the variadic
+	   parameter can be placed in every bucket up to the max plus
+	   one (b/c those are the functions that will have to be
+	   called first) */
+	if (saw_a_variadic)
+	    buckets[buckets.length] = []; /* holds variadics */
+	for (let i = 0; i < original_list.length; i++)
+	{
+	    /* insert the constructor into buckets[index] */
+	    let insert = function(constructor, index)
+	    {
+		if (buckets[index] === undefined)
+		    buckets[index] = [];
+
+		/* we want the functions in each bucket to be called in
+		   the same order that they occurred in the WebIDL, so
+		   walk the items in the bucket until we come to the
+		   insertion point */
+		/* TODO: we do this b/c we haven't implemented the code
+		   to check for ambiguous signatures -- right now, the rule
+		   is that we resolve ambiguity in favor of the first call
+		   in the WebIDL, but once we can prove no ambiguity,
+		   this code becomes superfluous */
+		let list_position = 0;
+		let bucket_list = buckets[index];
+		for(list_position = 0;
+		    list_position < bucket_list.length;
+		    list_position++)
+		    if (bucket_list[list_position].position_in_list >
+			               constructor.position_in_list)
+			break;
+		    else if (bucket_list[list_position].position_in_list ==
+			                    constructor.position_in_list)
+	                 /* can't happen? -- this case represents when
+		            constructor's already in the list */
+			return;
+		bucket_list.splice(list_position, 0, constructor);
+
+	    }; /* insert */
+
+	    let next_constructor = original_list[i];
+	    let argument_count = next_constructor.arguments.length;
+
+	    for (let k = 1; k <= next_constructor.optional_count ; k++)
+		insert(next_constructor, argument_count-k);
+
+	    if (next_constructor.variadic_count)
+		for (let k = argument_count+1; k < buckets.length; k++)
+		    insert(next_constructor, k);
+	}
+
+	/* functions that have optional/variadic parameters will show
+	   up in multiple buckets -- some of these calls will be redundant,
+	   and we can identify redundancies by looking for adjacent buckets
+	   that are identical */
+
+	/* we want to keep track of the comparison that the Mustache
+	   code is going to use: for any set of functions with a
+	   specific number of parameters, we'll use "equals" to
+	   compare the number of parameters passed in against that set
+	   of constructors, EXCEPT: 1) the set with the highest number
+	   of parameters (as long as that set is only made up of
+	   constructors with variadic parameters, which will be created
+	   by the above loop if there are _any_ constructors that use a
+	   variadic), and 2) any set of constructors that has its
+	   subsequent set(s) removed in the loop below (this
+	   represents the case of a set of constructors in the "takes
+	   N parameters" bucket and the "takes N+1 parameters" buckets
+	   all being the same sets)(probably b/c they're all functions
+	   using variadics, but not necessarily) */
+	let greater_than = new Array(buckets.length);
+	greater_than.fill(false, 0, buckets.length);
+	if (saw_a_variadic)
+	    greater_than[buckets.length-1] = true;
+
+	for (let current = 1, previous = 0;
+	     current < buckets.length;
+	     current++)
+	{
+	    if (buckets[current] === undefined) continue;
+
+	    let equals = function(a, b)
+	    {
+		/* don't need to check "a", b/c of the check preceding
+		   this function declaration */
+		if (b === undefined || b == null) return false;
+		if (a === b) return true;
+		if (a.length != b.length) return false;
+		if (a == null || b == null) return false;
+
+		for (let i = 0; i < a.length; i++)
+		    if (a[i] != b[i])
+			return false;
+		return true;
+	    }; /* equals */
+
+	    if (equals(buckets[current], buckets[previous]))
+	    {
+		buckets[current] = [];
+		greater_than[previous] = true;
+	    }
+	    else
+		previous = current;
+	}
+
+	/* we output the buckets in reverse order -- i.e.,  we'll spit out
+	   the calls in the order of most-parameters to fewest-parameters */
+	theInterface.sorted_constructors = [];
+	for (let i = buckets.length-1; i >= 0; i--)
+	    if (buckets[i] != undefined && buckets[i].length > 0)
+	    {
+		theInterface.sorted_constructors.push(
+		                     {"greater_than": greater_than[i],
+		                      "constructors_at_this_level": buckets[i],
+				      "parameter_count": i});
+
+		/* mark the ends of each list, so the Mustache code
+		   knows where to put "else"'s */
+		buckets[i][0].first_constructor_in_list = true;
+		buckets[i][buckets[i].length-1].last_constructor_in_list = true;
+	    }
+
+	/* we need to mark the ends of the list for the Mustache code (and
+	   there's no easy way to mark the list-end in the above loop) */
+	let list_max_index = theInterface.sorted_constructors.length-1;
+	theInterface.sorted_constructors[0].first_in_list = true;
+	theInterface.sorted_constructors[list_max_index].last_in_list = true;
+
+	/* also, the "args_cnt" value that gets passed to the constructor-
+	   handlers is an unsigned_int -- in the case where the code we
+	   put out would include "if (args_cnt >= 0)", the compiler will
+	   warn that this is trivially true; in this case, we want to put
+	   out only an "else" condition (and skip the "else" condition that
+	   generally follows all of the constructors to report an error) */
+	if (theInterface.sorted_constructors[list_max_index].parameter_count == 0 &&
+	    greater_than[0] == true)
+	    theInterface.sorted_constructors[list_max_index].no_final_check_necessary = true;
+    }; /* sort_constructors */
+
+    for (let extAttr of theInterface.extAttrs)
+    {
+	/* the parser will let the extAttrs array have entries that
+	   are undefined -- this is a bug in the parser we should chase
+	   down, but there are only three(?) places where this matters, so
+	   we'll just check for it in those three places, for now; TODO */
+	if (extAttr === undefined)
+	    continue;
+
+	if (extAttr.name != undefined && extAttr.name == "Constructor")
+	{
+	    extAttr.type = "operation";
+	    extAttr.return_is_this = true;
+	    extAttr.name += "_" + constructor_count++;
+	    extAttr.operationName = extAttr.name;
+	    extAttr.interfaceName = interfaceName;
+
+	    /* we need to set up fields that build_operation_fields()
+	       expects to see */
+	    extAttr.idlType = interfaceName;
+	    if (extAttr.arguments === undefined || extAttr.arguments === null)
+		extAttr.arguments = [];
+
+	    this.build_operation_fields(extAttr, interfaceName);
+
+	    extAttr.is_constructor = true;
+
+	    if (theInterface.constructors === undefined)
+		theInterface.constructors=[];
+	    theInterface.constructors.push(extAttr);
+	}
+	else if (extAttr.name != undefined &&
+		 extAttr.name == "ReturnFromRequire")
+	    saw_ReturnFromRequire = true;
+    }
+
+    if (theInterface.constructors != undefined)
+	sort_constructors(theInterface);
+
+    /* TODO: give a proper error message and bail appropriately */
+    /* TODO: maybe it's okay to do this? */
+    if (saw_ReturnFromRequire && theInterface.constructors != undefined)
+	fprintf(stderr, "ERROR: explicit constructors cannot be specified alongside the ReturnFromRequire attribute.\n");
+} /* AugmentedAST.set_constructors */
 
 
 /* for the C file for each dictionary, callback, and interface, we'll
@@ -1362,8 +1652,8 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 
 
 /* enum strings can be the same across multiple enum declarations, so
-   we need a way to unique'ify them; as a start, we'll add the name of
-   the enumeration type onto each enum value */
+   we need a way to unique'ify them; the first/current method is to add the
+   name of the enumeration type onto each enum value */
 AugmentedAST.prototype.expand_enums = function(new_enum)
 {
     let enum_name = new_enum.name;
@@ -1382,6 +1672,8 @@ AugmentedAST.prototype.expand_enums = function(new_enum)
 AugmentedAST.prototype.addEnum = function (new_enum, index) {
   //A enumeration declaration looks like this:
   //{ type: 'enum', name: 'name', values: [ [string], [string], ... ], extAttrs: [] }
+    record_name(new_enum.name, "enum");
+
     /* enum values can be different between C and Javascript, so we'll
        need to keep a version of each value for each language -- expand
        each member to an object so that we can store both values */
@@ -1562,37 +1854,7 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
 	interfaceMember.operationName = interfaceMember.name;
 	delete interfaceMember.name;/* this avoids confusion in the
 					     Hogan compiler */
-
-	// we add schema type info to the operation first
-	interfaceMember.C_and_Jerryscript_Types =
-	                     this.getConversionTypes(interfaceMember.idlType);
-
-	if (interfaceMember.C_and_Jerryscript_Types.C_Type === "void")
-	    interfaceMember.voidReturnType = true;
-
-	/* TODO: WHY?!? */
-	interfaceMember.interfaceName = interfaceName;
-
-	if(interfaceMember.extAttrs && interfaceMember.extAttrs.length > 0)
-	    for(var i = 0; i < interfaceMember.extAttrs.length; i++)
-		if(interfaceMember.extAttrs[i].name == "ThrowsRPCError")
-		    interfaceMember.ThrowsRPCError = 
-			                           interfaceMember.extAttrs[i];
-
-	for(i = 0; i < interfaceMember.arguments.length; i++)
-	{
-	    interfaceMember.arguments[i].C_and_Jerryscript_Types =
-		 this.getConversionTypes(interfaceMember.arguments[i].idlType, 
-					 interfaceMember.arguments[i].variadic);
-	    interfaceMember.arguments[i].paramIndex = i;
-	    if(i == interfaceMember.arguments.length-1)
-		/* only the last item in a list is marked with this
-		   field; this lets us make a comma-separated list (by
-		   not putting a comma after this last item) inside of
-		   Hogan */
-		interfaceMember.arguments[i].finalParam = true;
-	}
-	this.fix_names_and_types(interfaceMember, "operation");
+	this.build_operation_fields(interfaceMember, interfaceName);
 	this.interfaces[interfaceName].operations.push(interfaceMember);
     }
     
@@ -1756,6 +2018,10 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
   this.set_external_types(theInterface);
   this.set_is_module(theInterface);
 
+  /* look through the external attributes again and see if any constructors
+     have been explicitly specified */
+  this.set_constructors(theInterface);
+
   /* does the interface already exist? (if we've already processed an
      interface with this name, it'll have the interfaceName field set) */
   var interface_exists = (theInterface.interfaceName != undefined);
@@ -1767,16 +2033,23 @@ AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_er
     this.addNewInterface(theInterface);
   }
 
+  /* the constructors list needs to be conjoined with the operations; since
+     the constructors list contains duplicates, we'll turn it into a set
+     and then back into an array before concatenating */
+  if (theInterface.constructors != undefined)
+    theInterface.operations =
+	            theInterface.operations.concat(
+			       Array.from(new Set(theInterface.constructors)));
+
   // get a list of types that will need to be included in the .c file for this
   // interface
   this.get_non_intrinsic_types_list(theInterface);
-
 
   return true;
 }; /* addInterface */
 
 
-/* the parser doesn't care if mullitple WebIDL constructs (or fields
+/* the parser doesn't care if multiple WebIDL constructs (or fields
  * within a construct) share the same name, but we do; check to make
  * sure that the namespace is correct, and report and raise en
  * exception if something's amiss */
@@ -1790,15 +2063,16 @@ AugmentedAST.prototype.report_reused_names = function()
     /* returns an array of names that are used more than once in a function
        call */
     /* "_named_list", because the list passed in has to be an array of
-       objects and each object must have a name-type field as defined
-       by the "accessor" parameter (which defaults to "name")... */
+       objects and each object must have a name/type field as defined
+       by the "accessor" parameter (which defaults to "name")... i.e.,
+       each element in the list will look like: { name: "bob" } */
     var find_duplicates_in_named_list = function(named_list, accessor)
     {
 	if (accessor === undefined)
 	    accessor = "name";
 
-	var names_seen = {};
-	var duplicates = [];
+	let names_seen = {};
+	let duplicates = [];
 
 	for(var name_iterator = 0;
 	    name_iterator < named_list.length;
@@ -1864,6 +2138,15 @@ AugmentedAST.prototype.report_reused_names = function()
 	report_duplicates(duplicates, "callback", callback_name, "");
     }
 
+    /* enums: */
+    /* we need to make sure enum values are uniquely named */
+    for (var enum_name in this.enums)
+    {
+	var enum_ = this.enums[enum_name];
+	var duplicates = find_duplicates_in_named_list(enum_.members, "Javascript_name");
+	report_duplicates(duplicates, "enum", enum_name, "");
+    }
+
     /* interfaces: */
     /* we need to make sure operations and attributes are uniquely named,
        and for each operation, that its arguments are uniquely named, relative
@@ -1893,14 +2176,23 @@ AugmentedAST.prototype.report_reused_names = function()
     }
 
     /* finally, check for duplicate names in the WebIDL constructs */
-    for (var construct_name in names_seen)
+    for (var construct_name in construct_names_seen)
     {
-	var construct_name_object = names_seen[construct_name];
+	var construct_name_object = construct_names_seen[construct_name];
 	var used_in_callbacks = construct_name_object.callback;
 	var used_in_dictionaries = construct_name_object.dictionary;
 	var used_in_interfaces = construct_name_object.interface;
+	var used_in_enums = construct_name_object.enum;
+	let total_occurences = used_in_callbacks + used_in_dictionaries +
+	                       used_in_interfaces + used_in_enums;
+	/* we need to know if the list has only two items or three+ */
+	let list_length = (used_in_callbacks?1:0) +
+	                  (used_in_dictionaries?1:0) +
+	                  (used_in_interfaces?1:0) +
+	                  (used_in_enums?1:0);
+	let remaining_list_members = list_length;
 
-	if (used_in_callbacks + used_in_dictionaries + used_in_interfaces > 1)
+	if (total_occurences > 1)
 	{
 	    /* to get all of the plurals and commas correct, we'll divide
 	       the error message up as follows:
@@ -1910,70 +2202,75 @@ AugmentedAST.prototype.report_reused_names = function()
 	       line 4:        <number > 0> dictionar<y/ies>
 	       line 5:        <,>< >< and>
 	       line 6:        <number > 0> interface<s>
-	       line 7:        ."
+	       line 7:        <,>< >< and>
+	       line 8:        <number > 0> enum<s>
+	       line 9:        ."
 	    */
+	    /* lines 3, 5, and 7 are built the same way, so we've abstracted
+	       out the function to build them */
+	    let build_the_separator = function(remaining_list_members,
+					       list_length)
+	    {
+		if (remaining_list_members === 0)
+		    return "";
+		else
+		{
+		    /* remaining_list_members === 1 means there is the one
+		       more item in the list  */
+		    if (remaining_list_members === 1)
+		    {
+			/* the last element in a three+ item list needs to
+			   be preceded by a comma and a conjunction */
+			if (list_length > 2)
+			    return ", and ";
+			else /* two-item list just needs a conjunction */
+			    return " and ";
+		    }
+		    else /* in the middle of a three+ list */
+			return ", ";
+		}
+	    }; /* build_the_separator */
+
+	    /* from the above template, sets of lines require the same
+	       processing */
+	    /* SIDE EFFECT: modifies the func. global: remaining_list_members */
+	    let get_next_two_lines = function(used_in,
+				   thing, singular_ending, plural_ending)
+	    {
+		let first_line = "";
+		let second_line = "";
+		if (used_in > 0)
+		{
+		    var ending = (used_in > 1)?plural_ending:singular_ending;
+		    first_line = used_in + " " + thing + ending;
+		    remaining_list_members--;
+
+		    second_line = build_the_separator(remaining_list_members,
+						list_length);
+		}
+
+		return first_line + second_line;
+	    }; /* get next_two_lines */
+
 	    var line1 = "The name \"" + construct_name + "\" is duplicated in ";
 
-	    var line2;
-	    if (used_in_callbacks > 0)
-	    {
-		var plural = (used_in_callbacks > 1)?"s":"";
-		line2 = used_in_callbacks+" callback" + plural;
-	    }
-	    else
-		line2 = "";
+	    let line2_and_3 = get_next_two_lines(used_in_callbacks,
+						 "callback", "", "s");
 
-	    var line3;
-	    if (used_in_callbacks > 0)
-	    {
-		var comma = (used_in_dictionaries && used_in_interfaces)?",":"";
-		var space = (used_in_dictionaries || used_in_interfaces)?" ":"";
-		var num_xor = function(x, y) {return (x === 0) && (y != 0) ||
-					      (y === 0) && (x != 0);  };
-		var conjunction = (num_xor(used_in_dictionaries,
-					   used_in_interfaces)  )?"and ":"";
-		line3 = comma + space + conjunction;
-	    }
-	    else
-		line3 = "";
+	    let line4_and_5 = get_next_two_lines(used_in_dictionaries,
+						 "dictionar", "y", "ies");
 
-	    var line4;
-	    if (used_in_dictionaries > 0)
-	    {
-		var plural = (used_in_dictionaries > 1)?"ies":"y";
-		line4 = used_in_dictionaries + " dictionar" + plural;
-	    }
-	    else
-		line4 = "";
+	    let line6_and_7 = get_next_two_lines(used_in_interfaces,
+						 "interface", "", "s");
+	    let line8_and_9 = get_next_two_lines(used_in_enums,
+						 "enum", "", "s");
 
-	    var line5;
-	    if (used_in_dictionaries > 0)
-	    {
-		if (used_in_callbacks && used_in_interfaces)
-		    /* all three are nonzero */
-		    line5 = ", and ";
-		else if (used_in_interfaces)
-		    /* only two are nonzero */
-		    line5 = " and ";
-		else 
-		    line5 = "";
-	    }
-	    else
-		line5 = "";
+	    let line10 = ".";
 
-	    var line6;
-	    if (used_in_interfaces > 0)
-	    {
-		var plural = (used_in_interfaces > 1)?"s":"";
-		line6 = used_in_interfaces + " interface" + plural;
-	    }
-	    else
-		line6 = "";
-
-	    var line7 = ".";
-
-	    error_messages.push(line1 + line2 + line3 + line4 +
-				line5 + line6 + line7);
+	    error_messages.push(line1 +
+				line2_and_3 + line4_and_5 +
+				line6_and_7 + line8_and_9 +
+				line10);
 	}
     }
 

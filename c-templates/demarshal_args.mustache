@@ -1,3 +1,6 @@
+{{! The purpose of this code is to isolate the demarshaling code for
+    function calls, as it's big and complicated, and so that it can be
+    used for both callbacks and operations }}
 {{! We change the delimiters here, as both interface-operations and
 callbacks use this code -- we preprocess this to add the field-name
 corresponding to the type of thing we're processing... (search for
@@ -6,33 +9,59 @@ corresponding to the type of thing we're processing... (search for
     have a variable called "args_cnt", which is the number of
     arguments the function has been called with }}
 {{=<% %>=}}
-
 {{! ******************************************************************* }}
 {{! ORIGINAL (MANUAL) ARGUMENT HANDLING }}
 {{! ******************************************************************* }}
   {{#original_arg_handling}}
     {{#arguments}}
 	{{#C_and_Jerryscript_Types}}
-    {{{C_Type}}} {{{name}}};
+    {{{C_Type}}} {{{name}}}{{#is_string}} = NULL{{/is_string}};
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
 {{! TODO: the "this_val" passed in to a function parameter: should it be
     this_val, or should we gen up a value_t for the global object? }}
     {{#arguments}}
 	{{#variadic}}
+	{
    	    {{#C_and_Jerryscript_Types}}
-    {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value_from_args({{{paramIndex}}}, args_p, args_cnt);
+	    bool all_correct_types = true;
+{{! the C_Type on a variable that's variadic is *_array, but for this
+    loop, we're going to be looping through the elements that will
+    eventually make up the array, so use "element_type" instead of "C_Type" }}
+	    for (int i = {{{paramIndex}}}; i < args_cnt; i++)
+	        if (!{{{Interpreter.interpreter}}}_value_is_{{{element_type}}}(args_p[{{{paramIndex}}}]))
+		    all_correct_types = false;
+
+	    if (all_correct_types)
+	        {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value_from_args({{{paramIndex}}}, args_p, args_cnt);
    	    {{/C_and_Jerryscript_Types}}
+	    else
+	    {
+	        fprintf(stderr, "Incorrect type for parameter {{{paramIndex}}} in call to function ><%thingName%><\n");
+	       /* return; TODO: we should jump to the return code (?) */
+	       goto <%thingName%>_clean_up_and_exit;
+	    }
+	}
 	{{/variadic}}
 	{{^variadic}}
    	    {{#C_and_Jerryscript_Types}}
     if ({{{paramIndex}}} < args_cnt)
-        {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
+    {
+        if ({{{Interpreter.interpreter}}}_value_is_{{{C_Type}}}(args_p[{{{paramIndex}}}]))
+            {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
+	else
+	{
+	    fprintf(stderr, "Incorrect type for parameter {{{paramIndex}}} in call to function ><%thingName%><\n");
+	    /* return; TODO: we should jump to the return code (?) */
+	    goto <%thingName%>_clean_up_and_exit;
+	}
+    }
     else
                  {{^optional}}
     {
 	fprintf(stderr, "Too few parameters to function ><%thingName%><\n");
 	/* return; TODO: we should jump to the return code (?) */
+	goto <%thingName%>_clean_up_and_exit;
     }
 		 {{/optional}}
                  {{#optional}}
