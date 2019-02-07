@@ -62,10 +62,100 @@ let acceptable_inputs = {
     help:                     []
 }; /* acceptable_inputs */
 
+/* we define this during module definition so that we can pass to
+   validate() that we found an error while doing simple parsing of
+   parameters */
+let found_an_error = false;
+
 /* give default values for undefined command-line parameters */
 for (var i of Object.keys(acceptable_inputs))
     if (command_line_parms[i] === undefined)
 	command_line_parms[i] = acceptable_inputs[i][0];
+
+/* if the user uses the same command-line parameter more than once,
+   minimist returns an array of all of the values associated with
+   those flags; if every value in the array is the same as the others,
+   then we'll just clean up the array -- note that we have to equate
+   "on" with "true" and "off" with "false"... */
+let equal_values = function(x, y)
+{
+    let true_value = function(x)
+    {
+	return (x === "true"      || x === "on" ||
+		x === "overwrite" || (typeof x === "boolean" && x));
+    }; /* true_value */
+    let false_value = function(x)
+    {
+        return (x === "false" || x === "off" ||
+		(typeof x === "boolean" && !x));
+    }; /* false_value */
+
+    return ((true_value(x) && true_value(y))   ||
+	    (false_value(x) && false_value(y)) ||
+	    x === y);
+}; /* equal_values */
+
+/* a little bit of fuzzy logic, here: minimist sometimes takes on a
+   successive parameter for a flag if the flag isn't of the form:
+   --<flag>=value, instead parsing it as: --<flag> value (the intent
+   being to set <flag> to its default value, but with minimist
+   assigning "value" to <flag>); in our tests, we would sometimes see
+   the .idl file following one of these shorthand flags, and we'd
+   report an error when there really isn't one -- so see if we can
+   find these examples and move the .idl filename to its appropriate spot */
+for (let i of Object.keys(acceptable_inputs))
+{
+    if (i === "include" || i === "help")
+	continue;
+    else if (Array.isArray(command_line_parms[i]))
+    {
+	let array_of_values = command_line_parms[i];
+	let first_value = array_of_values[0];
+	let found_inconsistency = false;
+	for (let j = 0; j < array_of_values.length; j++)
+	    if (typeof array_of_values[j] === "string" &&
+		array_of_values[j].endsWith(".idl"))
+	    {
+		let idl_filename = array_of_values.splice(j, 1)[0];
+		command_line_parms["files"].push(idl_filename);
+		j--; /* this offsets the loop increment, since we
+			just shortened the array */
+	    }
+	if (array_of_values.length === 0)
+	    command_line_parms[i] = acceptable_inputs[i][0];
+    }
+    else if (typeof command_line_parms[i] === "string" &&
+	     command_line_parms[i].endsWith(".idl"))
+    {
+	command_line_parms["files"].push(command_line_parms[i]);
+	command_line_parms[i] = acceptable_inputs[i][0];
+    }
+}
+
+for (let i of Object.keys(acceptable_inputs))
+    if (i === "include" || i === "help")
+	continue;
+    else if (Array.isArray(command_line_parms[i]))
+    {
+	let array_of_values = command_line_parms[i];
+	let first_value = array_of_values[0];
+	let found_inconsistency = false;
+	for (let j = 1; j < array_of_values.length; j++)
+	    if (!equal_values(first_value, array_of_values[j]))
+	    {
+		console.log("ERROR: The flag \"" + i + "\" was entered more than once with different values.");
+		found_an_error = true;
+		found_inconsistency = true;
+	    }
+	if (!found_inconsistency)
+	    command_line_parms[i] = first_value;
+    }
+
+/* if there's only one include file, it comes in as a string, while
+   if there are more than one, the strings for each will be in an
+   array; for ease, just always make this an array */
+if (typeof this.include_files === "string")
+    this.include_files = [ this.include_files ];
 
 /* any flag entered without an explicit value is considered to be a
    boolean (set to true), but explicit values are considered to be
@@ -190,15 +280,8 @@ module.exports = Object.assign(
 	    throw new Error(this.error_codes.no_package_name_given);
 	if (this.files.length === 0)
 	    throw new Error(this.error_codes.no_filenames_given);
-
-	/* if there's only one include file, it comes in as a string, while
-	   if there are more than one, the strings for each will be in an
-	   array; for ease, just always make this an array */
-	if (typeof this.include_files === "string")
-	    this.include_files = [ this.include_files ];
 	
 	/* make sure that the values the parameters _do_ have are valid */
-	let found_an_error = false;
 	for (var i of this.command_line_parms_keys)
 	{
 	    /* all of the input WebIDL files have to end in .idl */
@@ -264,6 +347,7 @@ module.exports = Object.assign(
     } /* validate */
 } ,
 
-command_line_parms
+command_line_parms,
+found_an_error
 
 )/* end of export object */
