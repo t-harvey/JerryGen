@@ -231,8 +231,11 @@ AugmentedAST.prototype.addToTypeCheckQueue = function (t)
 	// concat
 	this.typeCheckQueue = this.typeCheckQueue.concat(t);
     else
-	// push
+    {
 	this.typeCheckQueue.push(t);
+	if (this.array_types[t] != undefined)
+	    this.typeCheckQueue.push(this.array_types[t].elementType);
+    }
 }; /* AugmentedAST.addToTypeCheckQueue */
 
 /* checks that the given type is well defined; in the process, adds more
@@ -2523,6 +2526,11 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 		       have multiple members with the same name */
 	    }
 	}
+	/* with the addition of new members, the indices need to be
+	   update */
+	if (number_of_parent_fields_copied > 0)
+	    for (let i = 0; i < target.members.length; i++)
+		target.members[i].member_index = i;
 	return number_of_parent_fields_copied;
     } /* augment_dictionary */
 
@@ -2602,11 +2610,11 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	return number_of_parent_fields_copied;
     } /* augment_interface */
 
-    /* copies the attributes and operations from the interface named
-       "parent_name" to "target" -- this function recurs if "parent_name"
-       inherits from another interface so that "parent_name" gets filled
-       in before trying to copy it to "target"; the recursion stops when
-       an interface has an empty "inheritance" field */
+    /* copies the attributes and operations from the interface/dictionary
+       named "parent_name" to "target" -- this function recurs if
+       "parent_name" inherits from another interface so that "parent_name"
+       gets filled in before trying to copy it to "target"; the recursion
+       stops when an interface has an empty "inheritance" field */
     let augment_object = function(parent_name,
 				      target, augment_thing, seen_in_this_chain)
     {
@@ -2626,12 +2634,12 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	seen_in_this_chain.push(target_name);
 	already_seen.push(target_name);
 
+	/* TODO: under what circumstances would we at this point have
+	   a valid "target_name" but an invalid "parent_name"? */
 	if (parent_name != null)
 	{
 	    let parent = objects_list[parent_name];
 
-	    /* TODO: what if they've included a different type (e.g., a
-	       dictionary that includes an interface)? */
 	    if (parent === undefined)
 	    {
 		/* an obvious error is to try to use an external type
@@ -2640,8 +2648,11 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 		    throw {"message"    : error_codes.external_inheritance,
 			   "object_name": target_name,
 			   "parent_name": parent_name };
+		/* so at this point, we have a valid parent and target, but
+		   target is not in the objects_list -- this means that the
+		   target is a different type than the parent */
 		else
-		    throw "Can't find a definition of \"" + parent_name + "\" to use in defining \"" + target_name + "\".";
+		    throw "Can't find a definition of \"" + parent_name + "\" to use in defining \"" + target_name + "\" (probably mismatched types?).";
 	    }
 
 	    /* we keep two lists of names that have been "seen" -- the

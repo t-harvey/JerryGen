@@ -8,9 +8,9 @@ PARAMETERS TO "baz" :
       0 :  4.000000
    ]
 ***********************executing: x.baz(a(true), b(2), d(true)); <-- should be an error with strict type checking (third param is a bool, not a float)
-Incorrect type for parameter 0 in call to function >baz<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >baz<
 ***********************executing: x.baz(d(true), e("17.0"), e("17.0")); <-- should be an error with strict type checking (2nd and 3rd params are a strings, not a numbers)
-Incorrect type for parameter 1 in call to function >baz<
+Script Error: TypeError: Incorrect type for parameter 1 in call to function >baz<
 ***********************executing: x.foo(4.0, z);
 PARAMETERS TO "foo" :
    y :  4.000000
@@ -33,7 +33,7 @@ PARAMETERS TO "foo" :
       ]
 RETURN_VALUE :  0.000000
 ***********************executing: x.foo(z, z) <-- should be an error
-Incorrect type for parameter 0 in call to function >foo<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >foo<
 ***********************executing: x.bar(z3([7, 8, 9]), 'a')
 PARAMETERS TO "bar" :
    a:
@@ -44,7 +44,7 @@ PARAMETERS TO "bar" :
    ]
    b: simple_enum_a
 ***********************executing: x.bar('the') <-- should be an error
-Incorrect type for parameter 0 in call to function >bar<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >bar<
 ***********************executing: x.bar([4.2], 'a')
 PARAMETERS TO "bar" :
    a:
@@ -53,12 +53,12 @@ PARAMETERS TO "bar" :
    ]
    b: simple_enum_a
 ***********************executing: x.bar([4.2], 'ab') <-- should be an error)
-Incorrect type for parameter 1 in call to function >bar<
+Script Error: TypeError: Incorrect type for parameter 1 in call to function >bar<
 ***********************executing: x.bar("4", 'ab') <-- should be an error
-Incorrect type for parameter 0 in call to function >bar<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >bar<
 ***********************changing z.z to 4.32
 ***********************calling x.foo(4.0, new simple_dictionary( 5, [] )) -- should be an error with strict type checking (new-dict.z is a number, not a boolean)
-Incorrect type for parameter 1 in call to function >foo<
+Script Error: TypeError: Incorrect type for parameter 1 in call to function >foo<
 ***********************calling x.foo2(true)
 PARAMETERS TO "foo2" :
    x with union type >boolean<:
@@ -84,19 +84,19 @@ PARAMETERS TO "foo4" :
    x with union type >boolean<:
        :  TRUE
 ***********************calling x.foo4(4.3) <-- w/ strict type checking: should be an error
-Incorrect type for parameter 0 in call to function >foo4<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >foo4<
 ***********************calling x.foo4(undef) <-- w/ strict type checking: should be an error
-Incorrect type for parameter 0 in call to function >foo4<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >foo4<
 ***********************calling x.foo2("4.3") <-- w/ strict type checking: should be an error (param needs a float, given a string)
-Incorrect type for parameter 0 in call to function >foo2<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >foo2<
 ***********************calling x.foo5(z) <-- w/ strict type checking: should be an error (z.z is a float, not a boolean)
-Incorrect type for parameter 0 in call to function >foo5<
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >foo5<
 ***********************calling x.foo5(4.3)
 PARAMETERS TO "foo5" :
    x with union type >double<:
        :  4.300000
 ***********************calling x.foo(1.0, z) <-- w/ strict type checking: should be an error (1st param wants a boolean, given a float);
-Incorrect type for parameter 1 in call to function >foo<
+Script Error: TypeError: Incorrect type for parameter 1 in call to function >foo<
 ***********************calling x.foo4("")
 PARAMETERS TO "foo4" :
    x with union type >string<:

@@ -215,7 +215,7 @@ void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Ob
                    const jerry_length_t args_cnt){{#private_header}};{{/private_header}} /**< number of function arguments */
 {{#body}}
 {
-    {{{Interpreter.error_type}}} error = 0;
+    {{{Interpreter.error_type}}} _error = 0;
     {{#is_constructor}}
     {{{Interpreter.Type}}} new_interface = create_empty_{{{interfaceName}}}();
     {{/is_constructor}}
@@ -230,7 +230,7 @@ void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Ob
 {{/repress_stubs}}
 {{^repress_stubs}}
 {{#C_and_Jerryscript_Types}}
-    extern {{#return_is_this}}{{{Interpreter.Type}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error);
+    extern {{#return_is_this}}{{{Interpreter.Type}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *_error);
 {{/C_and_Jerryscript_Types}}
 {{/repress_stubs}}
 {{! for the "return_value", the logic is as follows: 1) don't put out
@@ -241,7 +241,7 @@ declaration with an assignment from the stub }}
 {{#repress_stubs}}{{^voidReturnType}}
 /* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
 {{#C_and_Jerryscript_Types}}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}({{#is_constructor}}new_interface{{/is_constructor}}{{^is_constructor}}this_val{{/is_constructor}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, &error);{{/repress_stubs}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}({{#is_constructor}}new_interface{{/is_constructor}}{{^is_constructor}}this_val{{/is_constructor}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, &_error);{{/repress_stubs}}
 {{/C_and_Jerryscript_Types}}
 
     /* we expect the stubs files to return a non-zero error if
@@ -275,12 +275,15 @@ create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_v
     return object;
 {{/NoInterfaceObject}}
 {{^NoInterfaceObject}}
-    {{{Interpreter.Type}}} new_{{{interfaceName}}} = create_empty_{{{interfaceName}}}();
-
   {{#constructors.length}}
-  {{{Interpreter.Type}}} return_value;
+    {{{Interpreter.Type}}} new_{{{interfaceName}}};
+    {{{Interpreter.Type}}} return_value;
 
   {{/constructors.length}}
+  {{^constructors.length}}
+    {{{Interpreter.Type}}} new_{{{interfaceName}}} = create_empty_{{{interfaceName}}}();
+  {{/constructors.length}}
+
   {{#sorted_constructors}}
 {{! the logic: if "no_final_check_necessary", the check that _would_
     have been put out would be "if (args_cnt >= 0", which is always
@@ -290,21 +293,15 @@ create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_v
   {{#no_final_check_necessary}}{{^first_in_list}}else{{/first_in_list}}{{/no_final_check_necessary}}{{^no_final_check_necessary}}{{^first_in_list}}else {{/first_in_list}}if (args_cnt {{#greater_than}}>={{/greater_than}}{{^greater_than}}=={{/greater_than}} {{{parameter_count}}}){{/no_final_check_necessary}}
   {
       {{#constructors_at_this_level}}
-      return_value = {{{interfaceName}}}_{{{operationName}}}_handler(func_value,
+      new_{{{interfaceName}}} = {{{interfaceName}}}_{{{operationName}}}_handler(func_value,
                                                 new_{{{interfaceName}}},
 						args_p,
 						args_cnt);
-      if (!jerry_value_is_error(return_value))
+          {{^last_constructor_in_list}}
+      if (!jerry_value_is_error(new_{{{interfaceName}}}))
           goto return_new_interface;
       else
-          {{^last_constructor_in_list}}
-          jerry_release_value(return_value);
-          {{/last_constructor_in_list}}
-          {{#last_constructor_in_list}}
-	  {
-	      jerry_release_value(new_{{{interfaceName}}});
-              new_{{{interfaceName}}} = return_value;
-          }
+          jerry_release_value(new_{{{interfaceName}}});
           {{/last_constructor_in_list}}
       {{/constructors_at_this_level}}
   }

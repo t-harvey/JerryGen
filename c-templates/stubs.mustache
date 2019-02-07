@@ -167,7 +167,7 @@ extern void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
  *
  */ 
 {{/body}}
-{{#C_and_Jerryscript_Types}}{{#return_is_this}}{{{interfaceName}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{interfaceName}}} this{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *error){{#header}};{{/header}}
+{{#C_and_Jerryscript_Types}}{{#return_is_this}}{{{interfaceName}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}}{{/C_and_Jerryscript_Types}} {{{interfaceName}}}_{{{operationName}}}({{{interfaceName}}} this{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} {{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *_error){{#header}};{{/header}}
 {{#body}}
 {
     {{#arguments}}
@@ -178,8 +178,8 @@ extern void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
 	{{/callback}}
         {{/C_and_Jerryscript_Types}}
     {{/arguments}}
-    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(this, error);
-    if (*error)
+    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_get(this, _error);
+    if (*_error)
 {{#C_and_Jerryscript_Types}}
     {{#voidReturnType}}
         return;
@@ -214,6 +214,7 @@ extern void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
 
 {{/debug_printing}}
     /* USER CODE GOES HERE */
+
 {{^debug_printing}}
 {{#is_constructor}}
 

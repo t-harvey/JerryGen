@@ -1,3 +1,20 @@
+{{! Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+}}
 {{! The purpose of this code is to isolate the demarshaling code for
     function calls, as it's big and complicated, and so that it can be
     used for both callbacks and operations }}
@@ -37,8 +54,8 @@ corresponding to the type of thing we're processing... (search for
    	    {{/C_and_Jerryscript_Types}}
 	    else
 	    {
-	        fprintf(stderr, "Incorrect type for parameter {{{paramIndex}}} in call to function ><%thingName%><\n");
-	       /* return; TODO: we should jump to the return code (?) */
+	        jerry_create_error(JERRY_ERROR_TYPE,
+	                           (jerry_char_t*)"Incorrect type for parameter {{{paramIndex}}} in call to function ><%thingName%><");
 	       goto <%thingName%>_clean_up_and_exit;
 	    }
 	}
@@ -51,21 +68,34 @@ corresponding to the type of thing we're processing... (search for
             {{{name}}} = {{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(args_p[{{{paramIndex}}}]);
 	else
 	{
-	    fprintf(stderr, "Incorrect type for parameter {{{paramIndex}}} in call to function ><%thingName%><\n");
-	    /* return; TODO: we should jump to the return code (?) */
+	    _error = jerry_create_error(JERRY_ERROR_TYPE,
+	                       (jerry_char_t*)"Incorrect type for parameter {{{paramIndex}}} in call to function ><%thingName%><");
 	    goto <%thingName%>_clean_up_and_exit;
 	}
     }
     else
                  {{^optional}}
     {
-	fprintf(stderr, "Too few parameters to function ><%thingName%><\n");
-	/* return; TODO: we should jump to the return code (?) */
+	jerry_create_error(JERRY_ERROR_TYPE,
+	                   (jerry_char_t*)"Too few parameters to function ><%thingName%><");
 	goto <%thingName%>_clean_up_and_exit;
     }
 		 {{/optional}}
                  {{#optional}}
-        {{{name}}} = {{{default_value}}};
+        {{#is_string}}
+    {
+	if (strlen("{{{default_value}}}") > 0)
+	{
+	    {{{name}}} = malloc(sizeof(char)*(strlen("{{{default_value}}}")+1));
+	    strcpy({{{name}}}, "{{{default_value}}}");
+	}
+	else
+	    {{{name}}} = "";
+    }
+	{{/is_string}}
+	{{^is_string}}
+        {{{name}}} = {{#is_string}}"{{/is_string}}{{{default_value}}}{{#is_string}}"{{/is_string}};
+	{{/is_string}}
 		 {{/optional}}
              {{/C_and_Jerryscript_Types}}
     	{{/variadic}}
@@ -123,8 +153,8 @@ corresponding to the type of thing we're processing... (search for
 
     if (jerry_value_is_error(get_args_result))
     {
-	fprintf(stderr, "ERROR IN PARAMETERS.\n");
-	return get_args_result;
+        return jerry_create_error(JERRY_ERROR_TYPE,
+	                          (jerry_char_t*)"ERROR IN PARAMETERS.");
     }
     {{/number_of_non_variadic_params}}
 
@@ -153,9 +183,8 @@ corresponding to the type of thing we're processing... (search for
                              			   1);
                 if (jerry_value_is_error(get_args_result))
                 {
-                    /* TODO: free (ALL!) memory!!! */
-		    fprintf(stderr, "ERROR in variadic parameter.\n");
-            	    return get_args_result;
+		    return jerry_create_error(JERRY_ERROR_TYPE,
+	                       (jerry_char_t*)"ERROR in variadic parameter.");
 		}
        	    }
 	}
@@ -165,9 +194,6 @@ corresponding to the type of thing we're processing... (search for
 	{{/variadic}}
 	{{/C_and_Jerryscript_Types}}
     {{/arguments}}
-
-/*    else */
-/*	fprintf(stderr, "CORRECT PARAMETERS.\n");*/
   {{/original_arg_handling}}
 {{! ******************************************************************* }}
 {{! END OF ARGUMENT HANDLING }}

@@ -56,6 +56,8 @@ BEGIN{
 		    seen_pre = 0;
 		    break;
 		}
+		else if (non_newlines[i] == "Uint8")
+		    printf("octet\n");
 		else
 		    printf("%s\n", non_newlines[i]);
 	    }

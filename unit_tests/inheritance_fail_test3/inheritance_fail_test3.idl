@@ -1,0 +1,17 @@
+
+interface farthest_interface_ancestor {
+    attribute long c;
+    attribute long d;
+};
+
+dictionary middle_dictionary_ancestor : farthest_interface_ancestor {
+    string d;
+    string e;
+};
+
+dictionary nearest_dictionary_ancestor : middle_dictionary_ancestor {
+    boolean e;
+    boolean f;
+};
+
+dictionary dictionary_compilation : nearest_dictionary_ancestor{};

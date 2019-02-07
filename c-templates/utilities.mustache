@@ -262,10 +262,13 @@ bool {{{Interpreter.interpreter}}}_value_is_ArrayBuffer({{{Interpreter.Type}}} A
 {{/body}}
 {{/header}}
 {{^private_header}}
+/* CAUTION: the "data" part of the new constructor must be overwritten
+   immediately! */
 ArrayBuffer ArrayBuffer_constructor(void){{#header}};{{/header}}
 {{#body}}
 {
-    return (ArrayBuffer){0, NULL};
+    uint8_t *replace_with_a_meaningful_value_immediately = malloc(1);
+    return (ArrayBuffer){1, replace_with_a_meaningful_value_immediately};
 }; /* ArrayBuffer_constructor */
 
 {{/body}}
@@ -712,7 +715,12 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 //#define interpreter_value_is_unsignedlong (bool)jerry_value_is_number
 //#define interpreter_value_is_longlong (bool)jerry_value_is_number
 //#define interpreter_value_is_unsignedlonglong (bool)jerry_value_is_number
-#define interpreter_value_is_boolean (bool)jerry_value_is_boolean
+#define {{{Interpreter.interpreter}}}_value_is_boolean (bool)jerry_value_is_boolean
+{{! these come up when we want to check if a jerry_value_t is a
+    callback (b/c those are #def'd to Interpreter_Type) -- but the
+    only thing a valid jerry_value_t can be is one of six types, so
+    this should be sufficient }}
+#define {{{Interpreter.interpreter}}}_value_is_{{{Interpreter.Type}}}(value) (jerry_value_is_boolean(value) || jerry_value_is_object(value) || jerry_value_is_null(value) || jerry_value_is_string(value) || jerry_value_is_undefined(value) || jerry_value_is_number(value))
 
 #define {{{Interpreter.interpreter}}}_value_is_float (bool)jerry_value_is_number
 
@@ -729,7 +737,7 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 {{/interpreter.tied_to_jerryscript}}
 
 /* "byte" is the type of the ArrayBuffer type */
-#define {{{Interpreter.interpreter}}}_create_byte (bool)jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_byte jerry_create_number
 //#define interpreter_create_octet (bool)jerry_create_number
 // #define interpreter_create_short (bool)jerry_create_number
 // #define interpreter_create_unsignedshort (bool)jerry_create_number
@@ -739,17 +747,17 @@ typedef enum {INTERPRETER_ARG_OPTIONAL=JERRYX_ARG_OPTIONAL,
 // #define interpreter_create_unsignedlonglong (bool)jerry_create_number
 
 #define {{{Interpreter.interpreter}}}_create_float jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_double (bool)jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_double jerry_create_number
 
 
-#define {{{Interpreter.interpreter}}}_create_int8_t (bool)jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_uint8_t (bool)jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_int16_t (bool)jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_uint16_t (bool)jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_int32_t (bool)jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_uint32_t (bool)jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_int64_t (bool)jerry_create_number
-#define {{{Interpreter.interpreter}}}_create_uint64_t (bool)jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_int8_t jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_uint8_t jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_int16_t jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_uint16_t jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_int32_t jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_uint32_t jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_int64_t jerry_create_number
+#define {{{Interpreter.interpreter}}}_create_uint64_t jerry_create_number
 
 #define {{{Interpreter.interpreter}}}_create_bool   jerry_create_boolean
 
@@ -1627,6 +1635,15 @@ void debug_print_ArrayBuffer(char *variable_name,
         printf("\n");
 }; /* debug_print_ArrayBuffer */
 
+{{/body}}
+/* this is the same as debug_typeof (below), but can be used in gdb,
+   since it doesn't require malloc to create a string for
+   debug_typeof's string parameter */
+void debug_typeof_no_name({{{Interpreter.Type}}} thing){{#header}};{{/header}}
+{{#body}}
+{
+    debug_typeof(thing, "");
+} /* debug_typeof_no_name */
 {{/body}}
 void debug_typeof({{{Interpreter.Type}}} thing, string thing_name){{#header}};{{/header}}
 {{#body}}

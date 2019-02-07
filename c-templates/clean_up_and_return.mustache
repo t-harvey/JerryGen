@@ -1,8 +1,25 @@
+{{! Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+}}
 {{! The purpose of this code is to isolate the cleanup code for
     handler-type calls, as it's big and complicated, and so that it can be
     used in different files }}
 {{! This is the sister to demarshal_args.mustache, so it assumes
-    that the surrounding routine has defined a variable called "error"
+    that the surrounding routine has defined a variable called "_error"
     and that this code starts with a label that the args code will
     do a goto to. }}
 {{! We change the delimiters here, as both interface-operations and
@@ -10,7 +27,7 @@ callbacks use this code -- we preprocess this to add the field-name
 corresponding to the type of thing we're processing... (search for
 "thingName") }}
 {{=<% %>=}}
-<%thingName%>_clean_up_and_exit:
+<%thingName%>_clean_up_and_exit: ;
     {{! if the return value is a string (or array of strings), we want
         to enter it into the Jerryscript environment _before_ we
         deallocate our local strings, as it's possible that the return
@@ -18,7 +35,7 @@ corresponding to the type of thing we're processing... (search for
     {{#C_and_Jerryscript_Types.is_string}}
     {{{Interpreter.Type}}} string_value = 0;
     /* put the string into Jerryscript before we cleanup any string arguments */
-    if (!jerry_value_is_error(error))
+    if (!jerry_value_is_error(_error))
          string_value = jerry_create_string((const jerry_char_t *)return_value);
 
     {{/C_and_Jerryscript_Types.is_string}}
@@ -34,12 +51,12 @@ corresponding to the type of thing we're processing... (search for
         {{/C_and_Jerryscript_Types}}
 
     {{/arguments}}
-    if (jerry_value_is_error(error))
+    if (jerry_value_is_error(_error))
     {
     {{#is_constructor}}
         jerry_release_value(new_interface);
     {{/is_constructor}}
-        return error;
+        return _error;
     }
     else
 {{#is_constructor}}

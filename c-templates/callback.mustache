@@ -126,7 +126,7 @@ run_{{{callbackName}}}_function_handler(
              const {{{Interpreter.Type}}} *args_p, /**< function arguments */
              const jerry_length_t args_cnt) /**< number of function arguments */
 {
-    {{{Interpreter.error_type}}} error = 0;
+    {{{Interpreter.error_type}}} _error = 0;
     {{> demarshal_args}}
 
 {{#C_and_Jerryscript_Types}}

@@ -11,7 +11,7 @@ print("call to AIOPin.close: " + new_AIOPin.close());
 print("****************** BLE *****************************");
 
 var new_BLE = require("BLE");
-var listener_callback = function() { print("inside listener_callback with params: " + arguments); };
+var listener_callback = function(x) { print("inside listener_callback with params: " + arguments); };
 var on_result = new_BLE.on("event", listener_callback);
 print("on == new\n     ");
 if (on_result == new_BLE) print("TRUE"); else print("FALSE");
@@ -82,7 +82,7 @@ print("*************** Buffer *****************************");
 
 var byte_array = new ArrayBuffer(12);
 
-var new_Buffer = new Buffer(12, byte_array);
+var new_Buffer = new Buffer(12);
 print("new_Buffer.length = " + new_Buffer.length);
 print("new_Buffer.buffer = " + new_Buffer.buffer);
 
@@ -109,7 +109,8 @@ var writeUInt32LE_result = new_Buffer.writeUInt32LE(64, 32);
 print("*************** Console *****************************");
 
 var new_Console = require("Console");
-var assert_result = new_Console.assert("true", "sent in true");
+var assert_result = new_Console.assert("true", "should be an error -- first param should be a boolean");
+var assert_result = new_Console.assert(true, "sent in true");
 var new_error = new_Console.error("error message");
 var new_warn = new_Console.warn("warning message");
 var new_log = new_Console.log("console message");
@@ -159,7 +160,7 @@ var unlinkSync_result = new_FS.unlinkSync("string path");
 var rmdirSync_result = new_FS.rmdirSync("string path");
 var writeSync_result = new_FS.writeSync(new FileDescriptor(), "(string or Buffer) data", 10, 20, 30);
 var writeSync_result2 = new_FS.writeSync(new FileDescriptor(), new_Buffer, 10, 20, 30);
-var readSync_result = new_FS.readSync(new FileDescriptor, new Buffer(10, new ArrayBuffer(12)), 10, 10, 10);
+var readSync_result = new_FS.readSync(new FileDescriptor, new Buffer(10), 10, 10, 10);
 var truncateSync_result = new_FS.truncateSync("string path", 43);
 var mkdirSync_result = new_FS.mkdirSync("string path");
 var readdirSync_result = new_FS.readdirSync("string path");
@@ -228,7 +229,7 @@ var new_double =  new_MathStubs.random();
 
 print("************** NetConfig ***************************");
 
-var DHCPCallback = function(x) { print(x);};
+var DHCPCallback = function(x, y, z) { print(x);};
 var new_NetConfig = require("NetConfig");
 var new_boolean =  new_NetConfig.setStaticIP("string ip");
 var dhcp_result = new_NetConfig.dhcp(DHCPCallback);
@@ -342,14 +343,14 @@ var stop_result = new_Sensor.stop();
 
 var new_SensorErrorEvent = new SensorErrorEvent;
 
-var new_Accelerometer = new Accelerometer(1.0, 1.0, 1.0);
+var new_Accelerometer = new Accelerometer(new AccelerometerOptions(1.0, "1.0, 1.0"));
 
 
-var new_GyroscopeSensor = new GyroscopeSensor(1.0, 1.0, 1.0);
+var new_GyroscopeSensor = new GyroscopeSensor(new GyroscopeOptions(1.0, "1.0, 1.0"));
 
-var new_AmbientLightSensor = new AmbientLightSensor(1, 1.0);
+var new_AmbientLightSensor = new AmbientLightSensor(new AmbientLightSensorOptions(1, "1.0", 1));
 
-var new_TemperatureSensor = new TemperatureSensor(0.0);
+var new_TemperatureSensor = new TemperatureSensor(new TemperatureSensorOptions(1.0, "0.0"));
 
 print("***************** SPI ******************************");
 

@@ -1,0 +1,147 @@
+The purpose of this test is to test inheritance for dictionaries and
+interfaces, for both internal inheritance (the parent object is defined
+in the same file) and for external inheritance (the parent object is
+defined in a separate file which must be include'd on the Jerrygen
+command line).
+
+(All commands are assumed to be from the examples directory off of the
+top-level Jerryscript directory, with the generator directory at the
+same level in the file hierarchy as the Jerryscript directory.)
+
+The first test is to make sure that we will recognize a cycle in
+inheritance for both interfaces and dictionaries.  Compile the two
+tests with the following commands:
+../../generator/generate.js --package=doesnt_matter ../../generator/unit_tests/inheritance_test/cyclic_inheritance_interface.idl
+../../generator/generate.js --package=doesnt_matter ../../generator/unit_tests/inheritance_test/cyclic_inheritance_dictionary.idl
+
+...the expectation is that each of these will die with a reasonable/helpful
+error message.
+
+For the working test:
+
+We create a dictionary and an interface that both inherit up a chain,
+including from an external include.
+
+Compile the code with the following command:
+../../generator/generate.js --output_utility_files --package=inheritance_test --include=../../generator/unit_tests/inheritance_test/external_inheritances.idl ../../generator/unit_tests/inheritance_test/inheritance_test.idl
+
+...this test relies on an included file that also has to get compiled:
+ ../../generator/generate.js --package=inheritance_test ../../generator/unit_tests/inheritance_test/external_inheritances.idl
+
+...now, we want to compile this into a working piece of code to run
+our Javascript script on, so rewrite the stubs to print out each
+object's name:
+../../generator/unit_tests/inheritance_test/inject_stubs.script inheritance_test ../../generator/unit_tests/inheritance_test/inject_print_my_name_code.awk
+
+...now, cd into the inheritance_test directory and compile an a.out file:
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm
+
+Finally, run the test script:
+a.out ../../../generator/unit_tests/inheritance_test/inheritance_test_script.js
+
+
+...all of the commands as a single command:
+../../generator/generate.js --output_utility_files --package=inheritance_test --include=../../generator/unit_tests/inheritance_test/external_inheritances.idl ../../generator/unit_tests/inheritance_test/inheritance_test.idl && ../../generator/generate.js --package=inheritance_test ../../generator/unit_tests/inheritance_test/external_inheritances.idl && ../../generator/unit_tests/inheritance_test/inject_stubs.script inheritance_test ../../generator/unit_tests/inheritance_test/inject_print_my_name_code.awk && cd inheritance_test && gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerry-port/default/include -I../../jerry-core/include -I../../jerry-ext/include -I. *.c ../../../generator/unit_tests/template/main_jerrygen.c ../../build/lib/libjerry-core.a ../../build/lib/libjerry-ext.a ../../build/lib/libjerry-port-default.a -lm && a.out ../../../generator/unit_tests/inheritance_test/inheritance_test_script.js
+
+
+Expected output:
+
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+interface_even_farther_interface_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >false<  (boolean)
+        d = >undefined<  (undefined)
+        e = >undefined<  (undefined)
+        f = >undefined<  (undefined)
+        even_farther_interface_ancestor
+undefined
+interface_farthest_interface_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = >0<  (number)
+        e = >undefined<  (undefined)
+        f = >undefined<  (undefined)
+        farthest_interface_ancestor
+undefined
+interface_middle_interface_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = ><  (string)
+        e = ><  (string)
+        f = >undefined<  (undefined)
+        middle_interface_ancestor
+undefined
+interface_nearest_interface_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = ><  (string)
+        e = >false<  (boolean)
+        f = >false<  (boolean)
+        nearest_interface_ancestor
+undefined
+interface_interface_compilation
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = ><  (string)
+        e = >false<  (boolean)
+        f = >false<  (boolean)
+        nearest_interface_ancestor
+undefined
+dictionary_even_farther_dictionary_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >false<  (boolean)
+        d = >undefined<  (undefined)
+        e = >undefined<  (undefined)
+        f = >undefined<  (undefined)
+undefined
+dictionary_farthest_interface_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = >0<  (number)
+        e = >undefined<  (undefined)
+        f = >undefined<  (undefined)
+undefined
+dictionary_middle_dictionary_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = ><  (string)
+        e = ><  (string)
+        f = >undefined<  (undefined)
+undefined
+dictionary_nearest_dictionary_ancestor
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = ><  (string)
+        e = >false<  (boolean)
+        f = >false<  (boolean)
+undefined
+dictionary_dictionary_compilation
+        a = >false<  (boolean)
+        b = >false<  (boolean)
+        c = >0<  (number)
+        d = ><  (string)
+        e = >false<  (boolean)
+        f = >false<  (boolean)
+undefined
+******************** LAST CALL ******************
+undefined

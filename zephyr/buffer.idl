@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-[ Constructor(sequence < Uint8 > initialValues),
+[ Constructor(sequence < octet > initialValues),
   Constructor(unsigned long size),
   Constructor(ByteString initialString), ]
 interface Buffer {
