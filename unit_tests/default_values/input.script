@@ -1,0 +1,10 @@
+var cwd = function(x) { print("cwd = ");};
+var dwd1 = new dictionary_with_default(1);
+var dwd5 = new dictionary_with_default;
+var iwd1 = new interface_with_default;
+var iwd2 = new interface_with_default(1);
+
+iwd1.show_defaults(cwd, dwd1, 1);
+iwd1.show_defaults(cwd, dwd1);
+iwd2.show_defaults(cwd, dwd5, 1);
+iwd2.show_defaults(cwd, dwd5);

@@ -1,0 +1,12 @@
+callback callback_with_default = void (optional long arg1 = 17);
+
+dictionary dictionary_with_default {
+    double field1 = 5.0;
+    string field2 = "meaningless_default_value";
+};
+
+[ Constructor(optional long constructor_arg = 13) ]
+interface interface_with_default {
+    attribute long long_attribute;
+    void show_defaults(callback_with_default x, dictionary_with_default y, optional long operation_default = 7);
+};

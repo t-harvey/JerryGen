@@ -1,0 +1,47 @@
+PARAMETERS TO "Constructor_0" :
+	The function "Constructor_0" takes no parameters.
+PARAMETERS TO "Constructor_0" :
+	The function "Constructor_0" takes no parameters.
+PARAMETERS TO "Constructor_0" :
+	The function "Constructor_0" takes no parameters.
+PARAMETERS TO "Constructor_1" :
+   x :  5
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >Constructor_1<
+PARAMETERS TO "Constructor_0" :
+   x :  5
+   y :  0
+Script Error: TypeError: Incorrect type for parameter 0 in call to function >Constructor_1<
+PARAMETERS TO "Constructor_0" :
+   x :  5
+   y :  6
+PARAMETERS TO "Constructor_1" :
+   z :  "string"
+PARAMETERS TO "Constructor_0" :
+   x :  5
+   y :  6
+PARAMETERS TO "Constructor_1" :
+   x :  5
+   y :  "six"
+PARAMETERS TO "Constructor_1" :
+   x :  1
+   y:
+   [
+   ]
+PARAMETERS TO "Constructor_1" :
+   x :  2
+   y:
+   [
+      0 :  2
+   ]
+PARAMETERS TO "Constructor_0" :
+   x :  3
+   y :  3
+   z :  "four"
+PARAMETERS TO "Constructor_1" :
+   x :  4
+   y:
+   [
+      0 :  4
+      1 :  5
+   ]
+

@@ -474,7 +474,7 @@ AugmentedAST.prototype.record_typedefs = function(ast)
     } /* find_ultimate_typename */
 
     /* first, gather the typedefs */
-    for(var i = 0; i < ast.length; i++)
+    for (var i = 0; i < ast.length; i++)
 	if (ast[i].type == "typedef")
         {
 	    this.set_external_types(ast[i]);
@@ -496,7 +496,7 @@ AugmentedAST.prototype.record_typedefs = function(ast)
        and we need to know what the "ultimate" type is so that we can
        include the proper .h file to support its use */
     let types = Object.keys(this.typedefs);
-    for(var i = 0; i < types.length; i++)
+    for (var i = 0; i < types.length; i++)
     {
 	find_ultimate_typename(types[i], this.typedefs, []);
 	this.typedefs[types[i]].ultimate_typename_C_type =
@@ -506,7 +506,7 @@ AugmentedAST.prototype.record_typedefs = function(ast)
 
     /* finally, add these to the list to check for later */
     /* TODO: should we do this with the ultimate_type? */
-//    for(var i = 0; i < this.typedefs.length; i++)
+//    for (var i = 0; i < this.typedefs.length; i++)
 //	    this.addToTypeCheckQueue(this.typedefs[i].typedefName);
 
 } /* record_typedefs */
@@ -515,7 +515,8 @@ AugmentedAST.prototype.record_typedefs = function(ast)
 /* return a struct with the C and Jerryscript types for the WebIDL type
    passed in */
 AugmentedAST.prototype.getConversionTypes = function(idlType,
-						     is_variadic = false)
+						     is_variadic = false,
+						     default_value = undefined)
 {
     let return_types = {};
 
@@ -561,18 +562,28 @@ AugmentedAST.prototype.getConversionTypes = function(idlType,
 	return_types.callback_return_type = this.callbacks[this.getTypeName(return_types.C_Type)].return_type;
     }
 
-    /* on the C side, we'll want to know what the default value is
-       when defining a variable of that type -- intrinsic types have
-       a value, while everything else has a constructor */
-    return_types.default_value = this.get_C_default_value(return_types.C_Type);
-    /* ...and if the default value is a constructor, we'll want to be
-       able to put out an extern declaration before using it */
-    if (typeof(return_types.default_value) === "string" &&
-	return_types.default_value.length ==
-	          (return_types.default_value.indexOf("_constructor()") +
-	           "constructor()".length))
-	return_types.default_value_extern = "extern " +
+    if (default_value != undefined)
+    {
+	/* TODO: what if the type isn't a simple type?!? */
+	/* TODO: we don't(can't?) allow default values for composites! */
+	return_types.default_value = default_value.value;
+    }
+    else
+    {
+	/* on the C side, we'll want to know what the default value is
+	   when defining a variable of that type -- intrinsic types have
+	   a value, while everything else has a constructor */
+	return_types.default_value =
+	                      this.get_C_default_value(return_types.C_Type);
+	/* ...and if the default value is a constructor, we'll want to be
+	   able to put out an extern declaration before using it */
+	if (typeof(return_types.default_value) === "string" &&
+	    return_types.default_value.length ==
+	              (return_types.default_value.indexOf("_constructor()") +
+	              "constructor()".length))
+	    return_types.default_value_extern = "extern " +
 	                                    return_types.default_value + ";";
+    }
 
     return return_types;
 }; /* AugmentedAST.getConversionTypes */
@@ -666,17 +677,18 @@ AugmentedAST.prototype.build_operation_fields = function(operation,
     operation.interfaceName = interfaceName;
 
     if(operation.extAttrs && operation.extAttrs.length > 0)
-	for(var i = 0; i < operation.extAttrs.length; i++)
+	for (var i = 0; i < operation.extAttrs.length; i++)
 	    if(operation.extAttrs[i].name == "ThrowsRPCError")
 		operation.ThrowsRPCError = operation.extAttrs[i];
 
-    for(i = 0; i < operation.arguments.length; i++)
+    for (i = 0; i < operation.arguments.length; i++)
     {
 	operation.arguments[i].C_and_Jerryscript_Types =
 	    this.getConversionTypes(operation.arguments[i].idlType, 
-				    operation.arguments[i].variadic);
+				    operation.arguments[i].variadic,
+				    operation.arguments[i].default);
 	operation.arguments[i].paramIndex = i;
-	/* TODO: we don't allow default values for composites! */
+
 	if (operation.arguments[i].default != undefined)
 	    operation.arguments[i].C_and_Jerryscript_Types.default_value =
 	                            operation.arguments[i].default.value;
@@ -723,7 +735,7 @@ AugmentedAST.prototype.set_constructors = function(theInterface)
 
 	/* first, sort using a simple count of parameters; gather statistics
 	   about each call's mix of parameter types (optional and variadic) */
-	for(let i=0; i< original_list.length; i++)
+	for (let i=0; i< original_list.length; i++)
 	{
 	    original_list[i].position_in_list = i;
 	    original_list[i].optional_count = 0;
@@ -731,7 +743,7 @@ AugmentedAST.prototype.set_constructors = function(theInterface)
 						makes the math more natural */
 	    let next_constructor = original_list[i];
 	    let param_count = next_constructor.arguments.length;
-	    for(let j in next_constructor.arguments)
+	    for (let j in next_constructor.arguments)
 	    {
 		if (next_constructor.arguments[j].optional)
 		    original_list[i].optional_count++;
@@ -778,7 +790,7 @@ AugmentedAST.prototype.set_constructors = function(theInterface)
 		   this code becomes superfluous */
 		let list_position = 0;
 		let bucket_list = buckets[index];
-		for(list_position = 0;
+		for (list_position = 0;
 		    list_position < bucket_list.length;
 		    list_position++)
 		    if (bucket_list[list_position].position_in_list >
@@ -1348,7 +1360,7 @@ AugmentedAST.prototype.fix_names_and_types = function(thing, type_of_thing)
 	    thing.enumName = change_thing_name_if_necessary(thing.enumName,
 							    this.enums);
 
-	    for(let i = 0; i <  thing.values.length; i++)
+	    for (let i = 0; i <  thing.values.length; i++)
 		thing.values[i].C_value = fix_enum(
 		                           thing.values[i].C_value);
 	}
@@ -1614,7 +1626,7 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 	this.dictionaries[d.name] = d;
 	d.dictionaryName = d.name;
 	// augment and add members
-	for(var i = 0 ; i < d.members.length; i++)
+	for (var i = 0 ; i < d.members.length; i++)
 	{
 	    /* if the user declares an array with "sequence",
 	       getConversionTypes will catch it; the problem is that the user
@@ -1627,7 +1639,9 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 		d.members[i].idlType.sequence = true;
 	    d.members[i].memberName = d.members[i].name;
 	                                           /* "name" is too generic */
-	    d.members[i].C_and_Jerryscript_Types = this.getConversionTypes(d.members[i].idlType);
+	    d.members[i].C_and_Jerryscript_Types =
+		  this.getConversionTypes(d.members[i].idlType,
+					  false, d.members[i].default);
 	    if (i+1 == d.members.length)
 		d.members[i].finalMember = true;
 	}
@@ -1636,7 +1650,7 @@ AugmentedAST.prototype.addDictionary = function (d, index)
     
     // add an index to the dictionary members so it's easy to assign
     // to them when the user does a new
-    for(var i = 0 ; i < d.members.length; i++)
+    for (var i = 0 ; i < d.members.length; i++)
 	d.members[i].member_index = i;
 
     /* names and types need to be modified if they are reserved words... */
@@ -1661,7 +1675,7 @@ AugmentedAST.prototype.expand_enums = function(new_enum)
 {
     let enum_name = new_enum.name;
 
-    for(let i = 0; i < new_enum.values.length; i++)
+    for (let i = 0; i < new_enum.values.length; i++)
 	new_enum.values[i].C_value = enum_name + "_" + new_enum.values[i].Javascript_value;
 } /* expand_enums */
 
@@ -1680,7 +1694,7 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
     /* enum values can be different between C and Javascript, so we'll
        need to keep a version of each value for each language -- expand
        each member to an object so that we can store both values */
-    for(i = 0 ; i < new_enum.values.length; i++)
+    for (i = 0 ; i < new_enum.values.length; i++)
 	new_enum.values[i] = {"Javascript_value": new_enum.values[i]};
 
     /* to ensure that enum values are unique, we'll concatenate onto each
@@ -1715,7 +1729,7 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
        to call fix_names_and_types _BEFORE_ this loop...) */
     new_enum.members = [];
     new_enum.longest_Javascript_name_length = 0;
-    for(var i = 0 ; i < new_enum.number_of_members; i++)
+    for (var i = 0 ; i < new_enum.number_of_members; i++)
     {
 	let new_object = {C_name    : new_enum.values[i].C_value,
 		 Javascript_name    : new_enum.values[i].Javascript_value,
@@ -1786,9 +1800,12 @@ AugmentedAST.prototype.addCallback = function (callback, index) {
       callback.wrapper_indentation = new Array(indentation_amount+1).join(" ");
 
       // arguments with type info
-      for(var i = 0 ; i < callback.arguments.length; i++)
+      for (var i = 0 ; i < callback.arguments.length; i++)
       {
-	  callback.arguments[i].C_and_Jerryscript_Types = this.getConversionTypes(callback.arguments[i].idlType, callback.arguments[i].variadic);
+	  callback.arguments[i].C_and_Jerryscript_Types =
+	           this.getConversionTypes(callback.arguments[i].idlType,
+					   callback.arguments[i].variadic,
+					   callback.arguments[i].default);
 
 	  callback.arguments[i].paramIndex = i;
 	  if (i+1 === callback.arguments.length)
@@ -1821,7 +1838,7 @@ AugmentedAST.prototype.addCallback = function (callback, index) {
 /* I want to remove dictionaries that contain source code for the
    target files, and this seems to be a reasonable method: */
 /* note that it only works when the indices are numbers, and
-   it can't be used inside a for(var i in array) loop... */
+   it can't be used inside a for (var i in array) loop... */
 // Array Remove - By John Resig (MIT Licensed)
 // http://ejohn.org/blog/javascript-array-remove/
 Array.prototype.remove = function(from, to) {
@@ -1869,7 +1886,9 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
 					     Hogan compiler */
 	attributeMember.idlType = interfaceMember.idlType;
 	attributeMember.C_and_Jerryscript_Types =
-	                    this.getConversionTypes(interfaceMember.idlType);
+	                    this.getConversionTypes(interfaceMember.idlType,
+						    false,
+						    interfaceMember.default);
 	this.fix_names_and_types(attributeMember, "attribute");
 	this.interfaces[interfaceName].attributes.push(attributeMember);
 
@@ -1930,7 +1949,7 @@ AugmentedAST.prototype.addNewInterface = function (newInterface)
 
     // add an index to the interface attributes so it's easy to assign
     // to them when the user does a new
-    for(var i = 0 ; i < newInterface.attributes.length; i++)
+    for (var i = 0 ; i < newInterface.attributes.length; i++)
 	newInterface.attributes[i].attribute_index = i;
 
     /* mark the last attribute in the list (for later output -- we need to
@@ -2077,7 +2096,7 @@ AugmentedAST.prototype.report_reused_names = function()
 	let names_seen = {};
 	let duplicates = [];
 
-	for(var name_iterator = 0;
+	for (var name_iterator = 0;
 	    name_iterator < named_list.length;
 	    name_iterator++)
 	{
@@ -2087,7 +2106,7 @@ AugmentedAST.prototype.report_reused_names = function()
 	    else                  names_seen[name] = 1;
 	}
 
-	for(var name of Object.keys(names_seen))
+	for (var name of Object.keys(names_seen))
 	{
 	    var occurences = names_seen[name];
 	    if (occurences > 1)
@@ -2110,7 +2129,7 @@ AugmentedAST.prototype.report_reused_names = function()
     {
 	if (duplicates.length === 0) return;
 
-	for(var i=0; i < duplicates.length; i++)
+	for (var i=0; i < duplicates.length; i++)
 	{
 	    var name = duplicates[i].name;
 	    var occurences = duplicates[i].occurences;
@@ -2295,7 +2314,7 @@ AugmentedAST.prototype.processTypeCheckQueue = function ()
 	    throw "Type error";
     }
     else
-	for(let i = 0; i < this.typeCheckQueue.length; i++)
+	for (let i = 0; i < this.typeCheckQueue.length; i++)
 	if (!this.checkType(this.typeCheckQueue[i]))
 	    throw "Type error";
 
@@ -2513,7 +2532,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	   this keeps them in the original order but preceding target's
 	   own list */
 	let existing_members = target.members.map(a => a.memberName);
-	for(var i = parent.members.length-1; i >= 0; i--)
+	for (var i = parent.members.length-1; i >= 0; i--)
 	{
 	    var member = parent.members[i];
 	    if (existing_members.indexOf(member.memberName) < 0)
@@ -2550,7 +2569,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	   own list (we don't bother to do this for operations, since
 	   their order doesn't matter) */
 	let existing_attributes = target.attributes.map(a => a.attributeName);
-	for(var i = parent.attributes.length-1; i >= 0; i--)
+	for (var i = parent.attributes.length-1; i >= 0; i--)
 	{
 	    var attribute = parent.attributes[i];
 	    if (existing_attributes.indexOf(attribute.attributeName) < 0)
@@ -2730,7 +2749,7 @@ AugmentedAST.prototype.ensure_no_recursion_in_types = function(objects)
 {
     let objects_keys = Object.keys(objects);
 
-    for(let i = 0; i < objects_keys.length; i++)
+    for (let i = 0; i < objects_keys.length; i++)
 	this.walk_object_graph(objects_keys[i], objects, objects_keys, []);
 
 } /* ensure_no_recursion_in_types */
@@ -2859,7 +2878,7 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	var largest_numeric_type = undefined;
 	var c_and_j_type_list = composite.c_and_j_type_list;
 	var boolean_type_copy = undefined; /* defined if we see "boolean"... */
-	for(var i = 0; i < c_and_j_type_list.length; i++)
+	for (var i = 0; i < c_and_j_type_list.length; i++)
 	{
 	    var this_type = Object.assign({}, c_and_j_type_list[i]);
 
@@ -2964,12 +2983,12 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
 	   type that shows up in "all_external_types" to the object's
 	   external_types list */
 	/* ("things_list" is really an object, not a list...) */
-	for(var thing_name in things_list)
+	for (var thing_name in things_list)
 	{
 	    var thing = things_list[thing_name];
 	    var non_intrinsic_types = thing.non_intrinsic_types;
 	    var list_modifications = find_list_modifications(non_intrinsic_types);
-	    for(var modification_index = 0;
+	    for (var modification_index = 0;
 		    modification_index < list_modifications.length;
 		    modification_index++)
 	    {
@@ -2985,12 +3004,12 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
     var fix_externalTypes_lists = function(things_list, all_external_types)
     {
 	/* ("things_list" is really an object, not a list...) */
-	for(var thing_name in things_list)
+	for (var thing_name in things_list)
 	{
 	    var thing = things_list[thing_name];
 
 	    var external_types_to_keep = [];
-	    for(var i = 0; i < thing.externalTypes.length; i++)
+	    for (var i = 0; i < thing.externalTypes.length; i++)
 	    {
 		var next_type = thing.externalTypes[i];
 		
@@ -3451,7 +3470,7 @@ AugmentedAST.prototype.idlSequenceToSchema = function(depth, itemType)
 
 AugmentedAST.prototype.getInterfaceArray = function(){
   var out = [];
-  for(var key in this.interfaces){
+  for (var key in this.interfaces){
     out.push(this.interfaces[key]);
   }
 
@@ -3462,7 +3481,7 @@ AugmentedAST.prototype.getInterfaceArray = function(){
 AugmentedAST.prototype.getCompositeTypesArray = function()
 {
     var array_of_types = [];
-    for(var key in this.interfaces)
+    for (var key in this.interfaces)
 	array_of_types.push(this.composites[key]);
 
     return array_of_types;
@@ -3483,7 +3502,7 @@ AugmentedAST.prototype.getExternalTypesArray = function()
 					       Object.keys(this.callbacks));
 
     var out = [];
-    for(var key of Object.keys(this.allExternalTypes))
+    for (var key of Object.keys(this.allExternalTypes))
 	if (list_of_defined_types.indexOf(key) == -1)
 	    out.push(this.allExternalTypes[key]);
     return out;
@@ -3503,7 +3522,7 @@ AugmentedAST.prototype.getExternalTypesArray = function()
 					       Object.keys(this.callbacks));
 
     var out = [];
-    for(var key of Object.keys(this.allExternalTypes))
+    for (var key of Object.keys(this.allExternalTypes))
 	if (list_of_defined_types.indexOf(key) == -1)
 	    out.push(this.allExternalTypes[key]);
     return out;
@@ -3513,7 +3532,7 @@ AugmentedAST.prototype.getExternalTypesArray = function()
 AugmentedAST.prototype.turn_object_into_array = function(x)
 {
     var out = [];
-    for(var key in x)
+    for (var key in x)
 	out.push(x[key]);
     return out;
 }; /* turn_object_into_array */
@@ -3521,7 +3540,7 @@ AugmentedAST.prototype.turn_object_into_array = function(x)
 AugmentedAST.prototype.getDictionaryArray = function()
 {
   var out = [];
-  for(var key in this.dictionaries){
+  for (var key in this.dictionaries){
     out.push(this.dictionaries[key]);
   }
   return out;
@@ -3530,7 +3549,7 @@ AugmentedAST.prototype.getDictionaryArray = function()
 AugmentedAST.prototype.getTypedefArray = function()
 {
   var out = [];
-  for(var key in this.typedefs){
+  for (var key in this.typedefs){
     out.push(this.typedefs[key]);
   }
   return out;
@@ -3538,7 +3557,7 @@ AugmentedAST.prototype.getTypedefArray = function()
 
 AugmentedAST.prototype.getEnumsArray = function(){
   var out = [];
-  for(var key in this.enums){
+  for (var key in this.enums){
     out.push(this.enums[key]);
   }
   return out;
@@ -3546,7 +3565,7 @@ AugmentedAST.prototype.getEnumsArray = function(){
 
 AugmentedAST.prototype.getCompositesArray = function(){
   var out = [];
-  for(var key in this.composites){
+  for (var key in this.composites){
     out.push(this.composites[key]);
   }
   return out;
@@ -3554,7 +3573,7 @@ AugmentedAST.prototype.getCompositesArray = function(){
 
 AugmentedAST.prototype.getCallbackArray = function(){
   var out = [];
-  for(var key in this.callbacks){
+  for (var key in this.callbacks){
     out.push(this.callbacks[key]);
   }
   return out;
@@ -3749,7 +3768,7 @@ AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
 		}
 	    }; /* add_arguments_that_are_arrays_to_list */
 
-    for(let dictionary in this.dictionaries)
+    for (let dictionary in this.dictionaries)
     {
 	let next = this.dictionaries[dictionary];
 
@@ -3758,7 +3777,7 @@ AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
 		add_type_to_list(member, types);
     }
 
-    for(var next_interface in this.interfaces)
+    for (var next_interface in this.interfaces)
     {
 	let operations = this.interfaces[next_interface].operations;
 
@@ -3773,7 +3792,7 @@ AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
 	}
     }
 
-    for(let next in this.callbacks)
+    for (let next in this.callbacks)
     {
 	let callback = this.callbacks[next];
 

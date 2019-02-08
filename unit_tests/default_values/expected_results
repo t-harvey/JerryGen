@@ -1,0 +1,29 @@
+PARAMETERS TO "Constructor_0" :
+   constructor_arg :  13
+PARAMETERS TO "Constructor_0" :
+   constructor_arg :  1
+PARAMETERS TO "show_defaults" :
+   x -- CALLBACK FUNCTION (Native Javascript implementation)
+   y:
+      field1 :  1.000000
+      field2 :  "meaningless_default_value"
+   operation_default :  1
+PARAMETERS TO "show_defaults" :
+   x -- CALLBACK FUNCTION (Native Javascript implementation)
+   y:
+      field1 :  1.000000
+      field2 :  "meaningless_default_value"
+   operation_default :  7
+PARAMETERS TO "show_defaults" :
+   x -- CALLBACK FUNCTION (Native Javascript implementation)
+   y:
+      field1 :  5.000000
+      field2 :  "meaningless_default_value"
+   operation_default :  1
+PARAMETERS TO "show_defaults" :
+   x -- CALLBACK FUNCTION (Native Javascript implementation)
+   y:
+      field1 :  5.000000
+      field2 :  "meaningless_default_value"
+   operation_default :  7
+

@@ -154,8 +154,8 @@ for (let i of Object.keys(acceptable_inputs))
 /* if there's only one include file, it comes in as a string, while
    if there are more than one, the strings for each will be in an
    array; for ease, just always make this an array */
-if (typeof this.include_files === "string")
-    this.include_files = [ this.include_files ];
+if (typeof command_line_parms["include_files"] === "string")
+    command_line_parms["include_files"] = [ command_line_parms["include_files"] ];
 
 /* any flag entered without an explicit value is considered to be a
    boolean (set to true), but explicit values are considered to be
