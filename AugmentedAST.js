@@ -277,7 +277,7 @@ AugmentedAST.prototype.checkType = function (t)
     }
     else
     {
-	throw "Unsupported type: " + t;
+	throw new Error("Unsupported type: " + t);
     }
     
     /* fall through means this was a legal type */
@@ -566,7 +566,17 @@ AugmentedAST.prototype.getConversionTypes = function(idlType,
     {
 	/* TODO: what if the type isn't a simple type?!? */
 	/* TODO: we don't(can't?) allow default values for composites! */
-	return_types.default_value = default_value.value;
+	/* one problem with default types is that the parser might
+	   misassign a type -- the only case we've seen so far is when the
+	   default value looks like a string (b/c that's how they're
+	   represented in Javascript and WebIDL) but it is actually an
+	   enumeration type; check for this case and fix up the name
+	   by appending the type to the string */
+	if (default_value.type === "string" && return_types.C_Type != "string")
+	    return_types.default_value =
+	                 return_types.C_Type + "_" + default_value.value;
+	else
+	    return_types.default_value = default_value.value;
     }
     else
     {
@@ -946,7 +956,7 @@ AugmentedAST.prototype.set_constructors = function(theInterface)
     /* TODO: give a proper error message and bail appropriately */
     /* TODO: maybe it's okay to do this? */
     if (saw_ReturnFromRequire && theInterface.constructors != undefined)
-	fprintf(stderr, "ERROR: explicit constructors cannot be specified alongside the ReturnFromRequire attribute.\n");
+	throw new Error("Explicit constructors cannot be specified alongside the ReturnFromRequire attribute.");
 } /* AugmentedAST.set_constructors */
 
 
@@ -1384,7 +1394,7 @@ AugmentedAST.prototype.fix_names_and_types = function(thing, type_of_thing)
 	break;
 
 	default:
-	    throw "UNKNOWN TYPE GIVEN TO fix_names_and_types.";
+	    throw new Error("UNKNOWN TYPE GIVEN TO fix_names_and_types.");
 	break;
     }
 } /* fix_names_and_types */
@@ -1618,7 +1628,7 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 	{
 	    return;
 	    // OLD CODE:
-	    throw "The dictionary already exists: " + d.name;
+	    throw new Error("The dictionary already exists: " + d.name);
 	}
     }
     else // doesn't exist. Add it as a new key. 
@@ -1717,7 +1727,7 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
     // augment and add members
     new_enum.number_of_members = new_enum.values.length; // needed for mustache'ing
     if (new_enum.number_of_members == 0)
-	throw "Enumeration type with no values is not allowed";
+	throw new Error("Enumeration type with no values is not allowed");
     else if (new_enum.number_of_members == 1)
 	  new_enum.onlyOneMember = true;
 
@@ -1857,7 +1867,7 @@ Array.prototype.remove = function(from, to) {
 AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMember)
 {
     if (this.interfaces[interfaceName] === undefined)
-	throw "The interface does not exist: " + interfaceName
+	throw new Error("The interface does not exist: >" + interfaceName + "<");
 
     /* objects in Javascript have a function called "toString"
        that is called when the user tries to print out the object;
@@ -2311,12 +2321,12 @@ AugmentedAST.prototype.processTypeCheckQueue = function ()
     while (this.typeCheckQueue.length !== 0)
     {
 	if (!this.checkType(this.typeCheckQueue.pop()))
-	    throw "Type error";
+	    throw new Error("Type error");
     }
     else
 	for (let i = 0; i < this.typeCheckQueue.length; i++)
 	if (!this.checkType(this.typeCheckQueue[i]))
-	    throw "Type error";
+	    throw new Error("Type error");
 
     return true;
 }; /* processTypeCheckQueue */
@@ -2646,7 +2656,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	    else if (thing.interfaceName != undefined)
 		return thing.interfaceName;
 	    else
-		throw "ERROR: find_inheritance_chain called with unknown type.";
+		throw new Error("find_inheritance_chain called with unknown type.");
 	} /* get_object_name */
 	let target_name = get_object_name(target);
 
@@ -2671,7 +2681,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 		   target is not in the objects_list -- this means that the
 		   target is a different type than the parent */
 		else
-		    throw "Can't find a definition of \"" + parent_name + "\" to use in defining \"" + target_name + "\" (probably mismatched types?).";
+		    throw new Error("Can't find a definition of \"" + parent_name + "\" to use in defining \"" + target_name + "\" (probably mismatched types?).");
 	    }
 
 	    /* we keep two lists of names that have been "seen" -- the
@@ -3088,7 +3098,7 @@ AugmentedAST.prototype.augment = function (ast) {
     } else if (type === 'implements') { //3.8
       // TODO Support implements
     } else {
-      throw "Type not supported at top level: " + t;
+      throw new Error("Type not supported at top level: " + t);
     }
   }
 
@@ -3278,7 +3288,7 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
 				     {
 					 if (x.type != "array" ||
 					     typeof x.items == "undefined")
-					     throw "error in creating composite-type's name";
+					     throw new Error("error in creating composite-type's name");
 					 return create_array_type(x, self.array_types);
 				     }};
 	    var add_array_name = function (x) { list_of_type_names.push(get_array_name(x));};
@@ -3439,7 +3449,7 @@ AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper
 AugmentedAST.prototype.get_idlType_string = function(idlType)
 {
     if (idlType === undefined)
-	throw "ERROR: idlType not defined";
+	throw new Error("idlType not defined");
     if (typeof idlType === "string")
 	return this.fix_names_and_types(idlType, "idlType");
     else if (idlType.composite === true || idlType.array === true)

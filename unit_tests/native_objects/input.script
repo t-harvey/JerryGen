@@ -1,0 +1,9 @@
+var upper_limit = 100;
+var x = new holds_a_native_object(1);
+
+for(var i = 0; i < upper_limit; i++){ x.print_the_native_object(); x = new holds_a_native_object(i);}
+
+var y = new holds_a_native_object(2);
+y.null_out_native_object_pointer();
+y.print_the_native_object();
+

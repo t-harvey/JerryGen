@@ -53,7 +53,7 @@ echo "done diff'ing"
 echo "$generator_command $include_string --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl"
         $generator_command $include_string --debug_printing --stubs=overwrite --output_utility_files --package=$idl_dir $this_test_dir/$idl_dir.idl
 echo "copying"
-        cp $this_test_dir/*_stubs.c $idl_dir/. 2> /dev/null
+        cp $this_test_dir/*_stubs.[ch] $idl_dir/. 2> /dev/null
 echo "done copying."
 
 # KLUDGE!  TODO: make running a special script a general function

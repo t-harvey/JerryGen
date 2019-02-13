@@ -1,0 +1,8 @@
+[ Constructor(long value_to_store_in_native_object) ]
+interface holds_a_native_object {
+    void print_the_native_object();
+    void null_out_native_object_pointer();
+};
+
+interface holds_a_different_native_object {
+};
