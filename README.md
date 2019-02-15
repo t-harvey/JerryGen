@@ -111,4 +111,4 @@ barebones parser are as follows:<p>
 
 ### Further Documentation
 
-Consult the two-part tutorial, [here](../docs/tutorial_part1) and [here](../docs/tutorial_part1).
+Consult the two-part tutorial, [here](../docs/tutorial_part1) and [here](../docs/tutorial_part2).
