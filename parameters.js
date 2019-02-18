@@ -98,11 +98,12 @@ let equal_values = function(x, y)
 /* a little bit of fuzzy logic, here: minimist sometimes takes on a
    successive parameter for a flag if the flag isn't of the form:
    --<flag>=value, instead parsing it as: --<flag> value (the intent
-   being to set <flag> to its default value, but with minimist
-   assigning "value" to <flag>); in our tests, we would sometimes see
-   the .idl file following one of these shorthand flags, and we'd
-   report an error when there really isn't one -- so see if we can
-   find these examples and move the .idl filename to its appropriate spot */
+   being to set <flag> to its non-default value (b/c why else would
+   you include it on the command line?!?), but with minimist assigning
+   "value" to <flag>); in our tests, we would sometimes see the .idl
+   file following one of these shorthand flags, and we'd report an
+   error when there really isn't one -- so see if we can find these
+   examples and move the .idl filename to its appropriate spot */
 for (let i of Object.keys(acceptable_inputs))
 {
     if (i === "include" || i === "help")
@@ -122,13 +123,13 @@ for (let i of Object.keys(acceptable_inputs))
 			just shortened the array */
 	    }
 	if (array_of_values.length === 0)
-	    command_line_parms[i] = acceptable_inputs[i][0];
+	    command_line_parms[i] = acceptable_inputs[i][1];
     }
     else if (typeof command_line_parms[i] === "string" &&
 	     command_line_parms[i].endsWith(".idl"))
     {
 	command_line_parms["files"].push(command_line_parms[i]);
-	command_line_parms[i] = acceptable_inputs[i][0];
+	command_line_parms[i] = acceptable_inputs[i][1];
     }
 }
 
