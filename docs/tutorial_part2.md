@@ -5,7 +5,7 @@ Created by <span class="author"> Timothy Harvey</span>, last modified on
 Oct 29, 2018
 
 (For Part 1 of this tutorial, [click
-here.](tutorial_part1)
+here.](https://github.com/t-harvey/JerryGen/blob/master/docs/tutorial_part1.md)
 
 
 
