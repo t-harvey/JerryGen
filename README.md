@@ -103,7 +103,7 @@ barebones parser are as follows:<p>
 
 <code>
 <b>~/work -></b> generator/generate.js --output_utility_files --package=empty  generator/unit_tests/template/empty.idl<p>
-<b>~/work -></b> gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -Ijerryscript/jerry-port/default/include -Ijerryscript/jerry-core/include -Ijerryscript/jerry-ext/include -Ijerryscript/jerry-ext/include/jerryscript-ext/ -I./empty generator/unit_tests/template/main_jerrygen.c empty/webidl*.c jerryscript/build/lib/libjerry-core.a jerryscript/build/lib/libjerry-ext.a jerryscript/build/lib/libjerry-port-default.a -lm<p>
+<b>~/work -></b> gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -Ijerryscript/jerry-port/default/include -Ijerryscript/jerry-core/include -Ijerryscript/jerry-ext/include -Ijerryscript/jerry-ext/include/jerryscript-ext/ -I./empty generator/unit_tests/template/main_jerrygen.c empty/webidl*.c jerryscript/build/lib/libjerry-core.a jerryscript/build/lib/libjerry-ext.a jerryscript/build/lib/libjerry-port-default.a -lm<br>
 <b>~/work -></b> ./a.out<p>
 </code>
 </details>
@@ -111,4 +111,4 @@ barebones parser are as follows:<p>
 
 ### Further Documentation
 
-Consult the two-part tutorial, [here](../docs/tutorial_part1) and [here](../docs/tutorial_part2).
+Consult the two-part tutorial, [here](https://github.com/t-harvey/JerryGen/blob/master/docs/tutorial_part1.md) and [here](https://github.com/t-harvey/JerryGen/blob/master/docs/tutorial_part2.md).
