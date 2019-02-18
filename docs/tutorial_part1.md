@@ -1,9 +1,6 @@
 <span id="title-text"> Scripting : Using JerryGen, the WebIDL Compiler </span>
 ==============================================================================
 
-Created by <span class="author"> Timothy Harvey</span>, last modified on
-Nov 30, 2018
-
  The JerryGen compiler takes WebIDL as input and produces C code.  The
 compiler has two goals: to write "glue code" that utilizes the
 Jerryscript C API and to provide "stubs" of C code that can be inserted
