@@ -83,7 +83,7 @@ results that are difficult to pin down.  For example, if the config.h
 file in the jerry-core directory does not have the variable
 <code>CONFIG_DISABLE_ES2015_TYPEDARRAY_BUILTIN</code> commented out,
 then any attempt to use the ArrayBuffer in a script will result in a
-"script error" message from the interpreter, even though the script
+"Script Error" message from the interpreter, even though the script
 containing the <code>ArrayBuffer</code> declaration may be otherwise
 error free.  Of course, if a user's scripts don't use
 <code>ArrayBuffer</code>, then it might behoove him to compile without
@@ -92,14 +92,14 @@ that feature and thus minimize the size of the interpreter.<p>
 Using <code>tools/build.py</code> will produce libraries in the
 <code>build/lib</code> directory.  To get an executable interpreter,
 these libraries must be linked in to a <code>main.c</code> file.  The
-main.c file provided in the generator directory also requires the
+<code>main_jerrygen.c</code> file provided in the <code>generator/unit_tests/template</code> directory also requires the
 JerryGen utility files, which are produced by running the generator
 with the <code>--output_utility_files</code> flag.
 
 We provide an empty WebIDL file for just such a minimal build.
 Assuming that the user has cloned both the generator and Jerryscript
 into a directory called <code>work</code>, the commands to build a
-barebones parser are as follows:<p>
+barebones repl are as follows:<p>
 
 <code>
 <b>~/work -></b> generator/generate.js --output_utility_files --package=empty  generator/unit_tests/template/empty.idl<p>
