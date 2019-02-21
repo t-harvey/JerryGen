@@ -49,6 +49,8 @@ if (typeof parameters.include_files != "undefined")
     }
 }
 
+/* build the symbol table and massage the parsed file to make it ready
+   for the Hogan compiler */
 var augAST = new AugmentedAST(parsed_file,
 			      parameters.fix_type_errors,
 			      parameters.leave_enums_alone,
@@ -59,6 +61,14 @@ augAST.utilities_filename       = "webidl_compiler_utilities";
 augAST.debug_printing           = (parameters.debug_printing === "on");
 augAST.original_arg_handling    = (parameters.arg_handling === "original");
 augAST.print_generation_message = (parameters.print_generation_message === "true");
+
+/* the stubs that JerryGen produces are designed to be as generic as
+   possible to enable reuse across different interpreters; we do this
+   by abstracting away all of the Jerryscript API into "Interpreter"
+   API calls -- but it may be that the user will never utilize this
+   ability and wants his code to reflect the intimate connection with
+   the Jerryscript interpreter -- to enable this, we parameterize
+   every call in the mustache files to allow for either naming system */
 if (!parameters.tied_to_jerryscript)
 augAST.Interpreter = { "Type": "Interpreter_Type",
 		       "interpreter"        : "interpreter",
@@ -81,11 +91,10 @@ if (!parameters.quiet)
 qfs.makeDirectory(packagePath);
 parameters.packagePath = packagePath;
 
-/* generate all of the various .c and .h files */
+/* generate all of the various .c/.h files -- the order is not significant */
 generate.typedefs(augAST, parameters);
 generate.interfaces(augAST, parameters);
-generate.stubs(augAST, parameters); /* stubs don't get overwritten, so if the
-				     file already exists, this is a null step */
+generate.stubs(augAST, parameters);
 generate.dictionaries(augAST, parameters);
 generate.enums(augAST, parameters);
 generate.callbacks(augAST, parameters);
@@ -94,7 +103,6 @@ if (parameters.output_utility_files)
     generate.utilities(augAST, parameters);
 
 } /* end of try */  /* (end of script) */
-
 
 
 catch(error_code)
