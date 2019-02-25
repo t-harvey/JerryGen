@@ -1,6 +1,6 @@
 # Design of the generator
 
-<code>TODO</code>, an aside:<p>
+<code>TODO</code>, an aside:<br>
 The code is sprinkled with comments that start with
 <code>TODO</code> -- these represent places that (may) need further
 development.
@@ -21,39 +21,64 @@ which was a masters-thesis project by an English student named Mohamed
 Eltuhamy.  The structure of his code has largely continued into the
 current implementation.
 
-### <code>generator.js</code>
+#### <code>generate.js</code>
 
 The main routine of the JerryGen compiler is short/sweet: it
 initializes the main packages, parses the file, compiles it into a
-form for Hogan, and then outputs the code (through Hogan).
+form that can be fed to Hogan, and then outputs the code (through Hogan).
 
-### <code>parameters.js</code>
+#### <code>parameters.js</code>
 
 This code gathers the parameters from the command line and checks them
 for correctness.
 
-### <code>AugmentedAST.js</code>
+#### <code>AugmentedAST.js</code>
 
 This is the body of the compiler -- it (essentially) builds a symbol
 table and type checks all of the WebIDL.
 
-### <code>file_generators.js</code>
+A perhaps unexpected function of this code is to provide the
+control-flow information that Mustache does not have.  For example, in
+a list of function parameters, the Mustache code puts out a comma
+separator following all parameters except the last, and both the first
+and last parameters need to be marked in order to put out the
+surrounding parentheses.  The AugmentedAST code marks the first and
+last parameters in every argument list, and the Mustache code looks
+something like:<p>
 
-For each type, as many as five C files are created.  This code handles
-building the data structure for each target file before handing the
-data off to the Hogan parser.
+<code>{{#arguments}}</code><br>
+<code>    {{#first_in_list}}({{/first_in_list}}{{{parameter}}}{{^last_in_list}}, {{/last_in_list}}{{#last_in_list}}){{/last_in_list}}</code><br>
+<code>{{/arguments}}</code>
+</code>
 
-### <code>CHoganHelpers.js</code>
+#### <code>file_generators.js</code>
 
-This provides the <code>getContext</code> function, which packages up
-the Hogan compiler with all of the data structures created by <code>AugmentedAST</code>.
+For each type, as many as five C files are created.  This code uses
+the code in <code>Generator.js</code> to
+build the specific data structure for each type of <code>WebIDL</code> construct and then
+calls the Hogan compiler to build the appropriate files.
+
+#### <code>Generator.js</code>
+
+The code in this module gathers/builds the specific information for
+each <code>WebIDL</code> construct that will be needed by the Hogan compiler and
+then calls that compiler to build a string that can be written out
+by the code in <code>file_generators.js</code>.
+
+#### <code>CHoganHelpers.js</code>
+
+This provides the <code>getContext</code> function used by the
+<code>Generator</code> code.  The <code>getContext</code> function packages up
+the Hogan compiler with all of the data structures created by
+<code>AugmentedAST</code>.
+
 
 # Testing
 
 The original milestone for the JerryGen project was to correctly parse
-and build code for the WebIDL in the <code>zephyr.js</code> project,
-which is a Linaro-based project with goals similar to our own: to
-support scripting on embedded processors.
+and build code for the <code>WebIDL</code> in the
+<code>zephyr.js</code> project, which is a Linaro-based project with
+goals similar to our own: to support scripting on embedded processors.
 
 During development, we also defined a set of "unit tests" that were
 designed specifically to test individual new features as we progressed

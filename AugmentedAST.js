@@ -18,25 +18,30 @@ under the License.
 
 
 /* the routines in this file walk the ast that was built from a WebIDL
- * file and prepare it for processing through a Mustache compiler */
+   file and prepare it for processing through a Mustache compiler; when
+   some code does funny things, remember that the input is specified
+   by the parser (i.e., code that produces output should make sense,
+   while things that handle the data coming in may not make sense) */
 
-var error_codes = { duplicate_names: "duplicate_names",
+/* we experimented with adding an error code to exceptions; the worry
+   was that the number of individual error codes would be too long */
+let error_codes = { duplicate_names: "duplicate_names",
 		    external_inheritance: "external_inheritance",
 		    cyclic_inheritance: "cyclic_inheritance",
 		    cyclic_structs: "cyclic_structs" };
 
+/* export the local variable */
 AugmentedAST.error_codes = error_codes;
-
 
 /* we need to keep track of all of the WebIDL constructs' names so
  * that we can detect if we see the same name used twice */
-var construct_names_seen = {};
+let construct_names_seen = {};
 
 /* that's "record" as in, "write down", rather than "plastic disk with
    music on it..." */
 /* SIDE EFFECT: populates the (function-level) global variable 
    construct_names_seen */
-var record_name = function(name, kind)
+let record_name = function(name, kind)
 {
     /* if this is the first time we've seen this name, set up the
        new entry */
@@ -66,11 +71,13 @@ function AugmentedAST(ast,
     this.dictionaries = Object.create(null);
     this.callbacks = Object.create(null);
     this.interfaces = Object.create(null);
-    this.exceptions = Object.create(null);
     this.enums = Object.create(null);
+
     this.allExternalTypes = Object.create(null);
     this.array_types = Object.create(null);
     this.variadic_types = Object.create(null);
+
+    this.exceptions = Object.create(null);
     this.interface_names = new Array();
     this.composites = Object.create(null);
     this.typedefs = Object.create(null);
@@ -132,7 +139,7 @@ AugmentedAST.prototype.generateAllowedTypesArray = function ()
    primitive symbol table) */
 AugmentedAST.prototype.isAllowedType = function (t)
 {
-    var tname = this.getTypeName(t);
+    let tname = this.getTypeName(t);
 
     return this.isPrimitiveType (tname) ||
            this.isDictionaryType(tname) ||
@@ -154,7 +161,7 @@ AugmentedAST.prototype.isAllowedType = function (t)
    question... */
 AugmentedAST.prototype.isPrimitiveType = function (t)
 {
-    var typeName = this.getTypeName(t);
+    let typeName = this.getTypeName(t);
 
     if (typeName in this.typedefs)
 	typeName = this.typedefs[typeName].ultimate_typename;
@@ -242,7 +249,12 @@ AugmentedAST.prototype.addToTypeCheckQueue = function (t)
    types to check depending on the type */
 AugmentedAST.prototype.checkType = function (t)
 {
-    // t could be an operation, attribute, constant member.
+    /* t could be an operation, attribute, or constant member; this
+       code's a little backwards, in that it should say, "if the type
+       is none of the things we're looking for, return false;
+       otherwise, do some stuff based on the type, and then return
+       true" -- but that's less efficient than the reversed sense of
+       the "if" that we've employed... */
     if (t.type === 'operation')
     {
 	// check return type
@@ -268,7 +280,7 @@ AugmentedAST.prototype.checkType = function (t)
 	this.addToTypeCheckQueue(t.idlType);
     }
     /* Javascript supports two "types" of "strings" (literal strings and
-       those created with new (i.e., "var x = new String"), so that's why
+       those created with new (i.e., "let x = new String"), so that's why
        this check is written this way... */
     else if ((typeof t === 'string' || t instanceof String) &&
 	     (this.isAllowedType(t)))
@@ -305,24 +317,7 @@ AugmentedAST.prototype.get_C_default_value = function(C_Type)
 			       bool:     false,
 			       Error: "\"\"", 
 			    };
-    let intrinsic_C_Types2 = {  byte:   0    ,
-			       uint8_t:  0    ,
-			       short:  0    ,
-			       "uint16_t": 0    ,
-			       long:  0    ,
-			       "unsignedlong": 0    ,
-			       "longlong":  0    ,
-			       "unsignedlonglong": 0    ,
-			       float:    0.0  ,
-			       double:   0.0  ,
-			       "DOMString": "\"\"" ,
-			       string: "\"\"" ,
-			       "ByteString": "\"\"" ,
-			       "USVString": "\"\"" ,
-			       bool:     false,
-			       boolean: false,
-			       Error: "\"\"" ,
-			    };
+
     if (this.typedefs[C_Type] != undefined)
 	C_Type = this.typedefs[C_Type].ultimate_typename;
 
@@ -349,7 +344,7 @@ AugmentedAST.prototype.WebIDL_to_Jerryscript_TypeMap = {
 	"unrestricted float"  : "number",
 	"double"              : "number",
 	"unrestricted double" : "number",
-    "DOMString"               : "string",
+        "DOMString"           : "string",
 	"ByteString"          : "string",
 	"USVString"           : "string",
         "Error"               : "Error",
@@ -363,7 +358,7 @@ AugmentedAST.prototype.C_to_Jerryscript_TypeMap = {
 	"int8_t"      : "number",
 	"uint8_t"     : "number",
 	"int16_t"     : "number",
-	"uint116_t"   : "number",
+	"uint16_t"    : "number",
 	"int32_t"     : "number",
 	"uint32_t"    : "number",
 	"int64_t"     : "number",
@@ -378,31 +373,6 @@ AugmentedAST.prototype.C_to_Jerryscript_TypeMap = {
         "jerry_value_t" : "this"
     }; /* C_to_Jerryscript_TypeMap */
 
-
-AugmentedAST.prototype.WebIDL_to_C_TypeMap2 = {
-	"any" : "any",
-	"ArrayBuffer": "ArrayBuffer",
-	"boolean" : "boolean",
-	"byte" : "byte",
-	"octet" : "uint8_t",
-//	"octet" : "octet",
-	"short" : "short",
-	"unsigned short" : "unsignedshort",
-	"long" : "long",
-	"unsigned long" : "unsignedlong",
-	"long long" : "longlong",
-	"unsigned long long" : "unsignedlonglong",
-	"float" : "float",
-	"unrestricted float" : "unrestricted_float",
-	"double" : "double",
-	"unrestricted double" : "unrestricted_double",
-	"DOMString" : "DOMString",
-	"ByteString" : "ByteString",
-	"USVString" : "USVString",
-	"string" : "string",
-        "Error" : "Error",
-	"this" : "this"
-    }; /* WebIDL_to_C_TypeMap2 */
 
 AugmentedAST.prototype.WebIDL_to_C_TypeMap = {
 	"any" : "any",
@@ -429,7 +399,10 @@ AugmentedAST.prototype.WebIDL_to_C_TypeMap = {
 	"this" : "Interpreter_Type"
     }; /* WebIDL_to_C_TypeMap */
 
-/* record all of the names of typedefs in our input; 
+/* record all of the names of typedefs in our input -- we need to
+   ensure that there aren't any cycles, and we need to know what .h
+   files to include (if a is typedef'd to b, then we'll include b.h,
+   not a.h) */
 /* SIDE EFFECT: creates the AugmentedAST.typedefs list */
 AugmentedAST.prototype.record_typedefs = function(ast)
 {
@@ -439,7 +412,7 @@ AugmentedAST.prototype.record_typedefs = function(ast)
     /* SIDE EFFECT: sets the "parent" and "ultimate_typename" fields of
        "current" in the "typedefs" list */
     /* this is, essentially, a union-find algorithm; we walk up
-       "current"'s tree until we hit the parent -- this is "current"'s
+       "current"'s tree until we hit the root -- this is "current"'s
        actual type */
     /* this function raises an exception if a loop is found -- we
        know we've looped if the "tree_members" array contains "current" */
@@ -474,7 +447,7 @@ AugmentedAST.prototype.record_typedefs = function(ast)
     } /* find_ultimate_typename */
 
     /* first, gather the typedefs */
-    for (var i = 0; i < ast.length; i++)
+    for (let i = 0; i < ast.length; i++)
 	if (ast[i].type == "typedef")
         {
 	    this.set_external_types(ast[i]);
@@ -496,24 +469,19 @@ AugmentedAST.prototype.record_typedefs = function(ast)
        and we need to know what the "ultimate" type is so that we can
        include the proper .h file to support its use */
     let types = Object.keys(this.typedefs);
-    for (var i = 0; i < types.length; i++)
+    for (let i = 0; i < types.length; i++)
     {
 	find_ultimate_typename(types[i], this.typedefs, []);
 	this.typedefs[types[i]].ultimate_typename_C_type =
 	      this.idlTypeToOtherType(this.typedefs[types[i]].ultimate_typename,
 				      this.WebIDL_to_C_TypeMap);
     }
-
-    /* finally, add these to the list to check for later */
-    /* TODO: should we do this with the ultimate_type? */
-//    for (var i = 0; i < this.typedefs.length; i++)
-//	    this.addToTypeCheckQueue(this.typedefs[i].typedefName);
-
 } /* record_typedefs */
 
 
-/* return a struct with the C and Jerryscript types for the WebIDL type
-   passed in */
+/* return a struct with the C and Jerryscript types for the WebIDL
+   type passed in -- all types in callbacks, interfaces, and
+   dictionaries get passed through this routine */
 AugmentedAST.prototype.getConversionTypes = function(idlType,
 						     is_variadic = false,
 						     default_value = undefined)
@@ -523,9 +491,9 @@ AugmentedAST.prototype.getConversionTypes = function(idlType,
     return_types.C_Type = this.idlTypeToOtherType(idlType,
 					    this.WebIDL_to_C_TypeMap,
 					    is_variadic);
-
     return_types.Jerryscript_Type = 
 	               this.C_to_Jerryscript_TypeMap[return_types.C_Type];
+
     if (typeof return_types.Jerryscript_Type === "undefined")
 	return_types.Jerryscript_Type = return_types.C_Type;
 
@@ -608,7 +576,7 @@ AugmentedAST.prototype.set_external_types = function(thing)
 
     for (let extAttr of thing.extAttrs)
     {
-	/* so the parser will let the extAttrs array have entries that
+	/* the parser will let the extAttrs array have entries that
 	   are undefined -- this is a bug in the parser we should chase
 	   down, but there are only three(?) places where this matters, so
 	   we'll just check for it in those three places, for now; TODO */
@@ -631,9 +599,9 @@ AugmentedAST.prototype.set_external_types = function(thing)
 		/* for the local list attached to the "thing" object and
 		 * the global list attached to the "this" object, if
 		 * it's not a duplicate, add it */
-		var type_name = extAttr.rhs.value[0];
+		let type_name = extAttr.rhs.value[0];
 		let is_callback = (extAttr.name === "ExternalCallback");
-		var type_struct = { type:    type_name,
+		let type_struct = { type:    type_name,
 				    is_callback: is_callback};
 		
 		thing.externalTypes.push(type_struct);
@@ -676,7 +644,6 @@ AugmentedAST.prototype.set_is_module = function(theInterface)
 AugmentedAST.prototype.build_operation_fields = function(operation,
 							 interfaceName)
 {
-    // we add schema type info to the operation first
     operation.C_and_Jerryscript_Types =
 	                            this.getConversionTypes(operation.idlType);
 
@@ -687,7 +654,7 @@ AugmentedAST.prototype.build_operation_fields = function(operation,
     operation.interfaceName = interfaceName;
 
     if(operation.extAttrs && operation.extAttrs.length > 0)
-	for (var i = 0; i < operation.extAttrs.length; i++)
+	for (let i = 0; i < operation.extAttrs.length; i++)
 	    if(operation.extAttrs[i].name == "ThrowsRPCError")
 		operation.ThrowsRPCError = operation.extAttrs[i];
 
@@ -832,7 +799,7 @@ AugmentedAST.prototype.set_constructors = function(theInterface)
 	   that are identical */
 
 	/* we want to keep track of the comparison that the Mustache
-	   code is going to use: for any set of functions with a
+	   code is going to insert: for any set of functions with a
 	   specific number of parameters, we'll use "equals" to
 	   compare the number of parameters passed in against that set
 	   of constructors, EXCEPT: 1) the set with the highest number
@@ -978,7 +945,7 @@ AugmentedAST.prototype.set_constructors = function(theInterface)
   an external type) -- at this point in the code, we haven't seen all
   of the types, so we'll have to come back later and (perhaps) move
   some things in the externalTypes list back to the
-  non_intrinsic_types list TODO: fix this? */
+  non_intrinsic_types list */
 AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 {
     let add_to_lists_if_not_primitive =
@@ -1058,7 +1025,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
 	    }
 	} /* walk_up_tree */
 
-	for (var i in local_typedefs_list)
+	for (let i in local_typedefs_list)
 	    walk_up_tree(local_typedefs_list[i], typedefs_in_order,
 			 global_typedefs_list, seen);
 	return typedefs_in_order;
@@ -1108,7 +1075,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
        so we need to loop through them and build up the list */
     else if (thing.type === "composite")
     {
-	var type_list = thing.webidl_type_list;
+	let type_list = thing.webidl_type_list;
 
 	for (let i = 0; i<type_list.length; i++)
 	    add_to_lists_if_not_primitive(this, type_list[i],
@@ -1125,7 +1092,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
     /* the following line was my first attempt:
     /* let uniq_list =
 	    intrinsics_list.filter(function(item, pos)
-<	                      {return intrinsics_list.indexOf(item)==pos;});*/
+	                      {return intrinsics_list.indexOf(item)==pos;});*/
     /* ...but this fails, b/c indexOf doesn't like objects (it's the perennial
        difference between == and ===) -- so I substituted the following, which
        I got off of http://tinyurl.com/yabbcs8v */
@@ -1141,8 +1108,6 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
        anonymous function and wrapping that function in parens to instantly
        call it with the parameters sent in by intrinsics_list.filter */
 
-    /* TODO: make sure that callbacks, dictionaries, and composite types
-       have an externalTypes list built */
     /* cull explicitly external types from the list of types */
     /* NOTE: assumes that thing.externalTypes has been set up! */
     thing.non_intrinsic_types = [];
@@ -1160,7 +1125,7 @@ AugmentedAST.prototype.get_non_intrinsic_types_list = function(thing)
    so that they'll output correctly */
 AugmentedAST.prototype.find_default_string_values = function(d)
 {
-    for (var index in d.members)
+    for (let index in d.members)
 	if (d.members[index].default &&
 	    d.members[index].default.type === "string") 
 	    d.members[index].default.is_string = true;
@@ -1305,7 +1270,6 @@ AugmentedAST.prototype.fix_names_and_types = function(thing, type_of_thing)
 	{
 	    thing.interfaceName = change_thing_name_if_necessary(
 		                         thing.interfaceName, this.interfaces);
-	    /* TODO: WHAT ABOUT THE RETURN TYPE?!? */
 	}
 	break;
 
@@ -1461,7 +1425,7 @@ AugmentedAST.prototype.fix_names = function()
 	let local_type_names = [];
 
 	/* throws an exception if the name passed in is not allowed; this
-	   is b/c either the name is a res type, which will give us code
+	   is b/c either the name is a reserved type, which will give us code
 	   that won't compile, or it's a WebIDL typename that makes the
 	   code ambiguous (imagine an interface named "any" -- how would
 	   we tell it apart from the "any" type?) */
@@ -1582,11 +1546,6 @@ AugmentedAST.prototype.fix_names = function()
  * @param index The index this dictionary is in the original ast
  * @returns {boolean} True if added successfully, false otherwise.
  */
-/* CAUTION: any changes to this function should be reflected in
- * similar changes to convert_list_of_array_types_to_dictionaries,
- * which builds dictionaries by hand */
-/* TODO: change convert_list_of_array_types_to_dictionaries to build
- * an AST for each array and then just call this function */
 AugmentedAST.prototype.addDictionary = function (d, index)
 {
 
@@ -1603,64 +1562,32 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 
     this.set_external_types(d);
 
-    // does the dictionary already exist?
-    var existingDict = this.dictionaries[d.name];
-    // TODO: handle existing Dict in the presence of an error of having
-    // two dictionaries with the same name...
-    if (0 && existingDict)
+    this.dictionaries[d.name] = d;
+    d.dictionaryName = d.name;
+
+    // augment and add members
+    for (let i = 0 ; i < d.members.length; i++)
     {
-	// exists. Augment if partial, otherwise throw
-	if (d.partial)
-	{
-	    existingDict.members = existingDict.members.concat(d.members);
-	    // add the new members to the check queue
-	    //      console.log("addDictionary:");
-	    //      console.log("    existingDict, d.members");
-	    // get rid of duplicates; index is less-than-zero for arrays
-	    // that we create
-	    if (index > 0)
-	    {
-		this.ast[index] = null;
-		this.removedIndices.push(index);
-	    }
-	}
-	else 
-	{
-	    return;
-	    // OLD CODE:
-	    throw new Error("The dictionary already exists: " + d.name);
-	}
-    }
-    else // doesn't exist. Add it as a new key. 
-    {
-	this.dictionaries[d.name] = d;
-	d.dictionaryName = d.name;
-	// augment and add members
-	for (var i = 0 ; i < d.members.length; i++)
-	{
-	    /* if the user declares an array with "sequence",
-	       getConversionTypes will catch it; the problem is that the user
-	       can also declare an array with "[]" (technically, this isn't
-	       legal WebIDL, but it parses/builds), in which case, the idlType
-	       structure will have a field called "array" whose value is "1"
-	       (or "true"?) -- to keep the code simple, we'll just catch the
-	       latter case and make it look like the former... */
-	    if (d.members[i].idlType.array > 0)
-		d.members[i].idlType.sequence = true;
-	    d.members[i].memberName = d.members[i].name;
-	                                           /* "name" is too generic */
-	    d.members[i].C_and_Jerryscript_Types =
-		  this.getConversionTypes(d.members[i].idlType,
-					  false, d.members[i].default);
-	    if (i+1 == d.members.length)
-		d.members[i].finalMember = true;
-	}
-	//    console.log("    NOT existingDict, d.members");
+	/* if the user declares an array with "sequence",
+	   getConversionTypes will catch it; the problem is that the user
+	   can also declare an array with "[]", in which case, the idlType
+	   structure will have a field called "array" whose value is "1"
+	   (or "true"?) -- to keep the code simple, we'll just catch the
+	   latter case and make it look like the former... */
+	if (d.members[i].idlType.array > 0)
+	    d.members[i].idlType.sequence = true;
+	d.members[i].memberName = d.members[i].name;
+	/* "name" is too generic */
+	d.members[i].C_and_Jerryscript_Types =
+	    this.getConversionTypes(d.members[i].idlType,
+				    false, d.members[i].default);
+	if (i+1 == d.members.length)
+	    d.members[i].finalMember = true;
     }
     
     // add an index to the dictionary members so it's easy to assign
     // to them when the user does a new
-    for (var i = 0 ; i < d.members.length; i++)
+    for (let i = 0 ; i < d.members.length; i++)
 	d.members[i].member_index = i;
 
     /* names and types need to be modified if they are reserved words... */
@@ -1697,8 +1624,12 @@ AugmentedAST.prototype.expand_enums = function(new_enum)
  * @returns {boolean} True if added successfully, false otherwise.
  */
 AugmentedAST.prototype.addEnum = function (new_enum, index) {
-  //A enumeration declaration looks like this:
-  //{ type: 'enum', name: 'name', values: [ [string], [string], ... ], extAttrs: [] }
+/* A enumeration declaration looks like this:
+   { type: 'enum',
+     name: 'name',
+     values: [ [string], [string], ... ],
+     extAttrs: [] }
+*/
     record_name(new_enum.name, "enum");
 
     /* enum values can be different between C and Javascript, so we'll
@@ -1712,24 +1643,15 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
     if (!this.leave_enums_alone)
 	this.expand_enums(new_enum);
 
-  // does the enum name already exist?
-  var existingEnum = this.enums[new_enum.name];
-    // TODO: handle existing enums in the face of an error of having two
-    // named the same
-  if (0 && existingEnum) {
-      /* OLD CODE */
-      ;//throw "The enum already exists: " + new_enum.name;
-  } else {
-      // doesn't exist. Add it as a new key.
-      new_enum.enumName = new_enum.name;
-      this.enums[new_enum.name] = new_enum;
+    new_enum.enumName = new_enum.name;
+    this.enums[new_enum.name] = new_enum;
 
     // augment and add members
     new_enum.number_of_members = new_enum.values.length; // needed for mustache'ing
     if (new_enum.number_of_members == 0)
 	throw new Error("Enumeration type with no values is not allowed");
     else if (new_enum.number_of_members == 1)
-	  new_enum.onlyOneMember = true;
+	new_enum.onlyOneMember = true;
 
     /* the name of the enum needs to be modified if it is a reserved word... */
     this.fix_names_and_types(new_enum, "enum");
@@ -1739,7 +1661,7 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
        to call fix_names_and_types _BEFORE_ this loop...) */
     new_enum.members = [];
     new_enum.longest_Javascript_name_length = 0;
-    for (var i = 0 ; i < new_enum.number_of_members; i++)
+    for (let i = 0 ; i < new_enum.number_of_members; i++)
     {
 	let new_object = {C_name    : new_enum.values[i].C_value,
 		 Javascript_name    : new_enum.values[i].Javascript_value,
@@ -1758,11 +1680,9 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
 	    new_enum.longest_Javascript_name_length =
 	                                    new_object.Javascript_name.length;
     }
-  }
 
     return true;
 }; /* addEnum */
-
 
 
 /**
@@ -1772,102 +1692,82 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
  * @returns {boolean} True if added successfully, false otherwise.
  */
 AugmentedAST.prototype.addCallback = function (callback, index) {
-  //A callback looks like this:
-  //{ type: 'callback', name: '<name>', idlType,
-  //  arguments: [ { optional: bool, variadic: bool,
-  //	             extAttrs: [], idlType, name: ' ' } ],
-  //  extAttrs: [] }
+/* A callback looks like this:
+   { type: 'callback', name: '<name>', idlType,
+     arguments: [ { optional: bool, variadic: bool,
+                    extAttrs: [], idlType, name: ' ' } ],
+     extAttrs: [] }
+*/
 
     record_name(callback.name, "callback");
 
-  // does the callback already exist?...if so, throw an exception
-  var existingCallback = this.callbacks[callback.name];
-  if (0 && existingCallback)
-      throw "The callback already exists: " + callback.name;
-  else
-  {
-      // doesn't exist. Add it as a new key.
-      callback.callbackName = callback.name;
-      delete callback.name; /* this avoids confusion in the Hogan compiler */
-      if (Object.keys(this.callbacks).length === 0)
-	  callback.first_in_list = true;
-      this.callbacks[callback.callbackName] = callback;
-      callback.C_and_Jerryscript_Types = this.getConversionTypes(callback.idlType);
-      if (callback.C_and_Jerryscript_Types.C_Type === "void")
-	  callback.voidReturnType = true;
+    callback.callbackName = callback.name;
+    delete callback.name; /* this avoids confusion in the Hogan compiler */
+    if (Object.keys(this.callbacks).length === 0)
+	callback.first_in_list = true;
+    this.callbacks[callback.callbackName] = callback;
+    callback.C_and_Jerryscript_Types = this.getConversionTypes(callback.idlType);
+    if (callback.C_and_Jerryscript_Types.C_Type === "void")
+	callback.voidReturnType = true;
 
-      // purely for human-readability: figure out how to nicely format
-      // the arguments (crude for now...)
+    // purely for human-readability: figure out how to nicely format
+    // the arguments (crude for now...)
       // the string will look like: "typedef <type> (*<name>) (", so
-      // we need length("typedef ") + length(<type>)...
-      var indentation_amount = "typedef ".length +
-	                       callback.C_and_Jerryscript_Types.C_Type.length +
-	                       " (*".length +
-	                       callback.callbackName.length +
-	                       ") ( ".length;
-      callback.indentation = new Array(indentation_amount-2).join( " " );
-      indentation_amount += "_wrapper".length;
-      callback.wrapper_indentation = new Array(indentation_amount+1).join(" ");
+    // we need length("typedef ") + length(<type>)...
+    let indentation_amount = "typedef ".length +
+	                     callback.C_and_Jerryscript_Types.C_Type.length +
+	                     " (*".length +
+	                     callback.callbackName.length +
+	                     ") ( ".length;
+    callback.indentation = new Array(indentation_amount-2).join( " " );
+    indentation_amount += "_wrapper".length;
+    callback.wrapper_indentation = new Array(indentation_amount+1).join(" ");
 
-      // arguments with type info
-      for (var i = 0 ; i < callback.arguments.length; i++)
-      {
-	  callback.arguments[i].C_and_Jerryscript_Types =
+    // arguments with type info
+    for (let i = 0 ; i < callback.arguments.length; i++)
+    {
+	callback.arguments[i].C_and_Jerryscript_Types =
 	           this.getConversionTypes(callback.arguments[i].idlType,
 					   callback.arguments[i].variadic,
 					   callback.arguments[i].default);
 
-	  callback.arguments[i].paramIndex = i;
-	  if (i+1 === callback.arguments.length)
-	      callback.arguments[i].separator = ")";
-	  else
-	      callback.arguments[i].separator = ",\n";
+	callback.arguments[i].paramIndex = i;
+	if (i+1 === callback.arguments.length)
+	    callback.arguments[i].separator = ")";
+	else
+	    callback.arguments[i].separator = ",\n";
 	  
-	  if (i === 0)
-	      callback.arguments[i].firstArgument = true;
-	  
-	  if ((i+1) === callback.arguments.length)
-	      callback.arguments[i].finalArgument = true;
-	  
-      }
+	if (i === 0)
+	    callback.arguments[i].firstArgument = true;
+	
+	if ((i+1) === callback.arguments.length)
+	    callback.arguments[i].finalArgument = true;
+    }
 
-      this.set_external_types(callback);
-      
-      /* names and types need to be modified if they are reserved words... */
-      this.fix_names_and_types(callback, "callback");
+    this.set_external_types(callback);
+    
+    /* names and types need to be modified if they are reserved words... */
+    this.fix_names_and_types(callback, "callback");
 
-      // get a list of types that will need to be included in the .c file for
-      // this callback
-      this.get_non_intrinsic_types_list(callback);
-  }
+    // get a list of types that will need to be included in the .c file for
+    // this callback
+    this.get_non_intrinsic_types_list(callback);
     
     return true;
 }; /* addCallback */
 
 
-/* I want to remove dictionaries that contain source code for the
-   target files, and this seems to be a reasonable method: */
-/* note that it only works when the indices are numbers, and
-   it can't be used inside a for (var i in array) loop... */
-// Array Remove - By John Resig (MIT Licensed)
-// http://ejohn.org/blog/javascript-array-remove/
-Array.prototype.remove = function(from, to) {
-  var rest = this.slice((to || from) + 1 || this.length);
-  this.length = from < 0 ? this.length + from : from;
-  return this.push.apply(this, rest);
-};
-
-
 /**
- * Adds a member of an interface to the interface.
- * This is used to allow easy access to the operations of the interface later on.
+ * Adds a member of an interface to the interface.  This is used to
+ * allow easy access to the operations of the interface later on.
  * @param interfaceName
  * @param interfaceMember
  */
-AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMember)
+AugmentedAST.prototype.addInterfaceMember = function (interfaceName,
+						      interfaceMember)
 {
     if (this.interfaces[interfaceName] === undefined)
-	throw new Error("The interface does not exist: >" + interfaceName + "<");
+       throw new Error("The interface does not exist: >" + interfaceName + "<");
 
     /* objects in Javascript have a function called "toString"
        that is called when the user tries to print out the object;
@@ -1887,10 +1787,9 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
 	this.build_operation_fields(interfaceMember, interfaceName);
 	this.interfaces[interfaceName].operations.push(interfaceMember);
     }
-    
     else if (interfaceMember.type === 'attribute')
     {
-	var attributeMember = new Object;
+	let attributeMember = new Object;
 	attributeMember.attributeName = interfaceMember.name;
 	delete interfaceMember.name; /* this avoids confusion in the
 					     Hogan compiler */
@@ -1907,21 +1806,25 @@ AugmentedAST.prototype.addInterfaceMember = function (interfaceName, interfaceMe
 
 }; /*AugmentedAST.addInterfaceMember */
 
+
 /**
  * Adds an array of members to the interface.
  * @param interfaceName
  * @param interfaceMembers
  */
-AugmentedAST.prototype.addInterfaceMembers = function (interfaceName, interfaceMembers) {
-    for (var i = 0; i < interfaceMembers.length; i++)
+AugmentedAST.prototype.addInterfaceMembers = function (interfaceName,
+						       interfaceMembers)
+{
+    for (let i = 0; i < interfaceMembers.length; i++)
 	this.addInterfaceMember(interfaceName, interfaceMembers[i]);
 }; /* addInterfaceMembers */
 
 
-/* returns true if the interface has the NoInterfaceObject external attribute set */
+/* returns true if the interface has the NoInterfaceObject external
+   attribute set */
 AugmentedAST.prototype.has_NoInterfaceObject_set = function (extAttrs)
 {
-    for (var i = 0; i < extAttrs.length; i++)
+    for (let i = 0; i < extAttrs.length; i++)
     {
 	/* so the parser will let the extAttrs array have entries that
 	   are undefined -- this is a bug in the parser we should chase
@@ -1939,7 +1842,6 @@ AugmentedAST.prototype.has_NoInterfaceObject_set = function (extAttrs)
 
 /**
  * Adds a new interface to our map of interfaces.
- * Creates a new key, and creates an empty array of operations for that key for easy access later on.
  * @param newInterface
  */
 AugmentedAST.prototype.addNewInterface = function (newInterface)
@@ -1959,7 +1861,7 @@ AugmentedAST.prototype.addNewInterface = function (newInterface)
 
     // add an index to the interface attributes so it's easy to assign
     // to them when the user does a new
-    for (var i = 0 ; i < newInterface.attributes.length; i++)
+    for (let i = 0 ; i < newInterface.attributes.length; i++)
 	newInterface.attributes[i].attribute_index = i;
 
     /* mark the last attribute in the list (for later output -- we need to
@@ -1974,13 +1876,19 @@ AugmentedAST.prototype.addNewInterface = function (newInterface)
 
 }; /* AugmentedAST.addNewInterface */
 
+
 /**
- * Adds a partial interface to the existing interface, then removes the original definition from the original ast.
- * @param partialInterface The original partial interface object from the original ast.
- * @param index The index the object is in the original ast (used for removing).
+ * Adds a partial interface to the existing interface, then removes
+ * the original definition from the original ast.
+ * @param partialInterface The original partial interface object from
+ * the original ast.
+ * @param index The index the object is in the original ast (used for
+ * removing).
  */
+/* TODO: test this code -- we don't have any unit tests that exercist this
+   code... */
 AugmentedAST.prototype.addToExistingInterface = function (partialInterface, index) {
-  var existingI = this.interfaces[partialInterface.interfaceName];
+  let existingI = this.interfaces[partialInterface.interfaceName];
   if (existingI && partialInterface.partial) {
     existingI.members = existingI.members.concat(partialInterface.members);
     existingI.externalTypes = existingI.externalTypes.concat(partialInterface.externalTypes);
@@ -2006,78 +1914,86 @@ AugmentedAST.prototype.addToExistingInterface = function (partialInterface, inde
  * @param index The index the object is in the original ast.
  * @returns {boolean} Returns true if added successfully, false otherwise.
  */
-AugmentedAST.prototype.addInterface = function (theInterface, index, fix_type_errors) {
-  //An interface looks like this:
-  //{type:'interface', name:'In', partial:false, members:[ [Object],[Object] ], inheritance:null, extAttrs:[] }
+AugmentedAST.prototype.addInterface = function (theInterface,
+						index,
+						fix_type_errors)
+{
+/* An interface looks like this:
+ { type:'interface',
+   name:'In',
+   partial:false,
+   members:[ [Object],[Object] ],
+   inheritance:null,
+   extAttrs:[] }
+*/
 
-  record_name(theInterface.name, "interface");
+    record_name(theInterface.name, "interface");
 
-  // zephyr's idl contains operations with no return type, which is
-  // incorrect WebIDL -- should we complain and exit, or convert the
-  // operation to returning a void (plus tell the user that's what we did)?
-  // The pattern when the parser hits this error is to put the operation's
-  // name in the idlType->idlType field, so that's where we look for it.
+    // zephyr's idl contains operations with no return type, which is
+    // incorrect WebIDL -- should we complain and exit, or convert the
+    // operation to returning a void (plus tell the user that's what we did)?
+    // The pattern when the parser hits this error is to put the operation's
+    // name in the idlType->idlType field, so that's where we look for it.
     // TODO: this doesn't work for "Promise", as that adds an extra layer
     // of .ildType -- so we should come up with some kind of function to
     // walk the idlType fields until we hit something we can latch onto...
-  for (var i = 0 ; i < theInterface.members.length; i++)
-  {
-      let operation = theInterface.members[i];
-      if (operation.name == null)
-      {
-	  if (operation.idlType !== undefined &&
-	      typeof operation.idlType.idlType === 'string' &&
-	      operation.idlType.idlType.length >= 1)
-	  {
-	      if (fix_type_errors)
-	      {
-		  /* no rhyme or reason, here: we're just working off of
-		     what the parser does... */
-		  operation.name = operation.idlType.idlType;
-		  operation.idlType.idlType = 'void';
-		  console.log("\t>" + operation.name + "< in >" + theInterface.name + "< had no return type; defaulting to void.");
-	      }
-	      else
-		  throw new Error("No return type given for operation >" + operation.idlType.idlType + "< in interface >" + theInterface.name + "<.");
-	  }
-	  else
-	      throw new Error("Operation return type is unspecified.");
-      }
-  }
+    for (let i = 0 ; i < theInterface.members.length; i++)
+    {
+	let operation = theInterface.members[i];
+	if (operation.name == null)
+	{
+	    if (operation.idlType !== undefined &&
+		typeof operation.idlType.idlType === 'string' &&
+		operation.idlType.idlType.length >= 1)
+	    {
+		if (fix_type_errors)
+		{
+		    /* no rhyme or reason, here: we're just working off of
+		       what the parser does... */
+		    operation.name = operation.idlType.idlType;
+		    operation.idlType.idlType = 'void';
+		    console.log("\t>" + operation.name + "< in >" + theInterface.name + "< had no return type; defaulting to void.");
+		}
+		else
+		    throw new Error("No return type given for operation >" + operation.idlType.idlType + "< in interface >" + theInterface.name + "<.");
+	    }
+	    else
+		throw new Error("Operation return type is unspecified.");
+	}
+    }
 
-  /* look through the external attributes and see if any are specifying
-     references to types defined in other places */
-  this.set_external_types(theInterface);
-  this.set_is_module(theInterface);
+    /* look through the external attributes and see if any are specifying
+       references to types defined in other places */
+    this.set_external_types(theInterface);
+    this.set_is_module(theInterface);
+    
+    /* look through the external attributes again and see if any constructors
+       have been explicitly specified */
+    this.set_constructors(theInterface);
+    
+    /* does the interface already exist? (if we've already processed an
+       interface with this name, it'll have the interfaceName field set) */
+    let interface_exists = (theInterface.interfaceName != undefined);
+    
+    if (interface_exists) {
+	this.addToExistingInterface(theInterface, index);
+    } else {
+	// doesn't exist. Add it as a new key.
+	this.addNewInterface(theInterface);
+    }
+    
+    /* the constructors list needs to be conjoined with the operations; since
+       the constructors list contains duplicates, we'll turn it into a set
+       and then back into an array before concatenating */
+    if (theInterface.constructors != undefined)
+	theInterface.operations = theInterface.operations.concat(
+	                      Array.from(new Set(theInterface.constructors)));
 
-  /* look through the external attributes again and see if any constructors
-     have been explicitly specified */
-  this.set_constructors(theInterface);
+    // get a list of types that will need to be included in the .c file for this
+    // interface
+    this.get_non_intrinsic_types_list(theInterface);
 
-  /* does the interface already exist? (if we've already processed an
-     interface with this name, it'll have the interfaceName field set) */
-  var interface_exists = (theInterface.interfaceName != undefined);
-
-  if (interface_exists) {
-    this.addToExistingInterface(theInterface, index);
-  } else {
-    // doesn't exist. Add it as a new key.
-    this.addNewInterface(theInterface);
-  }
-
-  /* the constructors list needs to be conjoined with the operations; since
-     the constructors list contains duplicates, we'll turn it into a set
-     and then back into an array before concatenating */
-  if (theInterface.constructors != undefined)
-    theInterface.operations =
-	            theInterface.operations.concat(
-			       Array.from(new Set(theInterface.constructors)));
-
-  // get a list of types that will need to be included in the .c file for this
-  // interface
-  this.get_non_intrinsic_types_list(theInterface);
-
-  return true;
+    return true;
 }; /* addInterface */
 
 
@@ -2090,7 +2006,7 @@ AugmentedAST.prototype.report_reused_names = function()
     /* if we encounter any errors, we'll save them here, so that we
        can give the user a full list of errors (instead of making them
        fix/compile/fix/etc...) */
-    var error_messages = [];
+    let error_messages = [];
 
     /* returns an array of names that are used more than once in a function
        call */
@@ -2098,7 +2014,7 @@ AugmentedAST.prototype.report_reused_names = function()
        objects and each object must have a name/type field as defined
        by the "accessor" parameter (which defaults to "name")... i.e.,
        each element in the list will look like: { name: "bob" } */
-    var find_duplicates_in_named_list = function(named_list, accessor)
+    let find_duplicates_in_named_list = function(named_list, accessor)
     {
 	if (accessor === undefined)
 	    accessor = "name";
@@ -2106,19 +2022,19 @@ AugmentedAST.prototype.report_reused_names = function()
 	let names_seen = {};
 	let duplicates = [];
 
-	for (var name_iterator = 0;
+	for (let name_iterator = 0;
 	    name_iterator < named_list.length;
 	    name_iterator++)
 	{
-	    var name = named_list[name_iterator][accessor];
+	    let name = named_list[name_iterator][accessor];
 
 	    if (names_seen[name]) names_seen[name]++;
 	    else                  names_seen[name] = 1;
 	}
 
-	for (var name of Object.keys(names_seen))
+	for (let name of Object.keys(names_seen))
 	{
-	    var occurences = names_seen[name];
+	    let occurences = names_seen[name];
 	    if (occurences > 1)
 		duplicates.push({"name":          name,
 				 "occurences":    occurences});
@@ -2131,18 +2047,17 @@ AugmentedAST.prototype.report_reused_names = function()
     /* "extra_bit" is only used when we're processing interfaces */
     /* SIDE EFFECT: populates the (function-level) global array
        error_messages */
-    var report_duplicates = function(duplicates,
+    let report_duplicates = function(duplicates,
 				     type_of_thing,
 				     name_of_thing,
-				     extra_bit
-				    )
+				     extra_bit)
     {
 	if (duplicates.length === 0) return;
 
-	for (var i=0; i < duplicates.length; i++)
+	for (let i=0; i < duplicates.length; i++)
 	{
-	    var name = duplicates[i].name;
-	    var occurences = duplicates[i].occurences;
+	    let name = duplicates[i].name;
+	    let occurences = duplicates[i].occurences;
 
 	    error_messages.push("The name \"" + name +
 				"\" is used " + occurences + " times in the " +
@@ -2151,31 +2066,30 @@ AugmentedAST.prototype.report_reused_names = function()
 	}
     }; /* report_duplicates */
 
-
     /* dictionaries: */
     /* we need to make sure dictionary fields are uniquely named */
-    for (var dictionary_name in this.dictionaries)
+    for (let dictionary_name in this.dictionaries)
     {
-	var duplicates = find_duplicates_in_named_list(
+	let duplicates = find_duplicates_in_named_list(
 	                           this.dictionaries[dictionary_name].members);
 	report_duplicates(duplicates, "dictionary", dictionary_name, "");
     }
 
     /* callbacks: */
     /* we need to make sure callback arguments are uniquely named */
-    for (var callback_name in this.callbacks)
+    for (let callback_name in this.callbacks)
     {
-	var callback = this.callbacks[callback_name];
-	var duplicates = find_duplicates_in_named_list(callback.arguments);
+	let callback = this.callbacks[callback_name];
+	let duplicates = find_duplicates_in_named_list(callback.arguments);
 	report_duplicates(duplicates, "callback", callback_name, "");
     }
 
     /* enums: */
     /* we need to make sure enum values are uniquely named */
-    for (var enum_name in this.enums)
+    for (let enum_name in this.enums)
     {
-	var enum_ = this.enums[enum_name];
-	var duplicates = find_duplicates_in_named_list(enum_.members, "Javascript_name");
+	let enum_ = this.enums[enum_name];
+	let duplicates = find_duplicates_in_named_list(enum_.members, "Javascript_name");
 	report_duplicates(duplicates, "enum", enum_name, "");
     }
 
@@ -2183,38 +2097,39 @@ AugmentedAST.prototype.report_reused_names = function()
     /* we need to make sure operations and attributes are uniquely named,
        and for each operation, that its arguments are uniquely named, relative
        to the other arguments in that operation */
-    for (var interface_name in this.interfaces)
+    for (let interface_name in this.interfaces)
     {
-	var interface_ = this.interfaces[interface_name];
+	let interface_ = this.interfaces[interface_name];
 
 	/* first, check all of the fields of the interface */
-	var attribute_names = interface_.attributes.map(
+	let attribute_names = interface_.attributes.map(
 	                               x=>{return {"name": x.attributeName}});
-	var operation_names = interface_.operations.map(
+	let operation_names = interface_.operations.map(
 	                               x=>{return {"name": x.operationName}});
-	var all_interface_names = attribute_names.concat(operation_names);
-	var interface_duplicates = 
+	let all_interface_names = attribute_names.concat(operation_names);
+	let interface_duplicates = 
 	                   find_duplicates_in_named_list(all_interface_names);
 	report_duplicates(interface_duplicates, "interface", interface_name,"");
 
 	/* next, check all of the operations' argument lists */
-	for (var i = 0; i < interface_.operations.length; i++)
+	for (let i = 0; i < interface_.operations.length; i++)
 	{
-	    var operation = interface_.operations[i];
-	    var operation_name = operation.operationName;
-	    var duplicates = find_duplicates_in_named_list(operation.arguments);
-	    report_duplicates(duplicates, "operation", operation_name, " in the interface named \"" + interface_name + "\"");
+	    let operation = interface_.operations[i];
+	    let operation_name = operation.operationName;
+	    let duplicates = find_duplicates_in_named_list(operation.arguments);
+	    report_duplicates(duplicates, "operation", operation_name,
+			  " in the interface named \"" + interface_name + "\"");
 	}
     }
 
     /* finally, check for duplicate names in the WebIDL constructs */
-    for (var construct_name in construct_names_seen)
+    for (let construct_name in construct_names_seen)
     {
-	var construct_name_object = construct_names_seen[construct_name];
-	var used_in_callbacks = construct_name_object.callback;
-	var used_in_dictionaries = construct_name_object.dictionary;
-	var used_in_interfaces = construct_name_object.interface;
-	var used_in_enums = construct_name_object.enum;
+	let construct_name_object = construct_names_seen[construct_name];
+	let used_in_callbacks = construct_name_object.callback;
+	let used_in_dictionaries = construct_name_object.dictionary;
+	let used_in_interfaces = construct_name_object.interface;
+	let used_in_enums = construct_name_object.enum;
 	let total_occurences = used_in_callbacks + used_in_dictionaries +
 	                       used_in_interfaces + used_in_enums;
 	/* we need to know if the list has only two items or three+ */
@@ -2273,7 +2188,7 @@ AugmentedAST.prototype.report_reused_names = function()
 		let second_line = "";
 		if (used_in > 0)
 		{
-		    var ending = (used_in > 1)?plural_ending:singular_ending;
+		    let ending = (used_in > 1)?plural_ending:singular_ending;
 		    first_line = used_in + " " + thing + ending;
 		    remaining_list_members--;
 
@@ -2284,7 +2199,7 @@ AugmentedAST.prototype.report_reused_names = function()
 		return first_line + second_line;
 	    }; /* get next_two_lines */
 
-	    var line1 = "The name \"" + construct_name + "\" is duplicated in ";
+	    let line1 = "The name \"" + construct_name + "\" is duplicated in ";
 
 	    let line2_and_3 = get_next_two_lines(used_in_callbacks,
 						 "callback", "", "s");
@@ -2312,142 +2227,21 @@ AugmentedAST.prototype.report_reused_names = function()
 } /* AugmentedAST.report_reused_names */
 
 /**
- * checks each type in the queue of types to check
+ * checks each type in the queue of types to check; this is called
+ * after all of the types have been read in, and lets us check to
+ * ensure that all types are correctly defined (this mostly catches
+ * things like typos)
  * @returns {boolean}
  */
 AugmentedAST.prototype.processTypeCheckQueue = function ()
 {
-    if (0)
-    while (this.typeCheckQueue.length !== 0)
-    {
-	if (!this.checkType(this.typeCheckQueue.pop()))
-	    throw new Error("Type error");
-    }
-    else
-	for (let i = 0; i < this.typeCheckQueue.length; i++)
+    for (let i = 0; i < this.typeCheckQueue.length; i++)
 	if (!this.checkType(this.typeCheckQueue[i]))
 	    throw new Error("Type error");
-
+    
     return true;
 }; /* processTypeCheckQueue */
 
-
-/**
- * any type can have a field, parameter, etc. that is another type -- when
- * we put out the C code, we need to ensure that we put out one type before
- * it's used in another type, so we need to sort all of the types into the
- * correct order for outputting.
- * walks all of the types and sets the ".sorted_types" list so that we put
- * put them out in the right order
- */
-/* SIDE EFFECT: sets this.sorted_types_list */
-/* TODO: THIS WAS DEPRECATED AFTER MOVING TO SEPARATE COMPILATION;
- * REMOVE AND TEST THAT EVERYTHING WORKS... */
-var topological_sort = require('topsort'); var _ = require('lodash');
-AugmentedAST.prototype.sort_types = function()
-{
-    this.sorted_types_list = [];
-    return;
-    /* first, build a list of all type names */
-    let names = Object.keys(this.dictionaries).concat(
-	        Object.keys(this.callbacks).concat(
-	        Object.keys(this.enums).concat(
-		Object.keys(this.interfaces))));
-
-    /* so we have a way to map names to entries; now, walk the types again
-       and build the edges to be sorted */
-    let edges = [];
-
-    /* this is our function used for mapping each of the objects' field types
-       to other objects and adding an edge to our list for sorting */
-    /* the design is a closure of a closure -- the first one is b/c it's
-       so hard to ensure that we store the "this" pointer (and the
-       two callback functions don't change for any of the three types
-       (interfaces, dictionaries, and callbacks)) */
-    let add_edge = (function(primitiveType, getTypeName)
-                    {
-			let primitive_type = primitiveType;
-			let get_type_name = getTypeName;
-
-			return function(user)
-			{
-			    let user_of_type = user;
-			    let is_array =
-				function(member)
-			        {
-				    return (member.idlType &&
-					    member.idlType.array > 0);
-			        }; /* is_array */
-
-			    return function(member)
-			    {
-				if (primitive_type(member) &&
-				    !is_array(member))
-				    return; 
-				let member_type = get_type_name(member);
-				if (primitive_type(member) && is_array(member))
-				    member_type += "_Array";
-				let member_index = names.indexOf(member_type); 
-				/* an edge, [a,b], should be read "a must
-				   come before b" */
-				return [ member_index, user ];
-			    }; /* returned function (closure) */
-			}; /* return function (closure) */
-		   }) (this.isPrimitiveType.bind(this),
-		       this.getCTypeName.bind(this)); /* add_edge */
-    let remove_undefines = function(x) {if (x == undefined || (x[0] == -1 ||
-							       x[1] == -1))
-					   return false;
-				        else
-					   return true;}; /* remove_undefines */
-    for (let next in this.dictionaries)
-    {
-	let dictionary = this.dictionaries[next];
-	let this_index = names.indexOf(dictionary.name);
-
-	edges = edges.concat(dictionary.members.map(add_edge(this_index)).filter(remove_undefines));
-    }
-    for (let next in this.callbacks)
-    {
-	let callback = this.callbacks[next];
-	let this_index = names.indexOf(callback.callbackName);
-
-	edges = edges.concat(callback.arguments.map(add_edge(this_index)).filter(remove_undefines));
-    }
-    for (let next in this.interfaces)
-    {
-	var next_interface = this.interfaces[next];
-	let this_index = names.indexOf(next_interface.interfaceName);
-
-	/* operations' arguments list */
-	for (let operation of next_interface.operations)
-	    edges = edges.concat(operation.arguments.map(add_edge(this_index)).filter(remove_undefines));
-	/* attributes */
-	edges = edges.concat(next_interface.attributes.map(add_edge(this_index)).filter(remove_undefines));	    
-    }
-
-    /* sort the edges */
-    let sorted_types = topological_sort(edges);
-
-    /* turn the sorted list of numbers into their corresponding names */
-    let sorted_names = sorted_types.map( x => {return names[x];} );
-
-    /* not every name is in the sorted list (e.g., a dictionary that only
-       uses builtin types won't have any edges to other dictionaries), so
-       make sure we don't ignore those */
-    let diff = _.difference(names, sorted_names);
-
-    /* finally, construct a list of the actual objects for Hogan to
-       iterate through */
-    let all_names_sorted = diff.concat(sorted_names);
-
-    this.sorted_types_list = all_names_sorted.map(x => {
-	     if (this.dictionaries[x] != undefined) return this.dictionaries[x];
-	     if (this.callbacks[x] != undefined) return this.callbacks[x];
-	     if (this.interfaces[x] != undefined) return this.interfaces[x];
-	     if (this.enums[x] != undefined) return this.enums[x];
-    });
-}; /* sort_types */
  
 /**
  * marks every type that is a callback with a flag, b/c "interpreter_get_*"
@@ -2455,7 +2249,7 @@ AugmentedAST.prototype.sort_types = function()
  */
 AugmentedAST.prototype.find_and_mark_callbacks = function()
 {
-    for (var next_interface in this.interfaces)
+    for (let next_interface in this.interfaces)
     {
 	let operations_array = this.interfaces[next_interface].operations;
 	let operations_length = operations_array.length;
@@ -2499,10 +2293,10 @@ AugmentedAST.prototype.find_and_mark_callbacks = function()
   */
 AugmentedAST.prototype.find_interface_attributes = function()
 {
-    for (var i in this.interfaces)
+    for (let i in this.interfaces)
     {
 	let attribute_array = this.interfaces[i].attributes;
-	for (var j = 0; j < attribute_array.length; j++)
+	for (let j = 0; j < attribute_array.length; j++)
 	{
 	    let C_Type = attribute_array[j].C_and_Jerryscript_Types.C_Type;
 	    if (this.interface_names.indexOf(C_Type) >= 0)
@@ -2542,9 +2336,9 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	   this keeps them in the original order but preceding target's
 	   own list */
 	let existing_members = target.members.map(a => a.memberName);
-	for (var i = parent.members.length-1; i >= 0; i--)
+	for (let i = parent.members.length-1; i >= 0; i--)
 	{
-	    var member = parent.members[i];
+	    let member = parent.members[i];
 	    if (existing_members.indexOf(member.memberName) < 0)
 	    {
 		target.members.unshift(member);
@@ -2579,9 +2373,9 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	   own list (we don't bother to do this for operations, since
 	   their order doesn't matter) */
 	let existing_attributes = target.attributes.map(a => a.attributeName);
-	for (var i = parent.attributes.length-1; i >= 0; i--)
+	for (let i = parent.attributes.length-1; i >= 0; i--)
 	{
-	    var attribute = parent.attributes[i];
+	    let attribute = parent.attributes[i];
 	    if (existing_attributes.indexOf(attribute.attributeName) < 0)
 	    {
 		target.attributes.unshift(attribute);
@@ -2599,7 +2393,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	   pointer to the operation object, we need to clone it and
 	   set up the markers */
 	let operation_names = target.operations.map(a => a.operationName);
-	for (var operation of parent.operations)
+	for (let operation of parent.operations)
 	{
 	    /* if we already have an operation with this name,
 	     * then don't add it to target */
@@ -2617,7 +2411,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 		
 		else /* otherwise, make a copy and add it to target */
 		{
-		    var new_operation = Object.assign({}, operation);
+		    let new_operation = Object.assign({}, operation);
 		    
 		    new_operation.type = "inherited_operation";
 		    new_operation.inherited_operation = true;
@@ -2729,7 +2523,7 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
        object (so really far away ancestors count the least, in the
        sense that they won't be included if an earlier ancestor also
        provided something with the same name) */
-    for (var i in objects_list)
+    for (let i in objects_list)
     {
 	if (already_seen.indexOf(i) < 0)
 	{
@@ -2747,7 +2541,6 @@ AugmentedAST.prototype.find_inheritance_chain = function(objects_list)
 	}
     }
 } /* AugmentedAST.find_inheritance_chain */
-
 
 
 /* we need to make sure that objects don't recursively define themselves
@@ -2768,7 +2561,6 @@ AugmentedAST.prototype.ensure_no_recursion_in_types = function(objects)
 AugmentedAST.prototype.walk_object_graph = function(current, objects,
 						    objects_keys, current_seen)
 {
-    /* TODO: FIX THIS EXCEPTION TO SHOW THE CYCLE */
     if (current_seen.indexOf(current) >= 0)
 	throw { "message"        : error_codes.cyclic_structs,
                 "objects_list"   : current_seen,
@@ -2820,7 +2612,7 @@ AugmentedAST.prototype.build_composite_types = function(composites)
        for that WebIDL type */
     /* note that we also set up an empty externalTypes field, as all of the
        functions that work on the other types expect this to exist */
-    var set_up_default_values = function(composite)
+    let set_up_default_values = function(composite)
     {
 	composite.externalTypes = new Array();
 
@@ -2830,10 +2622,10 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 			      this.getConversionTypes(composite.default_value)};
     }; /* set_up_default_values */
 
-    var build_type_list_from_webidl_list = function(composite)
+    let build_type_list_from_webidl_list = function(composite)
     {
-	var webidl_type_list = composite["webidl_type_list"];
-	var getConversionTypes = this.getConversionTypes;
+	let webidl_type_list = composite["webidl_type_list"];
+	let getConversionTypes = this.getConversionTypes;
 
 	let new_c_and_j_type_list = [];
 	for (let i = 0 ; i < webidl_type_list.length; i++)
@@ -2845,7 +2637,7 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 
 	/* we'll need to name each field by its webidl name, so record that
 	   in each type's entry */
-	for (var i =0; i < composite["c_and_j_type_list"].length; i++)
+	for (let i =0; i < composite["c_and_j_type_list"].length; i++)
 	    composite["c_and_j_type_list"][i].webidl_name =
 		webidl_type_list[i].replace(/ /g,''); /* remove whitespace */
     }; /* build_type_list_from_webidl_list */
@@ -2859,10 +2651,10 @@ AugmentedAST.prototype.build_composite_types = function(composites)
        type from the Javascript value */
     let filter_numeric_types = function(composite)
     {
-	var filtered_list = [];
+	let filtered_list = [];
 	/* we'll arbitrarily define unsigned's to be bigger than signed's,
 	   and floating-point trumps any integral value */
-	var c_type_size = { boolean:  1,
+	let c_type_size = { boolean:  1,
 			    bool:     1,
 			    int8_t:   7 ,
 			    uint8_t:  8 ,
@@ -2877,7 +2669,7 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 			    float:    65,
 			    double:   66,
 			  };
-	var greater_than = function(x, y)
+	let greater_than = function(x, y)
 	{
 	    if      (typeof x == "undefined") return false;
 	    else if (typeof y == "undefined") return true;
@@ -2885,12 +2677,12 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	    return (c_type_size[x.C_Type] > c_type_size[y.C_Type]);
 	}; /* greater_than */
 
-	var largest_numeric_type = undefined;
-	var c_and_j_type_list = composite.c_and_j_type_list;
-	var boolean_type_copy = undefined; /* defined if we see "boolean"... */
-	for (var i = 0; i < c_and_j_type_list.length; i++)
+	let largest_numeric_type = undefined;
+	let c_and_j_type_list = composite.c_and_j_type_list;
+	let boolean_type_copy = undefined; /* defined if we see "boolean"... */
+	for (let i = 0; i < c_and_j_type_list.length; i++)
 	{
-	    var this_type = Object.assign({}, c_and_j_type_list[i]);
+	    let this_type = Object.assign({}, c_and_j_type_list[i]);
 
 	    /* if the C_Type field isn't numeric, just put it onto the new
 	       list */
@@ -2917,24 +2709,19 @@ AugmentedAST.prototype.build_composite_types = function(composites)
 	composite.j_to_c_type_list = filtered_list;
     }; /* filter_numeric_types */
 
-    
 
     Object.values(this.composites).forEach(
 					build_type_list_from_webidl_list,
 					this /* stay in the current context */);
-
     Object.values(this.composites).forEach(
 					set_up_default_values,
 					this /* stay in the current context */);
-
     Object.values(this.composites).forEach(
 	                                this.get_non_intrinsic_types_list,
 					this /* stay in the current context */);
-
     Object.values(this.composites).forEach(
 	                                filter_numeric_types,
 	                                this /* stay in the current context */);
-
 } /* build_composite_types */
 
 
@@ -2961,10 +2748,10 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
        current compilation, so first grab all of the external types
        and then cull the list by what's defined in the current
        file... */
-    var defined_in_this_file = Object.keys(this.callbacks).concat(
+    let defined_in_this_file = Object.keys(this.callbacks).concat(
 	                       Object.keys(this.dictionaries),
 	                       Object.keys(this.interfaces));
-    var all_external_types =
+    let all_external_types =
 	    Object.keys(this.allExternalTypes).filter(
 		                  val => !defined_in_this_file.includes(val));
     
@@ -2973,13 +2760,13 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
        list of non-intrinsic types and returns a list of strings
        corresponding to types that should be deleted from the object's
        non_intrinsic_types list and added to its externalTypes list */
-    var find_list_modifications = function(non_intrinsic_types)
+    let find_list_modifications = function(non_intrinsic_types)
     {
-	var modifications_list = [];
+	let modifications_list = [];
 
-	for (var index=0; index < non_intrinsic_types.length; index++)
+	for (let index=0; index < non_intrinsic_types.length; index++)
 	{
-	    var type_name = non_intrinsic_types[index].type_name;
+	    let type_name = non_intrinsic_types[index].type_name;
 
 	    if (all_external_types.indexOf(type_name) >= 0)
 		modifications_list.push(type_name);
@@ -2987,41 +2774,41 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
 	return modifications_list;
     } /* find_list_modifications */
 
-    var fix_non_intrinsics_lists = function(things_list, all_external_types)
+    let fix_non_intrinsics_lists = function(things_list, all_external_types)
     {
 	/* walk each object's non_intrinsic_types list, and move any
 	   type that shows up in "all_external_types" to the object's
 	   external_types list */
 	/* ("things_list" is really an object, not a list...) */
-	for (var thing_name in things_list)
+	for (let thing_name in things_list)
 	{
-	    var thing = things_list[thing_name];
-	    var non_intrinsic_types = thing.non_intrinsic_types;
-	    var list_modifications = find_list_modifications(non_intrinsic_types);
-	    for (var modification_index = 0;
+	    let thing = things_list[thing_name];
+	    let non_intrinsic_types = thing.non_intrinsic_types;
+	    let list_modifications = find_list_modifications(non_intrinsic_types);
+	    for (let modification_index = 0;
 		    modification_index < list_modifications.length;
 		    modification_index++)
 	    {
-		var type_name = list_modifications[modification_index];
+		let type_name = list_modifications[modification_index];
 		thing.externalTypes.push(all_external_types[type_name]);
 		
-		var delete_index = non_intrinsic_types.map(x=>x.type_name).indexOf(type_name);
+		let delete_index = non_intrinsic_types.map(x=>x.type_name).indexOf(type_name);
 		non_intrinsic_types.splice(delete_index, 1);
 	    }
 	}
     }; /* fix_non_intrinsics_lists */
 
-    var fix_externalTypes_lists = function(things_list, all_external_types)
+    let fix_externalTypes_lists = function(things_list, all_external_types)
     {
 	/* ("things_list" is really an object, not a list...) */
-	for (var thing_name in things_list)
+	for (let thing_name in things_list)
 	{
-	    var thing = things_list[thing_name];
+	    let thing = things_list[thing_name];
 
-	    var external_types_to_keep = [];
-	    for (var i = 0; i < thing.externalTypes.length; i++)
+	    let external_types_to_keep = [];
+	    for (let i = 0; i < thing.externalTypes.length; i++)
 	    {
-		var next_type = thing.externalTypes[i];
+		let next_type = thing.externalTypes[i];
 		
 		if (all_external_types.indexOf(next_type.type) < 0)
 		    thing.non_intrinsic_types.push({"type_name": next_type.type});
@@ -3033,8 +2820,6 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
     }; /* fix_externalTypes_lists */
 
 
-    /* TODO: should the 2nd parameter be the locally defined
-       all_external_types? */
     fix_non_intrinsics_lists(this.callbacks, this.allExternalTypes);
     fix_non_intrinsics_lists(this.dictionaries, this.allExternalTypes);
     fix_non_intrinsics_lists(this.interfaces, this.allExternalTypes);
@@ -3055,19 +2840,20 @@ AugmentedAST.prototype.find_and_recategorize_external_types = function()
  * @param [ast]
  * @returns {AugmentedAST}
  */
-AugmentedAST.prototype.augment = function (ast) {
-  // passing in an ast sets this.ast and starts augmenting
-  if (ast) {
-    this.ast = ast;
-    this.isAugmented = false;
-  }
+AugmentedAST.prototype.augment = function (ast)
+{
+    // passing in an ast sets this.ast and starts augmenting
+    if (ast) {
+	this.ast = ast;
+	this.isAugmented = false;
+    }
 
-  if (this.isAugmented) {
-    return this; //already augmented
-  }
+    if (this.isAugmented) {
+	return this; //already augmented
+    }
 
-  if (this.tied_to_jerryscript)
-      this.WebIDL_to_C_TypeMap["this"] = "jerry_value_t";
+    if (this.tied_to_jerryscript)
+	this.WebIDL_to_C_TypeMap["this"] = "jerry_value_t";
 
     /* record typedefs in their own structure (this.typedefs) -- we could(!)
        remove them from the ast, but right now, we just ignore them in the
@@ -3077,40 +2863,41 @@ AugmentedAST.prototype.augment = function (ast) {
     /* must come after the call to record_typedefs!!! */
     this.fix_names();
 
-  var t = this.ast;
-  // note, we visit everything in the TOP level only.
-  // this limits the nodes that are supported.
-  // the nodes inside are checked in their corresponding methods.
-  for (var i = 0; i < t.length; i++) {
-    var type = t[i].type;
-    if (type === 'interface') {
-	this.addInterface(t[i], i, this.fix_type_errors);
-    } else if (type === 'dictionary') {
-	this.addDictionary(t[i], i);
-    } else if (type === 'exception') { //3.4
-      // TODO Support exceptions
-    } else if (type === 'enum') {
-	this.addEnum(t[i], i);
-    } else if (type === 'callback') {
-	this.addCallback(t[i], i);
-    } else if (type === 'typedef') { //3.7
-      // TODO Support typedefs
-    } else if (type === 'implements') { //3.8
-      // TODO Support implements
-    } else {
-      throw new Error("Type not supported at top level: " + t);
+    let t = this.ast;
+    // note, we visit everything in the TOP level only.
+    // this limits the nodes that are supported.
+    // the nodes inside are checked in their corresponding methods.
+    for (let i = 0; i < t.length; i++) {
+	let type = t[i].type;
+	if (type === 'interface') {
+	    this.addInterface(t[i], i, this.fix_type_errors);
+	} else if (type === 'dictionary') {
+	    this.addDictionary(t[i], i);
+	} else if (type === 'exception') { //3.4
+	    // TODO Support exceptions
+	} else if (type === 'enum') {
+	    this.addEnum(t[i], i);
+	} else if (type === 'callback') {
+	    this.addCallback(t[i], i);
+	} else if (type === 'typedef') { //3.7
+	    // TODO Support typedefs
+	} else if (type === 'implements') { //3.8
+	    // TODO Support implements
+	} else {
+	    throw new Error("Type not supported at top level: " + t);
+	}
     }
-  }
 
     this.report_reused_names();
 
-  // squash the ast
-  var offset = 0;
-  for (var iindex = 0; iindex < this.removedIndices.length; iindex++) {
-    this.ast.splice(this.removedIndices[iindex] - offset, 1);
-    offset++;
-  }
-  this.removedIndices = [];
+    // squash the ast
+    let offset = 0;
+    for (let iindex = 0; iindex < this.removedIndices.length; iindex++)
+    {
+	this.ast.splice(this.removedIndices[iindex] - offset, 1);
+	offset++;
+    }
+    this.removedIndices = [];
 
 
     // while walking the ast, we built up a list of all of the type names
@@ -3123,23 +2910,11 @@ AugmentedAST.prototype.augment = function (ast) {
        require an associated "_Array" type and associated extractor/creator
        functions */
 
-    /* TODO: variadic types*/
-    /* variadic types are themselves arrays, although they require slightly
-       different extractor functions -- we'll build up the list of variadic
-       types, during execution of this function... */
-  /*this.array_types = this.get_the_list_of_array_types(this.variadic_types); */
-
     /* ...we'll take the arrays list and create dictionary entries for
        them -- array types are almost exactly like dictionaries, so
        we'll just have a little special-case code in the
        dictionary-handling code */
     this.convert_list_of_array_types_to_dictionaries(this.array_types);
-
-    /* types need to be put out in the correct order -- e.g., if type A
-       has a field of type B, we need to make sure that B gets outputted
-       in the .h file before A */
-    /* this function builds a list of types called sorted_types_list */
-/*    this.sort_types();*/
 
     /* annotate all variables that are callbacks */
     this.find_and_mark_callbacks();
@@ -3200,11 +2975,6 @@ AugmentedAST.getTypeName = AugmentedAST.prototype.getTypeName = function (obj) {
   return undefined;
 }; /* AugmentedAST.getTypeName */
 
-AugmentedAST.prototype.getCTypeName = function (obj)
-{
-    return this.getConversionTypes(obj).C_Type;
-} /* getCTypeName */
-
 
 /* this maps the idlType through the type_mapper and returns a string of
    the mapped type -- the type_mapper's "didn't find it" return value should
@@ -3218,13 +2988,13 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
 						     type_mapper,
 						     is_variadic = false)
 {
-    var self = this;
+    let self = this;
     /* the whole purpose of this wrapping function is to grab the
        new type and make sure it doesn't require further processing; in
        this case, if the type comes back with an array instead of a
        string, that's a composite type, and we'll have to convert it
        into a single string */
-    var new_type = this.idlTypeToOtherType_helper(idlType, type_mapper);
+    let new_type = this.idlTypeToOtherType_helper(idlType, type_mapper);
 
     /* like composite types (below), when we see an array, we need to
        create a new name for it and enter it onto a list of array types
@@ -3234,10 +3004,10 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
        "items" (either a string (and we're done) or another of this
        type (and we have to recur)) and "array", which is a boolean
        (and ignored) */
-    var create_array_type = function(array_thing, list_of_array_types)
+    let create_array_type = function(array_thing, list_of_array_types)
     {
-	var element_typename;
-	var return_typename;
+	let element_typename;
+	let return_typename;
 
 	/* base case */
 	if (typeof array_thing.items === "string")
@@ -3262,7 +3032,7 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
        the members of the type */
     /* SIDE EFFECT: adds the new type to the "this.composites" list for
        later processing */
-    var create_composite_type =
+    let create_composite_type =
 	function(list_of_webidl_types, composites)
         {
 	    /* first, remove duplicates (since it's useless to have multiple
@@ -3279,8 +3049,8 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
 	    /* next, build a string from the names of the types
 	       (first, substitute the name of the array for any
 	        structs in the list) */
-	    var list_of_type_names = [];
-	    var get_array_name = function(x) 
+	    let list_of_type_names = [];
+	    let get_array_name = function(x) 
 	                         {
 				     if (typeof x == "string") 
 					 return x;
@@ -3291,10 +3061,10 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
 					     throw new Error("error in creating composite-type's name");
 					 return create_array_type(x, self.array_types);
 				     }};
-	    var add_array_name = function (x) { list_of_type_names.push(get_array_name(x));};
+	    let add_array_name = function (x) { list_of_type_names.push(get_array_name(x));};
 	    list_of_webidl_types.forEach(add_array_name, this);
 	    list_of_type_names = list_of_type_names.sort()
-	    var new_name = list_of_type_names.join("_or_");
+	    let new_name = list_of_type_names.join("_or_");
 	    new_name = new_name.replace(/ /g,""); /* regex removes spaces from
 						   types like "unsigned long" */
 
@@ -3309,7 +3079,7 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
 	       one when we need to put out the constructor */
 	    if (composites[new_name] === undefined)
 	    {
-		var new_entry = {"type": "composite",
+		let new_entry = {"type": "composite",
 				 "compositeName" : new_name, 
 				 "webidl_type_list2": list_of_webidl_types,
 				 "webidl_type_list": list_of_type_names,
@@ -3328,7 +3098,7 @@ AugmentedAST.prototype.idlTypeToOtherType = function(idlType,
        and return that name, instead */
     if (Array.isArray(new_type))
     {
-	var list_of_webidl_types = new_type;
+	let list_of_webidl_types = new_type;
 
 	new_type = create_composite_type(list_of_webidl_types,
 					 this.composites);
@@ -3384,7 +3154,7 @@ AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper
 {
     if (typeof idlType == 'string')
     {
-	var this_type = type_mapper[idlType];
+	let this_type = type_mapper[idlType];
 
 	if (type_mapper != undefined)
 	{	
@@ -3399,20 +3169,20 @@ AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper
     
     if (typeof idlType == 'object')
     {
-	var object_is_array = function(x) { 
+	let object_is_array = function(x) { 
 	                            return (typeof x.type != "undefined" &&
 					    x.type == "array"); };
 	if (object_is_array(idlType))
 	{
 	    return sequenceItemType = this.idlTypeToOtherType(idlType.items, type_mapper)+"_array";
 	}
-	else if (idlType.sequence)
+	else if (idlType.sequence) /* "sequence" = "C array" */
 	{
 	    if (idlType.idlType)
 	    {
-		var sequenceDepth = idlType.sequence;
+		let sequenceDepth = idlType.sequence;
 		/* arrays will always be the WebIDL type... */
-		var sequenceItemType = this.idlTypeToOtherType(idlType.idlType, type_mapper);
+		let sequenceItemType = this.idlTypeToOtherType(idlType.idlType, type_mapper);
 		return this.idlSequenceToSchema(sequenceDepth, sequenceItemType);
 	    }
 	    else
@@ -3423,9 +3193,9 @@ AugmentedAST.prototype.idlTypeToOtherType_helper = function(idlType, type_mapper
 					    that when we recur, we send in an
 					    empty type_mapper */
 	{
-	    var idlType_array = idlType;
-	    var list_of_webidl_types = [];
-	    for (var y = 0; y < idlType_array.length; y++)
+	    let idlType_array = idlType;
+	    let list_of_webidl_types = [];
+	    for (let y = 0; y < idlType_array.length; y++)
 		list_of_webidl_types =
 		    list_of_webidl_types.concat(this.idlTypeToOtherType_helper(
 							     idlType_array[y],
@@ -3461,6 +3231,8 @@ AugmentedAST.prototype.get_idlType_string = function(idlType)
 } /* AugmentedAST.get_idlType_string */
 
 
+/* a WebIDL "sequence" translates to a C array, so restructure the
+   idlType to a form that we want in idlTypeToOtherType_helper */
 AugmentedAST.prototype.idlSequenceToSchema = function(depth, itemType)
 {
     //pre: itemType needs to be a schema...
@@ -3478,26 +3250,6 @@ AugmentedAST.prototype.idlSequenceToSchema = function(depth, itemType)
 }; /* AugmentedAST.idlSequenceToSchema */
 
 
-AugmentedAST.prototype.getInterfaceArray = function(){
-  var out = [];
-  for (var key in this.interfaces){
-    out.push(this.interfaces[key]);
-  }
-
-  return out;
-}; /* AugmentedAST.getInterfaceArray */
-
-
-AugmentedAST.prototype.getCompositeTypesArray = function()
-{
-    var array_of_types = [];
-    for (var key in this.interfaces)
-	array_of_types.push(this.composites[key]);
-
-    return array_of_types;
-} /* getCompositeTypesArray */
-
-
 /* change the type of the externalTypes so that the Hogan compiler
    can iterate through it */
 /* also, it's not an error to declare an ExternalType in the .idl file
@@ -3507,99 +3259,31 @@ AugmentedAST.prototype.getCompositeTypesArray = function()
    included */
 AugmentedAST.prototype.getExternalTypesArray = function()
 {
-    var list_of_defined_types = Array().concat(Object.keys(this.dictionaries),
+    let list_of_defined_types = Array().concat(Object.keys(this.dictionaries),
 					       Object.keys(this.interfaces),
 					       Object.keys(this.callbacks));
-
-    var out = [];
-    for (var key of Object.keys(this.allExternalTypes))
-	if (list_of_defined_types.indexOf(key) == -1)
-	    out.push(this.allExternalTypes[key]);
-    return out;
-} /* getExternalTypesArray */
-
-/* change the type of the externalTypes so that the Hogan compiler
-   can iterate through it */
-/* also, it's not an error to declare an ExternalType in the .idl file
-   and then call the generator with both .idl files (i.e., the type is not
-   really "external", b/c it is included at compile time -- in this case, we
-   shouldn't put out include directives, b/c all of those types will be
-   included */
-AugmentedAST.prototype.getExternalTypesArray = function()
-{
-    var list_of_defined_types = Array().concat(Object.keys(this.dictionaries),
-					       Object.keys(this.interfaces),
-					       Object.keys(this.callbacks));
-
-    var out = [];
-    for (var key of Object.keys(this.allExternalTypes))
+    let out = [];
+    for (let key of Object.keys(this.allExternalTypes))
 	if (list_of_defined_types.indexOf(key) == -1)
 	    out.push(this.allExternalTypes[key]);
     return out;
 } /* getExternalTypesArray */
 
 
+/* this is used by CHoganHelpers to turn an object's fields into an array
+   of those values */
 AugmentedAST.prototype.turn_object_into_array = function(x)
 {
-    var out = [];
-    for (var key in x)
+    let out = [];
+    for (let key in x)
 	out.push(x[key]);
     return out;
 }; /* turn_object_into_array */
 
-AugmentedAST.prototype.getDictionaryArray = function()
-{
-  var out = [];
-  for (var key in this.dictionaries){
-    out.push(this.dictionaries[key]);
-  }
-  return out;
-};
 
-AugmentedAST.prototype.getTypedefArray = function()
-{
-  var out = [];
-  for (var key in this.typedefs){
-    out.push(this.typedefs[key]);
-  }
-  return out;
-}; /* getTypedefArray */
-
-AugmentedAST.prototype.getEnumsArray = function(){
-  var out = [];
-  for (var key in this.enums){
-    out.push(this.enums[key]);
-  }
-  return out;
-}; /* getEnumsArray */
-
-AugmentedAST.prototype.getCompositesArray = function(){
-  var out = [];
-  for (var key in this.composites){
-    out.push(this.composites[key]);
-  }
-  return out;
-}; /* getCompositesArray */
-
-AugmentedAST.prototype.getCallbackArray = function(){
-  var out = [];
-  for (var key in this.callbacks){
-    out.push(this.callbacks[key]);
-  }
-  return out;
-}; /* getCallbackArray */
-
-AugmentedAST.prototype.get_sorted_types_list = function(){
-    return this.sorted_types_list;
-}; /* get_sorted_types_list */
-
-AugmentedAST.prototype.get_C_type_list = function(){
-  if (this.C_type_list !== undefined)
-      return this.C_type_list;
-  else
-      return undefined;
-}; /* get_C_type_list */
-
+/* as we process all of the types, we gather a list of arrays-of-types,
+   and then at the end, we'll convert each of those to a dictionary type
+   that will then get output'ed as a dictionary by the Hogan compiler */
 /* dictionaries have the following fields:
    type: "dictionary"
    name: <string>
@@ -3694,129 +3378,3 @@ AugmentedAST.prototype.convert_list_of_array_types_to_dictionaries = function(ar
 
 
 module.exports = AugmentedAST;
-
-
-
-
-
-
-
-
-/*********************************************************************/
-/* IGNORE FUNCTIONS BELOW THIS LINE!
-/*********************************************************************/
-
-
-/* TODO: we really don't handle variadic types correctly yet, so this
-   function is probably useless */
-/* we need to walk all of the ast to figure out what kind of array types
-   (remember that variadic parameters are also arrays) we'll need --
-   these will turn into <type>_Array types in the C code */
-/* SIDE EFFECT: sets "variadic" to true on the last arguments'
-   C_and_Jerryscript_Types (if that argument is variadic :-) -- also
-   sets "array" to true on arguments' C_and_Jerryscript_Type */
-AugmentedAST.prototype.get_the_list_of_array_types = function(variadics)
-{
-    let types = {};
-
-    let create_array_object =
-	    function(type) {return {"type": "array", "C_and_Jerryscript_Types": type};};
-
-    /* SIDE_EFFECT: sets the ".array" field in the C_and_Jerryscript_Types
-       object */
-    /* the "member" parameter is either a operation argument or the
-       operation return type -- the key is that it will have a
-       C_and_Jerryscript_Type field */
-    let add_type_to_list =
-	    function(member, list)
-            {
-		/* Object.assign copies memory rather than the reference */
-		let type = Object.assign({}, member.C_and_Jerryscript_Types);
-		list[type.C_Type] = create_array_object(type);
-		member.C_and_Jerryscript_Types.is_array = true;
-            }; /* add_type_to_list */
-    /* callbacks and operations have the same data structure, so we've
-       abstracted the shared functionality into this routine */
-    /* SIDE_EFFECT: sets the ".variadic" field in the C_and_Jerryscript_Types
-       object */
-    let add_arguments_that_are_arrays_to_list =
-	    function(arguments_list)
-            {
-		for (let argument of arguments_list)
-		{
-		    if(argument.idlType.array > 0)
-			add_type_to_list(argument, types);
-
-		    /* variadic arguments are just arrays of arguments of
-		       that type -- this is the only place in WebIDL that
-		       you can get an array of arrays -- if that's the case
-		       for an argument, the array type will have been
-		       entered into the list (above), and we just need
-		       to enter the array-of-arrays type here... (and if it's
-		       not the case, then we need to add the array type here) */
-		    if (argument.variadic)
-		    {
-			if (argument.idlType.array > 0)
-			{
-			    /* Object.assign copies memory rather than
-			       the reference */
-			    let type = Object.assign({}, argument.C_and_Jerryscript_Types);
-			    type.element_type = type.C_Type;
-			    type.C_Type = type.C_Type+"_Array";
-			    type.is_string = false; /* kludge, but we know
-						       it's true */
-			    /* IS IT CORRECT TO SET THE JERRYSCRIPT TYPE?!? */
-			    type.Jerryscript_Type =
-				               type.C_Type;
-
-			    add_type_to_list({"C_and_Jerryscript_Types":type}, types);
-			}
-			add_type_to_list(argument, variadics);
-
-			/*argument.C_and_Jerryscript_Types.is_variadic = true;*/
-		    }
-		}
-	    }; /* add_arguments_that_are_arrays_to_list */
-
-    for (let dictionary in this.dictionaries)
-    {
-	let next = this.dictionaries[dictionary];
-
-	for (let member of next.members)
-	    if (member.idlType.array > 0)
-		add_type_to_list(member, types);
-    }
-
-    for (var next_interface in this.interfaces)
-    {
-	let operations = this.interfaces[next_interface].operations;
-
-	for (let operation of operations)
-	{
-	    /* single check of the return type of the operation */
-	    if (operation.idlType.array > 0)
-		add_type_to_list(operation, types);
-
-	    add_arguments_that_are_arrays_to_list(operation.arguments,
-						 this.getConversionTypes);
-	}
-    }
-
-    for (let next in this.callbacks)
-    {
-	let callback = this.callbacks[next];
-
-	/* single check of the return type of the callback */
-	if (callback.idlType.array > 0)
-	    add_type_to_list(operation, types);
-
-	add_arguments_that_are_arrays_to_list(callback.arguments,
-					     this.getConversionTypes);
-    }
-
-    return types;
-}; /* get_the_list_of_array_types */
-
-/*********************************************************************/
-/* End of -- IGNORE FUNCTIONS BELOW THIS LINE! -- section
-/*********************************************************************/

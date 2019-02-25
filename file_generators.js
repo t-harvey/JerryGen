@@ -140,7 +140,7 @@ module.exports = {
     {
 	augAST.repress_stubs = (parameters.stubs === "off");
 	this.generate_C_files(augAST, parameters, "interfaces",
-			      Generator.genCString);
+			      Generator.genInterfaceString);
     } /* interfaces */,
 
     

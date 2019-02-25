@@ -16,6 +16,10 @@ specific language governing permissions and limitations
 under the License.
 */
 
+/* the code in this module actually calls the Hogan compiler, after
+   using getContext to build the data structure that that compiler
+   needs */
+
 let fs = require('fs');
 let hogan = require('hogan.js');
 let _ = require('lodash');
@@ -28,6 +32,7 @@ function getMustacheTemplate(templateName){
     let mustache_filename = __dirname+"/c-templates/"+templateName+".mustache";
     return fs.readFileSync(mustache_filename, {encoding: 'utf8'})
 } /* getMustacheTemplate */
+
 
 /* writes into the context object the kind of file to be created */
 let set_type_of_file = function(context, header_or_body)
@@ -45,7 +50,7 @@ let set_type_of_file = function(context, header_or_body)
 Interface Code generation
  */
 
-module.exports.genCString = function(ast, moduleName, header_or_body)
+module.exports.genInterfaceString = function(ast, moduleName, header_or_body)
 {
     let context = CHoganHelpers.getContext(ast, moduleName);
 
@@ -67,7 +72,7 @@ module.exports.genCString = function(ast, moduleName, header_or_body)
 	               context,
 		       {demarshal_args:      compiled_demarshal_template,
 			clean_up_and_return: compiled_clean_up_template});
-};
+}; /* getInterfaceString */
 
 
 /*
@@ -81,7 +86,7 @@ module.exports.genDictionaryString = function(ast, moduleName, header_or_body)
     set_type_of_file(context, header_or_body);
 
     return hogan.compile(getMustacheTemplate('dictionary')).render(context);
-};
+}; /* genDictionaryString */
 
 
 /*
@@ -95,7 +100,7 @@ module.exports.genTypedefString = function(ast, moduleName, header_or_body)
     set_type_of_file(context, header_or_body);
 
     return hogan.compile(getMustacheTemplate('typedef')).render(context);
-};
+}; /* getTypedefString */
 
 
 /*

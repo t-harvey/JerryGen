@@ -45,17 +45,17 @@ module.exports.getContext = function(ast, moduleName){
 
     timestamp: ""+(new Date()),
 
-    dictionaries: ast.getDictionaryArray(),
+    dictionaries: ast.turn_object_into_array(ast.dictionaries),
 
-    typedefs: ast.getTypedefArray(),
+    typedefs: ast.turn_object_into_array(ast.typedefs),
 
-    callbacks: ast.getCallbackArray(),
+    callbacks: ast.turn_object_into_array(ast.callbacks),
 
-    interfaces: ast.getInterfaceArray(),
+    interfaces: ast.turn_object_into_array(ast.interfaces),
 
-    enums: ast.getEnumsArray(),
+    enums: ast.turn_object_into_array(ast.enums),
 
-    composites: ast.getCompositesArray(),
+    composites: ast.turn_object_into_array(ast.composites),
 
     Interpreter: ast.Interpreter,
 
@@ -72,8 +72,6 @@ module.exports.getContext = function(ast, moduleName){
     prototype_chain: ast.prototype_chain,
 
     sorted_types_list: ast.sorted_types_list,
-
-    C_type_list: ast.get_C_type_list(),
 
     repress_stubs: ast.repress_stubs,
 
