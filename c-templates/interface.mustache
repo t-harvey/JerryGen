@@ -64,7 +64,6 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 #include "{{{interfaceName}}}_private.h"
 
 {{/body}}
-{{^repress_stubs}}
 {{#private_header}}
 {{! TODO: why do we need to include the stubs.h in this .h?!? }}
 {{! ...for the function in the checksum, for one thing... }}
@@ -128,7 +127,6 @@ void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
 {{/body}}
 
 {{/private_header}}
-{{/repress_stubs}}
 {{#hasAttributes}}
 {{^private_header}}
 
@@ -172,35 +170,6 @@ void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
 
 {{/private_header}}
 {{^header}}
-{{#repress_stubs}}
-/* each Javascript object can have a single C object associated with
-   it, which we call a Native_Object ("native" to the C code); these
-   Native_Objects are attached to their objects by Jerryscript, and
-   Jerryscript also keeps track of when the associated object is
-   destroyed -- when a Javascript object is destroyed, Jerryscript
-   will call a user function to deallocate the associated Native_Object;
-   thus, when we assign a Native_Object to a Javascript object using
-   Native_Object_set, we also give it a deallocator for that
-   Native_Object (note that the function can be null if there isn't
-   any memory to free) */
-void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Object *native_object){{#private_header}};{{/private_header}}
-{{#body}}
-{
-	/* USER CODE GOES HERE */
-} /* {{{interfaceName}}}_Native_Object_deallocator */
-
-{{/body}}
-{{{interfaceName}}}_Native_Object *{{{interfaceName}}}_Native_Object_create(void){{#private_header}};{{/private_header}}
-{{#body}}
-{
-    {{{interfaceName}}}_Native_Object *new_object = ({{{interfaceName}}}_Native_Object *)malloc(sizeof({{{interfaceName}}}_Native_Object));
-
-	/* USER CODE GOES HERE */ 
-    return new_object;
-} /* {{{interfaceName}}}_Native_Object_create */
-{{/body}}
-{{/repress_stubs}}
-
 {{#body}}
 /* put all of the native-code functions (indentifable by the
  *  suffix "_handler") here: */
@@ -221,27 +190,16 @@ void {{{interfaceName}}}_Native_Object_deallocator({{{interfaceName}}}_Native_Ob
     {{/is_constructor}}
 {{> demarshal_args}}
 
-{{#repress_stubs}}
-    {{{interfaceName}}}_Native_Object *native_object;
-    GET_NATIVE_OBJECT_OR_RETURN_ON_ERROR(this_val, native_object, &{{{interfaceName}}}_checksum);
-
-    /* USER CODE GOES HERE */
-
-{{/repress_stubs}}
-{{^repress_stubs}}
 {{#C_and_Jerryscript_Types}}
     extern {{#return_is_this}}{{{Interpreter.Type}}}{{/return_is_this}}{{^return_is_this}}{{{C_Type}}}{{/return_is_this}} {{{interfaceName}}}_{{{operationName}}}({{{Interpreter.Type}}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, {{{Interpreter.error_type}}} *_error);
 {{/C_and_Jerryscript_Types}}
-{{/repress_stubs}}
+
 {{! for the "return_value", the logic is as follows: 1) don't put out
-the declaration if it's a void return type or this function returns
-the this pointer; 2) if we're repressing stubs, then put it out as a
-simple declaration; 3) if we're not repressing stubs, then put out the
-declaration with an assignment from the stub }}
-{{#repress_stubs}}{{^voidReturnType}}
-/* THIS VARIABLE SHOULD HOLD THE VALUE TO BE RETURNED */{{/voidReturnType}}{{/repress_stubs}}
+    the declaration if it's a void return type or this function returns
+    the this pointer; 2) otherwise put out the declaration with an
+    assignment from the stub }}
 {{#C_and_Jerryscript_Types}}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value{{#repress_stubs}};{{/repress_stubs}}{{^repress_stubs}} ={{/repress_stubs}}{{/return_is_this}}{{/voidReturnType}}{{^repress_stubs}} {{{interfaceName}}}_{{{operationName}}}({{#is_constructor}}new_interface{{/is_constructor}}{{^is_constructor}}this_val{{/is_constructor}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, &_error);{{/repress_stubs}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value = {{/return_is_this}}{{/voidReturnType}}{{{interfaceName}}}_{{{operationName}}}({{#is_constructor}}new_interface{{/is_constructor}}{{^is_constructor}}this_val{{/is_constructor}}{{#arguments.length}}, {{/arguments.length}}{{#arguments}}{{{name}}}{{^finalParam}}, {{/finalParam}}{{/arguments}}, &_error);
 {{/C_and_Jerryscript_Types}}
 
     /* we expect the stubs files to return a non-zero error if
@@ -484,8 +442,6 @@ static {{{Interpreter.Type}}} {{{interfaceName}}}_require_function_(void)
     initialize_{{{type_name}}}_();
   {{/needs_initialization}}
 {{/non_intrinsic_types}}
-{{! TODO: handle repress_stubs }}
-
     /* let the user set up the object and then map the operations onto it */
     {{{Interpreter.Type}}} new_{{{interfaceName}}} =
                      {{{Interpreter.interpreter}}}_create_{{{interfaceName}}}(require_{{{interfaceName}}}());

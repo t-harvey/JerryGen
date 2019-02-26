@@ -51,7 +51,7 @@ let command_line_parms = {
 let acceptable_inputs = {
     include:                  ["any filename ending with .idl"],
     fix_type_errors:          [true, false],
-    stubs:                    ["on", "off", "overwrite"],
+    stubs:                    ["preserve", "overwrite"],
     debug_printing:           ["off", "on"],
     output_utility_files:     [false, true],
     leave_enums_alone:        [false, true],
@@ -243,7 +243,7 @@ module.exports = Object.assign(
 	}
 	console.log("Example:")
 	console.log("    " + scriptName +
-		    " --stubs=on --package=foobar foo.idl bar.idl");
+		    " --stubs=overwrite --package=foobar foo.idl bar.idl");
     } /* print_usage_mesage */,
 
     error_codes: error_codes,
