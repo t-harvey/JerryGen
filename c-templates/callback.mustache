@@ -215,60 +215,6 @@ bool {{{Interpreter.interpreter}}}_value_is_{{{callbackName}}}({{{Interpreter.Ty
 {{/body}}
 
 
-{{#body}}
-/* we'll use these wrapper functions to marshal the parameters for
-   the function and then call the function through the interpreter */
-{{! this function may look extraneous, but imagine the following
-    scenario: we're passed in a stucture with a callback value; it
-    could be a function defined in the Javascript world and just
-    represented by a jerry_value_t, or it could be a function defined
-    as a C function and carried around in the Native_Object of an
-    otherwise empty Javascript object; we have no way to tell the
-    difference, so this routine figures it out and does the
-    appropriate thing }}
-{{/body}}
-{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} run_{{{callbackName}}}_function(const {{{callbackName}}} {{{callbackName}}}_function, {{{Interpreter.Type}}} this_ptr{{^arguments.length}}){{#private_header}};{{/private_header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
-{{#arguments}}{{{indentation}}}{{#C_and_Jerryscript_Types}}{{{C_Type}}} {{{name}}}{{{separator}}}{{/C_and_Jerryscript_Types}}{{/arguments}}{{#arguments.length}}{{#private_header}};{{/private_header}}{{/arguments.length}}
-{{#body}}
-{
-    /* check to see if the Jerryscript value has an underlying C-function
-       pointer attached to it (hidden in the Native_Object field) */
-    static {{{Interpreter.checksum_type}}} checksum = {};
-    {{{Interpreter.error_type}}} error_value;
-    {{{callbackName}}}_callback native_c_function;
-
-    native_c_function =
-        ({{{callbackName}}}_callback)Native_Object_get({{{callbackName}}}_function,
-					      &checksum, &error_value);
-    if (native_c_function != NULL)
-    {
-        /* if there's a valid C function, call it */
-        {{^voidReturnType}}return {{/voidReturnType}}native_c_function( {{#arguments}}{{{name}}}{{^finalArgument}},{{/finalArgument}}{{/arguments}} );
-    }
-    else
-    {
-        /* if this is a function called from inside Jerryscript,
-	   convert all of the passed-in parameters to {{{Interpreter.Type}}}'s and
-    	   make the call */
-{{#arguments}}{{#C_and_Jerryscript_Types}}
-        {{{Interpreter.Type}}} {{{name}}}_value = {{{Interpreter.interpreter}}}_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}{{{name}}});
-{{/C_and_Jerryscript_Types}}{{/arguments}}
-
-        {{{Interpreter.Type}}} argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
-        {{{Interpreter.Type}}} jerry_return_value =
-	              jerry_call_function({{{callbackName}}}_function,
-					  this_ptr,
-					  argv, {{{arguments.length}}});
-	
-    {{#C_and_Jerryscript_Types}}
-    {{^voidReturnType}}
-        return ({{{C_Type}}}){{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(jerry_return_value);
-    {{/voidReturnType}}
-    {{/C_and_Jerryscript_Types}}
-    }
-} /* run_{{{callbackName}}}_function */
-{{/body}}
-
 void initialize_{{{callbackName}}}_(void){{#private_header}};{{/private_header}}
 {{#body}}
 {
@@ -332,6 +278,64 @@ static void register_initialize_{{{callbackName}}}(void)
 {{/body}}
 {{/header}}
 {{^private_header}}
+
+/* invoke this function to execute a callback; the first two arguments
+   are Jerryscript values that are the callback and the current "this"
+   pointer, and the remaining values conform to the callback's declaration */
+{{#body}}
+/* we'll use these wrapper functions to marshal the parameters for
+   the function and then call the function through the interpreter */
+{{! this function may look extraneous, but imagine the following
+    scenario: we're passed in a stucture with a callback value; it
+    could be a function defined in the Javascript world and just
+    represented by a jerry_value_t, or it could be a function defined
+    as a C function and carried around in the Native_Object of an
+    otherwise empty Javascript object; we have no way to tell the
+    difference, so this routine figures it out and does the
+    appropriate thing }}
+{{/body}}
+{{#C_and_Jerryscript_Types}}{{{C_Type}}}{{/C_and_Jerryscript_Types}} run_{{{callbackName}}}(const {{{callbackName}}} {{{callbackName}}}_function, {{{Interpreter.Type}}} this_ptr{{^arguments.length}}){{#header}};{{/header}}{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+{{#arguments}}{{{indentation}}}{{#C_and_Jerryscript_Types}}{{{C_Type}}} {{{name}}}{{{separator}}}{{/C_and_Jerryscript_Types}}{{/arguments}}{{#arguments.length}}{{#header}};{{/header}}{{/arguments.length}}
+{{#body}}
+{
+    /* check to see if the Jerryscript value has an underlying C-function
+       pointer attached to it (hidden in the Native_Object field) */
+    static {{{Interpreter.checksum_type}}} checksum = {};
+    {{{Interpreter.error_type}}} error_value;
+    {{{callbackName}}}_callback native_c_function;
+
+    native_c_function =
+        ({{{callbackName}}}_callback)Native_Object_get({{{callbackName}}}_function,
+					      &checksum, &error_value);
+    if (native_c_function != NULL)
+    {
+        /* if there's a valid C function, call it */
+        {{^voidReturnType}}return {{/voidReturnType}}native_c_function( {{#arguments}}{{{name}}}{{^finalArgument}},{{/finalArgument}}{{/arguments}} );
+    }
+    else
+    {
+        /* if this is a function called from inside Jerryscript,
+	   convert all of the passed-in parameters to {{{Interpreter.Type}}}'s and
+    	   make the call */
+{{#arguments}}{{#C_and_Jerryscript_Types}}
+        {{{Interpreter.Type}}} {{{name}}}_value = {{{Interpreter.interpreter}}}_create_{{{Jerryscript_Type}}}({{#is_string}}(const jerry_char_t *){{/is_string}}{{{name}}});
+{{/C_and_Jerryscript_Types}}{{/arguments}}
+
+        {{{Interpreter.Type}}} argv[] = { {{#arguments}}{{{name}}}_value{{^finalArgument}},{{/finalArgument}}{{/arguments}} };
+        {{{Interpreter.Type}}} jerry_return_value =
+	              jerry_call_function({{{callbackName}}}_function,
+					  this_ptr,
+					  argv, {{{arguments.length}}});
+	
+    {{#C_and_Jerryscript_Types}}
+    {{^voidReturnType}}
+        return ({{{C_Type}}}){{{Interpreter.interpreter}}}_get_{{{C_Type}}}_value(jerry_return_value);
+    {{/voidReturnType}}
+    {{/C_and_Jerryscript_Types}}
+    }
+} /* run_{{{callbackName}}} */
+{{/body}}
+
 
 /* this variable is used in composite types to denote a field of type
    {{{callbackName}}} -- this should be considered a read-only value */

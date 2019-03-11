@@ -7,17 +7,17 @@ development.
 
 The <code>generator</code> directory contains the main driver for the
 code, <code>generator.js</code>, a Javascript script that takes the
-parameters (<code>parameters.js</code>), calls the WebIDL parser on
-the input files, invokes the main compiler
+parameters (<code>parameters.js</code>), calls the <code>WebIDL</code>
+parser on the input files, invokes the main compiler
 (<code>AugmentedAST.js</code>), and then calls the Hogan compiler to
 parse the templates in the <code>c-templates</code> directory and
 output the C code.
 
-Many of the tools (like Hogan and the WebIDL parser) come straight
-from the web-developing community , so the entire organization of
+Many of the tools (like Hogan and the <code>WebIDL</code> parser) come
+straight from the web-developing community , so the organization of
 JerryGen reflects that approach.  Further, the original version of
 this code came from a GitHub project called <code>native-calls</code>,
-which was a masters-thesis project by an English student named Mohamed
+which was a masters-thesis project by an British student named Mohamed
 Eltuhamy.  The structure of his code has largely continued into the
 current implementation.
 
@@ -35,7 +35,7 @@ for correctness.
 #### <code>AugmentedAST.js</code>
 
 This is the body of the compiler -- it (essentially) builds a symbol
-table and type checks all of the WebIDL.
+table and type checks all of the <code>WebIDL</code>.
 
 A perhaps unexpected function of this code is to provide the
 control-flow information that Mustache does not have.  For example, in
@@ -51,11 +51,20 @@ something like:<p>
 <code>{{/arguments}}</code>
 </code>
 
+(Mustache key: "#" => for-all *or* is-set-to-true; "^" =>
+is-set-to-false *or* the field doesn't exist)
+
+The above Mustache code can be read as: "for all arguments, if it is
+the first argument in the list, put out an opening parenthesis; put
+out the parameter name; if it is not the last argument in the list,
+put out a comma and space; if it is the last argument in the list, put out
+a closing parenthesis."
+
 #### <code>file_generators.js</code>
 
-For each type, as many as five C files are created.  This code uses
-the code in <code>Generator.js</code> to
-build the specific data structure for each type of <code>WebIDL</code> construct and then
+For each type, as many as five C files are created.  This file uses
+the code in <code>Generator.js</code> to build the specific data
+structure for each type of <code>WebIDL</code> construct and then
 calls the Hogan compiler to build the appropriate files.
 
 #### <code>Generator.js</code>
@@ -83,3 +92,10 @@ goals similar to our own: to support scripting on embedded processors.
 During development, we also defined a set of "unit tests" that were
 designed specifically to test individual new features as we progressed
 towards compiling the <code>zephyr.js</code> code.
+
+All of the unit tests can be run as a batch, with the results easily
+verified with an awk script.  Likewise, the <code>zephyr.js</code> can
+be compiled and linked with the Jerryscript libraries into a single
+executable; we provide a simplistic test file for that code as well
+while we wait on code that fully implements the <code>zephyr.js</code>
+standard.

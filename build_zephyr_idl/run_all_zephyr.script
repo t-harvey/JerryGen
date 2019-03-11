@@ -20,7 +20,6 @@ else
     	then
 	    continue;
     	fi
-
 	idl_filename=`basename -s .md $i`.idl
     	awk -f `dirname $0`/filter_webild.awk $i > $idl_filename
 	if [ -z "$correctness" ]
