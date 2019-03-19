@@ -129,13 +129,13 @@ we'll assume that the directory is called `~/JerryGen`.
 "generator") :
 
 ``` syntaxhighlighter-pre
-git clone ssh://git@bitbucket.itg.ti.com/jp/generator.git
+git clone https://github.com/t-harvey/JerryGen.git
 ```
 
 ...next, install the necessary Javascript modules:
 
 ``` syntaxhighlighter-pre
-cd generator
+cd JerryGen
 npm install
 cd ..
 ```
@@ -185,7 +185,7 @@ initiated by the generator.js script.  Invoking the script (from
 show the usage instructions:
 
 ``` syntaxhighlighter-pre
--> ../generator/generate.js
+-> ../JerryGen/generate.js
 ERROR: you must supply a package name and .idl file(s).
 
 Usage: generate.js <options> --package=<name> <.idl file(s)>
@@ -198,8 +198,6 @@ output_utility_files           possible values: false, true
 leave_enums_alone              possible values: false, true
 print_generation_message       possible values: true, false
 quiet                          possible values: false, true
-arg_handling                   possible values: original, new
-tied_to_jerryscript            possible values: false, true
 help
 Example:
     generate.js --stubs=overwrite --package=foobar foo.idl bar.idl
@@ -297,7 +295,7 @@ information.</td>
 For our example, invoke the compiler as follows:
 
 ``` syntaxhighlighter-pre
-../generator/generate.js --output_utility_files --package=simple_calculator simple_calculator.idl
+../JerryGen/generate.js --output_utility_files --package=simple_calculator simple_calculator.idl
 ```
 
 ...the output should be a listing of the files the compiler <span
@@ -310,7 +308,6 @@ Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator.h
 Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator_private.h)
 Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator.c)
 Creating C Stubs File: >/Users/CoolDude/work/examples/simple_calculator/Calculator_stubs.h<
-Creating C Stubs File: >/Users/CoolDude/work/examples/simple_calculator/Calculator_stubs_private.h<
 Creating C Stubs File: >/Users/CoolDude/work/examples/simple_calculator/Calculator_stubs.c<
 Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator_Function.h)
 Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator_Function_private.h)
@@ -414,7 +411,7 @@ need to compile these with a main routine and then link all of these
 with the interpreter libraries.  The command is:
 
 ``` syntaxhighlighter-pre
-gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerryscript/jerry-port/default/include -I../../jerryscript/jerry-core/include -I../../jerryscript/jerry-ext/include -I../../jerryscript/jerry-ext/include/jerryscript-ext -I. ../../generator/unit_tests/template/main_jerrygen.c *.c ../../jerryscript/build/lib/libjerry-core.a ../../jerryscript/build/lib/libjerry-ext.a ../../jerryscript/build/lib/libjerry-port-default.a -lm && ./a.out
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerryscript/jerry-port/default/include -I../../jerryscript/jerry-core/include -I../../jerryscript/jerry-ext/include -I../../jerryscript/jerry-ext/include/jerryscript-ext -I. ../../JerryGen/unit_tests/template/main_jerrygen.c *.c ../../jerryscript/build/lib/libjerry-core.a ../../jerryscript/build/lib/libjerry-ext.a ../../jerryscript/build/lib/libjerry-port-default.a -lm && ./a.out
 ```
 
 ...this will build and run (b/c the command ends with "&& ./a.out") the
@@ -451,7 +448,7 @@ calls to each attribute's `extract` function: the naming convention for
 attribute access functions is:
 get`_<Interface Name>_<attribute_name>(), if you want to use those directly`,
 and the parameter is the function argument <span
-style="font-family: monospace;">self</span>, which is a handle back
+style="font-family: monospace;">this</span>, which is a handle back
 through the interpreter to the Javascript object.  For these examples,
 we'll use the macro; but it may be a better interface to allow the user
 to call the `extract_*` functions directly, which is why we've included
@@ -540,7 +537,7 @@ interface Calculator {
 directory, "simple\_calculator2") :
 
 ``` syntaxhighlighter-pre
-../generator/generate.js --output_utility_files --package=simple_calculator2 simple_calculator2.idl
+../JerryGen/generate.js --output_utility_files --package=simple_calculator2 simple_calculator2.idl
 ```
 
 ...and we'll augment the Calculator\_calculate\_body as follows.  Note
@@ -553,7 +550,7 @@ interpreter-internal value, and because we don't have direct access to
 it, we will always invoke callbacks through a wrapper whose name follows
 the pattern: "run\_&lt;callback\_name&gt;\_function", and its parameters
 will be the `Interpreter_Type` value representing this kind of callback,
-the "`self`" pointer, and then the actual parameters of the callback.
+the "`this`" pointer, and then the actual parameters of the callback.
 
 In the code below, 
 
@@ -561,25 +558,25 @@ In the code below, 
 float answer;
 switch (function)
 {
-    case add:
+    case Calculator_Function_add:
         answer = arg1 + arg2;
         break;
-    case subtract:
+    case Calculator_Function_subtract:
         answer = arg1 - arg2;
         break;
-    case multiply:
+    case Calculator_Function_multiply:
         answer = arg1 * arg2;
         break;
-    case divide:
+    case Calculator_Function_divide:
         answer = arg1 / arg2;
         break;
 }
 
 /* use the callback to round the answer before returning */
-rounding_function rounding_func = INTERFACE_EXTRACT(self, Calculator, round_it);
-int shift_amount = INTERFACE_EXTRACT(self, Calculator, digits_of_precision);
+rounding_function rounding_func = INTERFACE_EXTRACT(this, Calculator, round_it);
+int shift_amount = INTERFACE_EXTRACT(this, Calculator, digits_of_precision);
 
-answer = (float)run_rounding_function(rounding_func, self,
+answer = (float)run_rounding_function(rounding_func, this,
                                                answer, shift_amount);
 
 return answer;
@@ -666,8 +663,10 @@ var round = function(value, amount) { return Number(Math.round(value+'e'+amount)
 var calc = new Calculator(2, round);
 var args = new Calculator_Arguments("multiply", 1.55, 3.77);
 print(calc.calculate(args));
+```
 
-/* or -- all in one cut/paste: */
+Or -- all in one cut/paste:
+``` syntaxhighlighter-pre
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", 1.55, 3.77); print(calc.calculate(args));
 ```
 
@@ -744,8 +743,10 @@ var round = function(value, amount) { return Number(Math.round(value+'e'+amount)
 var calc = new Calculator(2, round);
 var args = new Calculator_Arguments("multiply", [1.55, 3.77]);
 print(calc.calculate(args));
+```
 
-/* or -- all in one cut/paste: */
+Or -- all in one cut/paste:
+``` syntaxhighlighter-pre
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77]); print(calc.calculate(args));
 ```
 
@@ -870,9 +871,10 @@ var round = function(value, amount) { return Number(Math.round(value+'e'+amount)
 var calc = new Calculator(2, round);
 var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]);
 print(calc.calculate(args));
+```
 
-
-/* or -- all in one cut/paste: */
+Or -- all in one cut/paste:
+``` syntaxhighlighter-pre
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); print(calc.calculate(args));
 ```
 
@@ -944,10 +946,10 @@ void destroy_Calculator_Native_Object(void *native_object)
 } /* destroy_Calculator_Native_Object */
 ```
 
-...and this explains the code at the top of the
-`Calculator_calculate_body` function: each method defaults to retrieving
-the pointer to the `Native Object` associated with the method's
-interface.  Adding code to increment the count at each call is
+...and now we see the purpose of the code at the top of the
+`Calculator_calculate` function: each method retrieves the pointer to
+the `Native Object` associated with the method's interface.  Now, in
+our example, adding code to increment the count at each call is
 straightforward.
 
 As a last point: all of the stubs contain a call to Native\_Object\_get
@@ -1006,7 +1008,7 @@ interface Teacher_Feedback {
 ...and compile that with the usual command:
 
 ``` syntaxhighlighter-pre
-../generator/generate.js --package=teacher teacher.idl
+../JerryGen/generate.js --package=teacher teacher.idl
 ```
 
 Notice that we didn't generate utility files; this only needs to be done
@@ -1104,7 +1106,7 @@ Now generate the new calculator with the usual command.  It's
 instructive to look at the command used to compile a new interpreter:
 
 ``` syntaxhighlighter-pre
-gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerryscript/jerry-port/default/include -I../../jerryscript/jerry-core/include -I../../jerryscript/jerry-ext/include -I../../forked_jerryscript/jerry-ext/include/jerryscript-ext -I. -I../teacher ../../generator/unit_tests/template/main_jerrygen.c *.c ../teacher/*.c ../../jerryscript/build/lib/libjerry-core.a ../../jerryscript/build/lib/libjerry-ext.a ../../jerryscript/build/lib/libjerry-port-default.a -lm && ./a.out
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerryscript/jerry-port/default/include -I../../jerryscript/jerry-core/include -I../../jerryscript/jerry-ext/include -I../../jerryscript/jerry-ext/include/jerryscript-ext -I. -I../teacher ../../JerryGen/unit_tests/template/main_jerrygen.c *.c ../teacher/*.c ../../jerryscript/build/lib/libjerry-core.a ../../jerryscript/build/lib/libjerry-ext.a ../../jerryscript/build/lib/libjerry-port-default.a -lm && ./a.out
 ```
 
 Note that we added both the C code ("`../teacher/*.c`") and the include
@@ -1119,9 +1121,10 @@ var calc = new Calculator("Michael", 2, round);
 var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]);
 var teacher = new Teacher_Feedback;
 print(calc.calculate(args, teacher));
+```
 
-
-/* or -- all in one cut/paste: */
+Or -- all in one cut/paste:
+``` syntaxhighlighter-pre
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator("Michael", 2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); var teacher = new Teacher_Feedback; print(calc.calculate(args, teacher));
 ```
 
@@ -1174,7 +1177,7 @@ definition in `Calculator_stubs.h`:
 
 ...of course, since we have introduced a type that wasn't derived from
 the WebIDL file by JerryGen, we need to add the include file at the top
-of `Calculator_stubs.h` manually:
+of `Calculator_stubs.h` manually (after the inclusion of "rounding_function.h"):
 
 ``` syntaxhighlighter-pre
 #include "Teacher_Feedback_stubs.h"
@@ -1210,7 +1213,7 @@ create_Calculator_Native_Object:
 Now, the body of `calculate` uses the `Teacher_Feedback` interface that
 is stored in the `native_object` variable.  Its single operation has a
 name that can be derived from its WebIDL file (remember that we have to
-add the `self` pointer – here, the object stored in the
+add the `this` pointer – here, the object stored in the
 `Native_Object`) :
 
 ``` syntaxhighlighter-pre
@@ -1265,7 +1268,7 @@ to recompile teacher.idl; we assume it is still there from the previous
 example...)
 
 ``` syntaxhighlighter-pre
-gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerryscript/jerry-port/default/include -I../../jerryscript/jerry-core/include -I../../jerryscript/jerry-ext/include -I../../forked_jerryscript/jerry-ext/include/jerryscript-ext -I. -I../teacher ../../generator/unit_tests/template/main_jerrygen.c *.c ../teacher/*.c ../../jerryscript/build/lib/libjerry-core.a ../../jerryscript/build/lib/libjerry-ext.a ../../jerryscript/build/lib/libjerry-port-default.a -lm && ./a.out
+gcc -g --std=c99 -Djerry_value_has_error_flag=jerry_value_is_error -I../../jerryscript/jerry-port/default/include -I../../jerryscript/jerry-core/include -I../../jerryscript/jerry-ext/include -I../../jerryscript/jerry-ext/include/jerryscript-ext -I. -I../teacher ../../JerryGen/unit_tests/template/main_jerrygen.c *.c ../teacher/*.c ../../jerryscript/build/lib/libjerry-core.a ../../jerryscript/build/lib/libjerry-ext.a ../../jerryscript/build/lib/libjerry-port-default.a -lm && ./a.out
 ```
 
 Note that we added both the C code ("`../teacher/*.c`") and the include
