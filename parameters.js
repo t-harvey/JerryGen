@@ -220,12 +220,16 @@ module.exports = Object.assign(
 	   http://tinyurl.com/o52j5ek */
 	let path = require('path');
 	let scriptName = path.basename(process.argv[1]);
+	let hidden_parameters = [ "arg_handling", "tied_to_jerryscript" ];
 
 	console.log("\nUsage: " + scriptName +
 		    " <options> --package=<name> <.idl file(s)>");
 	console.log("Options:");
 	for (var i of Object.keys(acceptable_inputs))
 	{
+	    if (hidden_parameters.includes(i))
+		continue;
+
 	    /* console.log prints no space after the comma when printing out
 	       the members of an array, so we first copy its output to a
 	       string, run a regular expression over it, and then print

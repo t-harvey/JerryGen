@@ -80,7 +80,7 @@ typedef {{{Interpreter.Type}}} {{{interfaceName}}};
 {{/inheritance}}
 {{^inheritance}}
 {{^header}}
-{{#private_header}}extern {{/private_header}}{{{Interpreter.checksum_type}}} {{{interfaceName}}}_checksum {{#body}} = { {{{interfaceName}}}_Native_Object_deallocator }{{/body}};
+{{#private_header}}extern {{/private_header}}{{{Interpreter.checksum_type}}} {{{interfaceName}}}_checksum {{#body}} = { destroy_{{{interfaceName}}}_Native_Object }{{/body}};
 {{/header}}
 
 {{/inheritance}}
@@ -120,7 +120,7 @@ void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
     {{/attributes}}
 
     /* set up the native object */
-    Native_Object_set(new_{{{interfaceName}}}, (struct {{{interfaceName}}}_Native_Object *){{{interfaceName}}}_Native_Object_create(), &{{{interfaceName}}}_checksum);
+    Native_Object_set(new_{{{interfaceName}}}, (struct {{{interfaceName}}}_Native_Object *)create_{{{interfaceName}}}_Native_Object(), &{{{interfaceName}}}_checksum);
 
     return new_{{{interfaceName}}};
 } /* {{{interfaceName}}}_constructor */
@@ -332,7 +332,7 @@ return_new_interface:
     jerry_release_value(prototype);
 
     /* set up the Native_Object for the new object */
-    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_create();
+    {{{interfaceName}}}_Native_Object *native_object = create_{{{interfaceName}}}_Native_Object();
     Native_Object_set(new_{{{interfaceName}}}, native_object, &{{{interfaceName}}}_checksum);
 
     return new_{{{interfaceName}}};
@@ -375,7 +375,7 @@ void initialize_{{{interfaceName}}}_(void){{#private_header}};{{/private_header}
     prototype, so record it in the global prototypes holder }}
 {{#NoInterfaceObject}}
     /* set up the Native_Object for the new object */
-    {{{interfaceName}}}_Native_Object *native_object = {{{interfaceName}}}_Native_Object_create();
+    {{{interfaceName}}}_Native_Object *native_object = create_{{{interfaceName}}}_Native_Object();
     Native_Object_set({{{interfaceName}}}_prototype_object, native_object, &{{{interfaceName}}}_checksum);
 
     {{{Interpreter.Type}}} object_name = jerry_create_string((const jerry_char_t *) "{{{interfaceName}}}");

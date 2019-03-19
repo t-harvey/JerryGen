@@ -134,7 +134,7 @@ run_{{{callbackName}}}_function_handler(
 the declaration if it's a void return type or this function returns
 the "this" pointer (is that possible with a callback, in WebIDL?); 2.
 put out the declaration with an assignment from "run" routine }}
-    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}_function(func_value, this_val{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
+    {{^voidReturnType}}{{^return_is_this}}{{{C_Type}}} return_value = {{/return_is_this}}{{/voidReturnType}}run_{{{callbackName}}}(func_value, this_val{{^arguments.length}});{{/arguments.length}}{{#arguments.length}},{{/arguments.length}}
 {{#arguments}}{{{indentation}}}{{{name}}}{{{separator}}}{{/arguments}}{{#arguments.length}};{{/arguments.length}}
 
 {{/C_and_Jerryscript_Types}}
@@ -280,7 +280,7 @@ static void register_initialize_{{{callbackName}}}(void)
 {{^private_header}}
 
 /* invoke this function to execute a callback; the first two arguments
-   are Jerryscript values that are the callback and the current "this"
+   are {{{Interpreter.type}}} values that are the callback and the current "this"
    pointer, and the remaining values conform to the callback's declaration */
 {{#body}}
 /* we'll use these wrapper functions to marshal the parameters for

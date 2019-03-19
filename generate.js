@@ -60,7 +60,8 @@ var augAST = new AugmentedAST(parsed_file,
 augAST.utilities_filename       = "webidl_compiler_utilities";
 augAST.debug_printing           = (parameters.debug_printing === "on");
 augAST.original_arg_handling    = (parameters.arg_handling === "original");
-augAST.print_generation_message = (parameters.print_generation_message === "true");
+augAST.print_generation_message = (parameters.print_generation_message === "true" ||
+				   parameters.print_generation_message === true);
 
 /* the stubs that JerryGen produces are designed to be as generic as
    possible to enable reuse across different interpreters; we do this

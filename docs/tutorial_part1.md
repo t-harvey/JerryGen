@@ -190,14 +190,19 @@ ERROR: you must supply a package name and .idl file(s).
 
 Usage: generate.js <options> --package=<name> <.idl file(s)>
 Options:
-fix_type_errors       possible values: true, false
-stubs                 possible values: on, off, overwrite
-debug_printing        possible values: off, on
-output_utility_files  possible values: false, true
-quiet                 possible values: false, true
+include                        possible values: any filename ending with .idl
+fix_type_errors                possible values: true, false
+stubs                          possible values: preserve, overwrite
+debug_printing                 possible values: off, on
+output_utility_files           possible values: false, true
+leave_enums_alone              possible values: false, true
+print_generation_message       possible values: true, false
+quiet                          possible values: false, true
+arg_handling                   possible values: original, new
+tied_to_jerryscript            possible values: false, true
 help
 Example:
-generate.js --stubs=on --package=foobar foo.idl bar.idl
+    generate.js --stubs=overwrite --package=foobar foo.idl bar.idl
 ```
 
 The generator produces many files from a single WebIDL file, as
@@ -225,6 +230,12 @@ The following table explains the remaining parameters.
 </tr>
 </thead>
 <tbody>
+<tr class="even">
+<td>include</td>
+<td>filename ending in .idl</td>
+<td>Controls the inclusion of other WebIDL files whose types are used
+in the current compilation, but code will not be generated for these files.</td>
+</tr>
 <tr class="odd">
 <td>fix_type_errors</td>
 <td>*true*, false</td>
@@ -232,8 +243,12 @@ The following table explains the remaining parameters.
 </tr>
 <tr class="even">
 <td>stubs</td>
-<td>*on*, off, overwrite</td>
-<td>Controls the creation of the *_stubs files, explained in the next section. We default to creating stubs files each time the compiler is invoked, but because the stubs contain human-generated code, we don't overwrite existing stubs files. This can be changed with the "overwrite" value, which creates new stubs files on top of any existing stubs files.</td>
+<td>*preserve*, overwrite</td>
+<td>Controls the creation of the *_stubs files, explained in the next
+section. We default to preserving any existing stubs files in the
+package directory, because the stubs contain human-generated
+code. This can be changed with the "overwrite" value, which creates
+new stubs files, overwriting any existing stubs files.</td>
 </tr>
 <tr class="odd">
 <td>debug_printing</td>
@@ -244,6 +259,26 @@ The following table explains the remaining parameters.
 <td>output_utility_files</td>
 <td>*false*, true</td>
 <td>All of the code produced by the compiler relies on a library of utility functions. Instead of storing this file in some arbitrary directory, the user can have the compiler write out the utilities whenever/whereever he needs.</td>
+</tr>
+<tr class="odd">
+<td>leave_enums_alone</td>
+<td>*false*, true</td>
+<td>Because C puts all enum values in the global namespace, it is easy
+to have two enum names in separate enum types conflict -- e.g., the
+enum1 and enum2 types might both have a value "foo", which is valid in
+WebIDL and Javascript (b/c enums are strings in those languages), but
+would cause a compiler error when translated as C enums.  To make the
+general case easier, we prefix all enum values with their type name,
+so that, in the example just given, the C enum values would be
+```enum1_foo``` and ```enum2_foo```.  Giving the "true" value for this
+parameter causes JerryGen to forgo adding the prefix.</td>
+</tr>
+<tr class="even">
+<td>print_generation_message</td>
+<td>*true*, false</td>
+<td>By default, each file that gets generated has a date/time marker.
+Setting this variable to false restricts the compiler from adding this
+information.</td>
 </tr>
 <tr class="odd">
 <td>quiet</td>
@@ -270,19 +305,19 @@ class="inline-comment-marker"
 data-ref="28098fa2-6f98-43da-988a-c3e44b03b8ed">created</span>:
 
 ``` syntaxhighlighter-pre
-Creating directory... (/Users/a0179262/work/examples/simple_calculator)
-Creating C File... (/Users/a0179262/work/examples/simple_calculator/Calculator.h)
-Creating C File... (/Users/a0179262/work/examples/simple_calculator/Calculator_private.h)
-Creating C File... (/Users/a0179262/work/examples/simple_calculator/Calculator.c)
-Creating C Stubs File: >/Users/a0179262/work/examples/simple_calculator/Calculator_stubs.h<
-Creating C Stubs File: >/Users/a0179262/work/examples/simple_calculator/Calculator_stubs_private.h<
-Creating C Stubs File: >/Users/a0179262/work/examples/simple_calculator/Calculator_stubs.c<
-Creating C File... (/Users/a0179262/work/examples/simple_calculator/Calculator_Function.h)
-Creating C File... (/Users/a0179262/work/examples/simple_calculator/Calculator_Function_private.h)
-Creating C File... (/Users/a0179262/work/examples/simple_calculator/Calculator_Function.c)
-Creating C Utilities File: >/Users/a0179262/work/examples/simple_calculator/webidl_compiler_utilities.h<
-Creating C Utilities File: >/Users/a0179262/work/examples/simple_calculator/webidl_compiler_utilities_private.h<
-Creating C Utilities File: >/Users/a0179262/work/examples/simple_calculator/webidl_compiler_utilities.c<
+Creating directory... (/Users/CoolDude/work/examples/simple_calculator)
+Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator.h)
+Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator_private.h)
+Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator.c)
+Creating C Stubs File: >/Users/CoolDude/work/examples/simple_calculator/Calculator_stubs.h<
+Creating C Stubs File: >/Users/CoolDude/work/examples/simple_calculator/Calculator_stubs_private.h<
+Creating C Stubs File: >/Users/CoolDude/work/examples/simple_calculator/Calculator_stubs.c<
+Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator_Function.h)
+Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator_Function_private.h)
+Creating C File... (/Users/CoolDude/work/examples/simple_calculator/Calculator_Function.c)
+Creating C Utilities File: >/Users/CoolDude/work/examples/simple_calculator/webidl_compiler_utilities.h<
+Creating C Utilities File: >/Users/CoolDude/work/examples/simple_calculator/webidl_compiler_utilities_private.h<
+Creating C Utilities File: >/Users/CoolDude/work/examples/simple_calculator/webidl_compiler_utilities.c<
 ```
 
 ...the next section explains these files.
@@ -395,8 +430,8 @@ commands</span> (use "control-d" on a blank line to end the repl):
 
 ``` syntaxhighlighter-pre
 var calc = new Calculator;
-calc.calculate("add", 1.55, 3.77);
-calc.calculate("divide", 1.55, 3.77);
+print(calc.calculate("add", 1.55, 3.77));
+print(calc.calculate("divide", 1.55, 3.77));
 ```
 
 #### Accessing Attributes
@@ -469,8 +504,8 @@ value. 
 
 ``` syntaxhighlighter-pre
 var calc = new Calculator(2);
-calc.calculate("add", 1.55, 3.77);
-calc.calculate("divide", 1.55, 3.77);
+print(calc.calculate("add", 1.55, 3.77));
+print(calc.calculate("divide", 1.55, 3.77));
 ```
 
 #### Using Callbacks
@@ -544,7 +579,7 @@ switch (function)
 rounding_function rounding_func = INTERFACE_EXTRACT(self, Calculator, round_it);
 int shift_amount = INTERFACE_EXTRACT(self, Calculator, digits_of_precision);
 
-answer = (float)run_rounding_function_function(rounding_func, self,
+answer = (float)run_rounding_function(rounding_func, self,
                                                answer, shift_amount);
 
 return answer;
@@ -556,7 +591,7 @@ directory and try these Javascript commands:
 ``` syntaxhighlighter-pre
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);};
 var calc = new Calculator(2, round);
-calc.calculate("multiply", 1.55, 3.77)
+print(calc.calculate("multiply", 1.55, 3.77));
 ```
 
 ...you'll notice that we still get some rounding errors – as an aside,
@@ -564,7 +599,7 @@ you can get the answer we're looking for inside of Jerryscript by typing
 the following directly at the Jerryscript prompt:
 
 ``` syntaxhighlighter-pre
-calc.round_it(calc.calculate("multiply", 1.55, 3.77), 2);
+print(calc.round_it(calc.calculate("multiply", 1.55, 3.77), 2));
 ```
 
 **Using dictionaries**
@@ -618,7 +653,7 @@ switch (args.function)
 rounding_function rounding_func = INTERFACE_EXTRACT(this, Calculator, round_it);
 int shift_amount = INTERFACE_EXTRACT(this, Calculator, digits_of_precision);
 
-answer = (float)run_rounding_function_function(rounding_func, this,
+answer = (float)run_rounding_function(rounding_func, this,
                                                answer, shift_amount);
 
 return answer;
@@ -630,10 +665,10 @@ return answer;
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);};
 var calc = new Calculator(2, round);
 var args = new Calculator_Arguments("multiply", 1.55, 3.77);
-calc.calculate(args)
+print(calc.calculate(args));
 
 /* or -- all in one cut/paste: */
-var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", 1.55, 3.77); calc.calculate(args)
+var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", 1.55, 3.77); print(calc.calculate(args));
 ```
 
 #### Arrays
@@ -696,7 +731,7 @@ for (int i = 0; i < args.args.length; i++)
 rounding_function rounding_func = INTERFACE_EXTRACT(this, Calculator, round_it);
 int shift_amount = INTERFACE_EXTRACT(this, Calculator, digits_of_precision);
 
-answer = (float)run_rounding_function_function(rounding_func, this,
+answer = (float)run_rounding_function(rounding_func, this,
                                         answer, shift_amount);
 
 return answer;
@@ -708,10 +743,10 @@ return answer;
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);};
 var calc = new Calculator(2, round);
 var args = new Calculator_Arguments("multiply", [1.55, 3.77]);
-calc.calculate(args)
+print(calc.calculate(args));
 
 /* or -- all in one cut/paste: */
-var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77]); calc.calculate(args)
+var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77]); print(calc.calculate(args));
 ```
 
 #### Composite Types
@@ -823,7 +858,7 @@ for (int i = 0; i < args.args.length; i++)
 rounding_function rounding_func = INTERFACE_EXTRACT(this, Calculator, round_it);
 int shift_amount = INTERFACE_EXTRACT(this, Calculator, digits_of_precision);
 
-answer = (float)run_rounding_function_function(rounding_func, this,
+answer = (float)run_rounding_function(rounding_func, this,
                                         answer, shift_amount);
 return answer;
 ```
@@ -834,11 +869,11 @@ return answer;
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);};
 var calc = new Calculator(2, round);
 var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]);
-calc.calculate(args)
+print(calc.calculate(args));
 
 
 /* or -- all in one cut/paste: */
-var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); calc.calculate(args)
+var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator(2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); print(calc.calculate(args));
 ```
 
 #### Native Objects
@@ -865,48 +900,48 @@ tenth time we call calculate, we'll print out an extra message
 congratulating the user.
 
 To keep track of the call count, go into `Calculator_stubs.h` and edit
-the data structure named `Native_Object_Calculator`:
+the data structure named `Calculator_Native_Object`:
 
 ``` syntaxhighlighter-pre
 typedef struct {
     /* USER CODE GOES HERE */
     int call_count;
-} Native_Object_Calculator;
+} Calculator_Native_Object;
 ```
 
 ...now, we need to tell the code how to initialize the `Native Object`
 for our `Calculator` interface.  This can be found in
-`Calculator_stubs.c`, and is the function `Native_Object_create`; the
-code defaults to malloc'ing the` Native_Object_Calculator` data
+`Calculator_stubs.c`, and is the function `create_Calculator_Native_Object`; the
+code defaults to malloc'ing the` Calculator_Native_Object` data
 structure, and we can add our own code to perform initialization of our
 `Native Object`.  This function gets called each time a new interface
 gets created.
 
 ``` syntaxhighlighter-pre
-Native_Object_Calculator *Native_Object_Calculator_create(void)
+Calculator_Native_Object *create_Calculator_Native_Object(void)
 {
-    Native_Object_Calculator *new_object = (Native_Object_Calculator *)malloc(sizeof(Native_Object_Calculator));
+    Calculator_Native_Object *new_object = (Calculator_Native_Object *)malloc(sizeof(Calculator_Native_Object));
 
         /* USER CODE GOES HERE */
     new_object->call_count = 0;
     return new_object;
-} /* Native_Object_Calculator_create */
+} /* create_Calculator_Native_Object */
 ```
 
 ...Jerryscript is garbage collected, so when it needs to garbage-collect
 an interface, we need to tell it how to deallocate the `Native Object`
 associated with the interface.  The deallocating function is co-located
 with the create function – in our example, it is called
-`Native_Object_Calculator_deallocator`, and we would want to put a call
+`destroy_Calculator_Native_Object`, and we would want to put a call
 to free here, so that when an `Calculator` interface gets deallocated,
 we also free the memory associated with our call counter:
 
 ``` syntaxhighlighter-pre
-void Native_Object_Calculator_deallocator(void *native_object)
+void destroy_Calculator_Native_Object(void *native_object)
 {
         /* USER CODE GOES HERE */
     free(native_object);
-} /* Native_Object_Calculator_deallocator */
+} /* destroy_Calculator_Native_Object */
 ```
 
 ...and this explains the code at the top of the
@@ -987,7 +1022,8 @@ printf("Inside record_activity, with student: %s\n", student_name);
 
 
 
-Now, copy simple\_calculator5.idl into simple\_calculator6.idl, and add
+Now, we'll modify the WebIDL from simple\_calculator5.idl and write it
+into simple\_calculator6.idl by adding
 the `Teacher_Feedback` interface (compile it with the usual call to the
 generator) :
 
@@ -1010,7 +1046,7 @@ interface Calculator {
 };
 ```
 
-It may also be instructive to show how this code would be used inside
+It is instructive to show how this code would be used inside
 of `calculate`.  Because the `my_teacher` parameter is an interface and
 interfaces live in memory on the Javascript side, we need to use a
 special macro designed to call functions that are stored as interface
@@ -1020,7 +1056,7 @@ in \`Calculate\_stubs.c\`.
 ``` syntaxhighlighter-pre
 /* call the teacher's interface */
 string student_name = INTERFACE_EXTRACT(this, Calculator, student_name);
-Teacher_Feedback_record_activity(my_teacher, student_name, error);
+Teacher_Feedback_record_activity(my_teacher, student_name, _error);
 
 float answer = 0.0;
 if (args.function == Calculator_Function_multiply || args.function == Calculator_Function_divide)
@@ -1059,7 +1095,7 @@ for (int i = 0; i < args.args.length; i++)
 rounding_function rounding_func = INTERFACE_EXTRACT(this, Calculator, round_it);
 int shift_amount = INTERFACE_EXTRACT(this, Calculator, digits_of_precision);
 
-answer = (float)run_rounding_function_function(rounding_func, this,
+answer = (float)run_rounding_function(rounding_func, this,
                                         answer, shift_amount);
 return answer;
 ```
@@ -1082,11 +1118,11 @@ var round = function(value, amount) { return Number(Math.round(value+'e'+amount)
 var calc = new Calculator("Michael", 2, round);
 var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]);
 var teacher = new Teacher_Feedback;
-calc.calculate(args, teacher);
+print(calc.calculate(args, teacher));
 
 
 /* or -- all in one cut/paste: */
-var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator("Michael", 2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); var teacher = new Teacher_Feedback; calc.calculate(args, teacher);
+var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator("Michael", 2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); var teacher = new Teacher_Feedback; print(calc.calculate(args, teacher));
 ```
 
 #### Using the Native\_Object structure and calling JerryGen-created functions directly
@@ -1098,7 +1134,7 @@ object will have a hidden structure holding the `Teacher_Feedback`
 interface.  The idea is that the teacher will want to monitor his
 student's use of the calculator, but that monitoring should be
 transparent to the student.  To do this, we'll set up the
-`Teacher_Feedback` interface in the `Native_Object_Calculator_create`
+`Teacher_Feedback` interface in the `create_Calculator_Native_Object`
 function, which it gets when initializing a `Calculator` interface.
 
 We'll start with a (slightly) simplified `.idl` file, which we'll call
@@ -1129,7 +1165,7 @@ calculate), even though we will still use it in
 require\_Calculator\_body function.
 
 We need to define the `Native_Object` to contain the `Teacher_Feedback`
-object, so add the following code to `Native_Object_Calculator` struct
+object, so add the following code to `Calculator_Native_Object` struct
 definition in `Calculator_stubs.h`:
 
 ``` syntaxhighlighter-pre
@@ -1141,11 +1177,11 @@ the WebIDL file by JerryGen, we need to add the include file at the top
 of `Calculator_stubs.h` manually:
 
 ``` syntaxhighlighter-pre
-#include "Teacher_Feedback.h"
+#include "Teacher_Feedback_stubs.h"
 ```
 
 ...and then set up the interface inside of
-`Native_Object_Calculator_create()` – this will create a new
+`create_Calculator_Native_Object()` – this will create a new
 `Teacher_Feedback` each time the `Calculator` constructor is called.
 
 ``` syntaxhighlighter-pre
@@ -1164,6 +1200,13 @@ a very important rule for using JerryGen: </span>***ONLY ADD CODE TO THE
 the `*_stubs` files are retained when we recompile a `.idl` file, while
 all of the rest of the code is overwritten.</span>
 
+For completeness, don't forget to free the memory from the call to
+create_Calculator_Native_Object:
+
+``` syntaxhighlighter-pre
+    free(native_object);
+```
+
 Now, the body of `calculate` uses the `Teacher_Feedback` interface that
 is stored in the `native_object` variable.  Its single operation has a
 name that can be derived from its WebIDL file (remember that we have to
@@ -1172,11 +1215,11 @@ add the `self` pointer – here, the object stored in the
 
 ``` syntaxhighlighter-pre
 /* call the teacher's interface */
-string student_name = INTERFACE_EXTRACT(self, Calculator, student_name);
-Teacher_Feedback_record_activity_body(student_name, native_object->feedback_interface);
+string student_name = INTERFACE_EXTRACT(this, Calculator, student_name);
+Teacher_Feedback_record_activity(native_object->feedback_interface, student_name, _error);
 
 float answer = 0.0;
-if (args.function == multiply || args.function == divide)
+if (args.function == Calculator_Function_multiply || args.function == Calculator_Function_divide)
     answer = 1.0;
 
 for (int i = 0; i < args.args.length; i++)
@@ -1194,25 +1237,25 @@ for (int i = 0; i < args.args.length; i++)
     }
     switch (args.function)
     {
-        case add:
+        case Calculator_Function_add:
             answer += arg;
             break;
-        case subtract:
+        case Calculator_Function_subtract:
             answer -= arg;
             break;
-        case multiply:
+        case Calculator_Function_multiply:
             answer *= arg;
             break;
-        case divide:
+        case Calculator_Function_divide:
             answer /= arg;
             break;
     }
 }
 /* use the callback to round the answer before returning */
-rounding_function rounding_func = INTERFACE_EXTRACT(self, Calculator, round_it);
-int shift_amount = INTERFACE_EXTRACT(self, Calculator, digits_of_precision);
+rounding_function rounding_func = INTERFACE_EXTRACT(this, Calculator, round_it);
+int shift_amount = INTERFACE_EXTRACT(this, Calculator, digits_of_precision);
 
-answer = (float)run_rounding_function_function(rounding_func, self,
+answer = (float)run_rounding_function(rounding_func, this,
                                         answer, shift_amount);
 return answer;
 ```
@@ -1234,11 +1277,14 @@ path to the Teacher\_Feedback code ("`-I../teacher`").
 var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);};
 var calc = new Calculator("Cindy-Lou", 2, round);
 var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]);
-calc.calculate(args);
+print(calc.calculate(args));
+```
 
 
-/* or -- all in one cut/paste: */
-var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator("Cindy-Lou", 2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); calc.calculate(args);
+Or, all in one cut/paste:
+
+```syntaxhighlighter-pre
+var round = function(value, amount) { return Number(Math.round(value+'e'+amount)+'e-'+amount);}; var calc = new Calculator("Cindy-Lou", 2, round); var args = new Calculator_Arguments("multiply", [1.55, 3.77, 2]); print(calc.calculate(args));
 ```
 
 <span style="font-weight: bold;">A FInal Challenge:</span>
