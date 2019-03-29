@@ -214,7 +214,7 @@ void {{{interfaceName}}}_Native_Object_set({{{interfaceName}}} this,
 
 {{#body}}
 static {{{Interpreter.Type}}}
-create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_value,
+create_{{{interfaceName}}}_handler(const {{{Interpreter.Type}}} func_value,
 		   const {{{Interpreter.Type}}} this_val,
                    const {{{Interpreter.Type}}} *args_p,
                    const jerry_length_t args_cnt)
@@ -277,18 +277,14 @@ create_{{{interfaceName}}}_interface_handler(const {{{Interpreter.Type}}} func_v
   {{^constructors.length}}
     {{#attributes}}
     if ((((signed int)args_cnt)-1) >= {{{attribute_index}}})
-    {
-        {{{Interpreter.Type}}} {{{attributeName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{attributeName}}}");
-        jerry_release_value(jerry_set_property(new_{{{interfaceName}}}, {{{attributeName}}}_prop_name, args_p[{{{attribute_index}}}]));
-        jerry_release_value({{{attributeName}}}_prop_name);
-    }
+	interpreter__set_property(new_{{{dictionaryName}}}, "{{{attributeName}}}", args_p[{{{attribute_index}}}]);
 
     {{/attributes}}
   {{/constructors.length}}
 return_new_interface:
     return new_{{{interfaceName}}};
 {{/NoInterfaceObject}}
-} /* create_{{{interfaceName}}}_interface_handler */
+} /* create_{{{interfaceName}}}_handler */
 
 {{/body}}
 /* we need this when we want to create a structure with the
@@ -393,7 +389,7 @@ void initialize_{{{interfaceName}}}_(void){{#private_header}};{{/private_header}
     as NoInterface or ReturnFromRequire }}
 {{^is_module}}
     add_field_to_object(global_object, "{{{interfaceName}}}",
-                        &create_{{{interfaceName}}}_interface_handler);
+                        &create_{{{interfaceName}}}_handler);
 
 {{/is_module}}
 {{/NoInterfaceObject}}

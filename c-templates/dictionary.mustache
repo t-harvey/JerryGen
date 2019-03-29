@@ -379,7 +379,7 @@ bool {{{Interpreter.interpreter}}}_value_is_{{{dictionaryName}}}({{{Interpreter.
 
 {{#body}}
 static {{{Interpreter.Type}}}
-create_{{{dictionaryName}}}_dictionary_handler(const {{{Interpreter.Type}}} func_value,
+create_{{{dictionaryName}}}_handler(const {{{Interpreter.Type}}} func_value,
                    const {{{Interpreter.Type}}} this_val,
                    const {{{Interpreter.Type}}} *args_p,
                    const jerry_length_t args_cnt)
@@ -391,20 +391,18 @@ create_{{{dictionaryName}}}_dictionary_handler(const {{{Interpreter.Type}}} func
 
     {{#members}}
     {
-        {{{Interpreter.Type}}} {{{memberName}}}_prop_name = jerry_create_string ((const jerry_char_t *) "{{{memberName}}}");
+        {{{Interpreter.Type}}} value_of_field;
+
         if ((((signed int)args_cnt)-1) >= {{{member_index}}})
-            jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{memberName}}}_prop_name, args_p[{{{member_index}}}]));
-        else
-        {
-            {{{Interpreter.Type}}} default_value = {{#C_and_Jerryscript_Types}}{{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{Jerryscript_Type}}}({{#is_string}}(jerry_char_t *)"{{/is_string}}{{{default_value}}}{{#is_string}}"{{/is_string}}{{/C_and_Jerryscript_Types}});
-            jerry_release_value(jerry_set_property(new_{{{dictionaryName}}}, {{{memberName}}}_prop_name, default_value));
-        }
-        jerry_release_value({{{memberName}}}_prop_name);
+	    value_of_field = args_p[{{{member_index}}};
+	else
+	    value_of_field = {{#C_and_Jerryscript_Types}}{{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{Jerryscript_Type}}}({{#is_string}}(jerry_char_t *)"{{/is_string}}{{{default_value}}}{{#is_string}}"{{/is_string}}{{/C_and_Jerryscript_Types}});
+	interpreter__set_property(new_{{{dictionaryName}}}, "{{{memberName}}}", value_of_field);
     }
     {{/members}}
 
     return new_{{{dictionaryName}}};
-} /* create_{{{dictionaryName}}}_dictionary_handler */
+} /* create_{{{dictionaryName}}}_handler */
 {{/body}}
 
 void initialize_{{{dictionaryName}}}_(void){{#private_header}};{{/private_header}}
@@ -435,7 +433,7 @@ void initialize_{{{dictionaryName}}}_(void){{#private_header}};{{/private_header
     jerry_release_value({{{dictionaryName}}}_prototype_object);
 
     /* this sets up the ability to "new" the object */
-    add_field_to_object(global_object, "{{{dictionaryName}}}", &create_{{{dictionaryName}}}_dictionary_handler);
+    add_field_to_object(global_object, "{{{dictionaryName}}}", &create_{{{dictionaryName}}}_handler);
 
     jerry_release_value(global_object);
 

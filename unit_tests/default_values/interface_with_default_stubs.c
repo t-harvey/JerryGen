@@ -8,20 +8,20 @@
 
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
-interface_with_default_Native_Object *interface_with_default_Native_Object_create(void)
+interface_with_default_Native_Object *create_interface_with_default_Native_Object(void)
 {
     interface_with_default_Native_Object *new_object = (interface_with_default_Native_Object *)malloc(sizeof(interface_with_default_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* interface_with_default_Native_Object_create */
+} /* create_interface_with_default_Native_Object */
 
-void interface_with_default_Native_Object_deallocator(void *native_object)
+void destroy_interface_with_default_Native_Object(void *native_object)
 {
 	/* USER CODE GOES HERE */
 
-} /* interface_with_default_Native_Object_deallocator */
+} /* destroy_interface_with_default_Native_Object */
 
 
 

@@ -8,20 +8,20 @@
 
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
-void arraybuffer_Native_Object_deallocator(void *native_object)
+void destroy_arraybuffer_Native_Object(void *native_object)
 {
 	/* USER CODE GOES HERE */
 
-} /* arraybuffer_Native_Object_deallocator */
+} /* destroy_arraybuffer_Native_Object */
 
-arraybuffer_Native_Object *arraybuffer_Native_Object_create(void)
+arraybuffer_Native_Object *create_arraybuffer_Native_Object(void)
 {
     arraybuffer_Native_Object *new_object = (arraybuffer_Native_Object *)malloc(sizeof(arraybuffer_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* arraybuffer_Native_Object_create */
+} /* create_arraybuffer_Native_Object */
 
 
 //Interpreter_Checksum_Type arraybuffer_checksum = {arraybuffer_Native_Object_deallocator};

@@ -46,6 +46,7 @@ under the License.
 #include "jerryscript.h"
 typedef enum { {{#members}}{{{indentation}}}{{{C_name}}}{{^finalMember}},{{{new_line}}}{{/finalMember}}{{#onlyOneMember}} }{{/onlyOneMember}}{{/members}}
 {{^onlyOneMember}}} {{/onlyOneMember}}{{{enumName}}};
+
 {{/header}}
 {{#body}}
 static int number_of_{{{enumName}}} = {{{members.length}}};

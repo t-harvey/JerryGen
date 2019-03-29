@@ -8,20 +8,20 @@
 
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
-call_callback_Native_Object *call_callback_Native_Object_create(void)
+call_callback_Native_Object *create_call_callback_Native_Object(void)
 {
     call_callback_Native_Object *new_object = (call_callback_Native_Object *)malloc(sizeof(call_callback_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* call_callback_Native_Object_create */
+} /* create_call_callback_Native_Object */
 
-void call_callback_Native_Object_deallocator(void *native_object)
+void destroy_call_callback_Native_Object(void *native_object)
 {
 	/* USER CODE GOES HERE */
 
-} /* call_callback_Native_Object_deallocator */
+} /* destroy_call_callback_Native_Object */
 
 
 
@@ -35,7 +35,7 @@ void call_callback_Native_Object_deallocator(void *native_object)
 void call_callback_call_it(call_callback this, _object thing, print_it callback, Interpreter_Error_Type *error)
 {
 	print_it _temp__for_callback = callback;
-#define callback(...) (run_print_it_function(_temp__for_callback, this, __VA_ARGS__))
+#define callback(...) (run_print_it(_temp__for_callback, this, __VA_ARGS__))
     call_callback_Native_Object *native_object = call_callback_Native_Object_get(this, error);
     if (*error)
 	

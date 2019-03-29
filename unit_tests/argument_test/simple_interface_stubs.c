@@ -8,20 +8,20 @@
 
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
-simple_interface_Native_Object *simple_interface_Native_Object_create(void)
+simple_interface_Native_Object *create_simple_interface_Native_Object(void)
 {
     simple_interface_Native_Object *new_object = (simple_interface_Native_Object *)malloc(sizeof(simple_interface_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* simple_interface_Native_Object_create */
+} /* create_simple_interface_Native_Object */
 
-void simple_interface_Native_Object_deallocator(void *native_object)
+void destroy_simple_interface_Native_Object(void *native_object)
 {
 	/* USER CODE GOES HERE */
 
-} /* simple_interface_Native_Object_deallocator */
+} /* destroy_simple_interface_Native_Object */
 
 
 
@@ -205,7 +205,7 @@ void simple_interface_foo5(simple_interface this, boolean_or_double_or_simple_di
 void simple_interface_call_simple_callback(simple_interface this, simple_callback call, Interpreter_Error_Type *error)
 {
 	simple_callback _temp__for_call = call;
-#define call(...) (run_simple_callback_function(_temp__for_call, this, __VA_ARGS__))
+#define call(...) (run_simple_callback(_temp__for_call, this, __VA_ARGS__))
     simple_interface_Native_Object *native_object = simple_interface_Native_Object_get(this, error);
     if (*error)
 	

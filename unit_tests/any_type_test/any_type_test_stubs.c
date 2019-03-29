@@ -7,20 +7,20 @@
 
 /*********************** NATIVE-OBJECT FUNCTIONS ***********************/
 
-any_type_test_Native_Object *any_type_test_Native_Object_create(void)
+any_type_test_Native_Object *create_any_type_test_Native_Object(void)
 {
     any_type_test_Native_Object *new_object = (any_type_test_Native_Object *)malloc(sizeof(any_type_test_Native_Object));
 
 	/* USER CODE GOES HERE */
  
     return new_object;
-} /* any_type_test_Native_Object_create */
+} /* create_any_type_test_Native_Object */
 
-void any_type_test_Native_Object_deallocator(void *native_object)
+void destroy_any_type_test_Native_Object(void *native_object)
 {
 	/* USER CODE GOES HERE */
 
-} /* any_type_test_Native_Object_deallocator */
+} /* destroy_any_type_test_Native_Object */
 
 
 

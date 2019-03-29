@@ -22,8 +22,8 @@ typedef struct {
 
 #include "holds_a_native_object.h"
 
-holds_a_native_object_Native_Object *holds_a_native_object_Native_Object_create(void);
-void holds_a_native_object_Native_Object_deallocator(void *native_object);
+holds_a_native_object_Native_Object *create_holds_a_native_object_Native_Object(void);
+void destroy_holds_a_native_object_Native_Object(void *native_object);
 
 extern holds_a_native_object_Native_Object *holds_a_native_object_Native_Object_get(holds_a_native_object this,
                                       Interpreter_Error_Type *error_check);
