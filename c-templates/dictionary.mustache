@@ -394,7 +394,7 @@ create_{{{dictionaryName}}}_handler(const {{{Interpreter.Type}}} func_value,
         {{{Interpreter.Type}}} value_of_field;
 
         if ((((signed int)args_cnt)-1) >= {{{member_index}}})
-	    value_of_field = args_p[{{{member_index}}};
+	    value_of_field = args_p[{{{member_index}}}];
 	else
 	    value_of_field = {{#C_and_Jerryscript_Types}}{{{Interpreter.interpreter}}}_{{#is_object}}_{{/is_object}}create_{{{Jerryscript_Type}}}({{#is_string}}(jerry_char_t *)"{{/is_string}}{{{default_value}}}{{#is_string}}"{{/is_string}}{{/C_and_Jerryscript_Types}});
 	interpreter__set_property(new_{{{dictionaryName}}}, "{{{memberName}}}", value_of_field);

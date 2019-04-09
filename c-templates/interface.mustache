@@ -277,7 +277,7 @@ create_{{{interfaceName}}}_handler(const {{{Interpreter.Type}}} func_value,
   {{^constructors.length}}
     {{#attributes}}
     if ((((signed int)args_cnt)-1) >= {{{attribute_index}}})
-	interpreter__set_property(new_{{{dictionaryName}}}, "{{{attributeName}}}", args_p[{{{attribute_index}}}]);
+	interpreter__set_property(new_{{{interfaceName}}}, "{{{attributeName}}}", args_p[{{{attribute_index}}}]);
 
     {{/attributes}}
   {{/constructors.length}}

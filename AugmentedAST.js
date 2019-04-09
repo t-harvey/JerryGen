@@ -1656,8 +1656,8 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
     /* the name of the enum needs to be modified if it is a reserved word... */
     this.fix_names_and_types(new_enum, "enum");
 
-    /* NOTE: we're copying over from the "members" array (which comes in
-       from the parser) to the "values" array... (which is why we have(!)
+    /* NOTE: we're copying over from the "values" array (which comes in
+       from the parser) to the "members" array... (which is why we have(!)
        to call fix_names_and_types _BEFORE_ this loop...) */
     new_enum.members = [];
     new_enum.longest_Javascript_name_length = 0;
