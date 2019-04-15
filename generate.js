@@ -39,9 +39,9 @@ if (typeof parameters.include_files != "undefined")
 {
     var parsed_include_files = (parser_for_includes.parse(reader.readFiles(parameters.include_files)));
 
-    /* move the include files over to the main list -- but mark them so
-       they don't get printed out (since they'll get printed out when
-       those files are compiled proper) */
+    /* move the include files over to the main list so that we can include
+       them in the symbol table and make sure all of the code is consistent,
+       but mark them so they don't get printed out  */
     for (var i of parsed_include_files)
     {
 	i.dont_print_this_thing_out = true;
@@ -49,8 +49,8 @@ if (typeof parameters.include_files != "undefined")
     }
 }
 
-/* build the symbol table and massage the parsed file to make it ready
-   for the Hogan compiler */
+/* build the symbol table and massage the parsed file to add
+   annotations that will drive the mustache templates */
 var augAST = new AugmentedAST(parsed_file,
 			      parameters.fix_type_errors,
 			      parameters.leave_enums_alone,
@@ -117,7 +117,7 @@ catch(error_code)
     else if (error_code.message ==
 	     parameters.error_codes.neither_package_nor_files_given)
     {
-        console.log("ERROR: you must supply a package name and .idl file(s).");
+        console.log("ERROR: You must supply a package name and .idl file(s).");
         parameters.print_usage_message();
     }
     else if (error_code.message ==
@@ -142,7 +142,7 @@ catch(error_code)
     /* TODO: make actual error codes from AugmentedAST */
     else if (error_code.message==AugmentedAST.error_codes.external_inheritance)
     {
-	console.log("ERROR: the interface \"" + error_code.parent_name + "\" has to be included in this file for the object \"" + error_code.object_name + "\" to inherit from it.");
+	console.log("ERROR: The interface \"" + error_code.parent_name + "\" has to be included in this file for the object \"" + error_code.object_name + "\" to inherit from it.");
     }
     else if (error_code.message == AugmentedAST.error_codes.duplicate_names)
     {
@@ -150,7 +150,7 @@ catch(error_code)
 	var verb = (messages.length === 1)?"is":"are";
 
 	var plural = (parameters.files.length > 1)?"s":"";
-	console.log("ERROR: duplicate names in the input file" + plural + ":");
+	console.log("ERROR: Duplicate names in the input file" + plural + ":");
 	for(var i = 0; i < messages.length; i++)
 	    console.log("\t" + messages[i]);
     }
@@ -162,7 +162,7 @@ catch(error_code)
 	let objects_list = error_code.objects_list;
 	let first_in_chain = error_code.first_in_chain;
 	let current = first_in_chain;
-	console.log("ERROR: there is a cycle in inheritance:");
+	console.log("ERROR: There is a cycle in inheritance:");
 	do
 	{
 	    next = objects_list[current].inheritance;
@@ -179,7 +179,7 @@ catch(error_code)
 	let objects_list = error_code.objects_list;
 	let first_in_chain = error_code.first_in_chain;
 	let current = first_in_chain;
-	console.log("ERROR: there is a cycle in structure definitions:");
+	console.log("ERROR: There is a cycle in structure definitions:");
 	let i = objects_list.length-1;
         do
 	{
