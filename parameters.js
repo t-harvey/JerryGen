@@ -111,8 +111,6 @@ for (let i of Object.keys(acceptable_inputs))
     else if (Array.isArray(command_line_parms[i]))
     {
 	let array_of_values = command_line_parms[i];
-	let first_value = array_of_values[0];
-	let found_inconsistency = false;
 	for (let j = 0; j < array_of_values.length; j++)
 	    if (typeof array_of_values[j] === "string" &&
 		array_of_values[j].endsWith(".idl"))

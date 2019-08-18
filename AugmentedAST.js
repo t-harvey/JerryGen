@@ -1608,12 +1608,17 @@ AugmentedAST.prototype.addDictionary = function (d, index)
 /* enum strings can be the same across multiple enum declarations, so
    we need a way to unique'ify them; the first/current method is to add the
    name of the enumeration type onto each enum value */
-AugmentedAST.prototype.expand_enums = function(new_enum)
+/* if the dont_touch parameter is set, we just add the .C_value field to
+   each enum, since subsequent code expects that field to exist */
+AugmentedAST.prototype.expand_enums = function(new_enum, dont_touch)
 {
     let enum_name = new_enum.name;
 
     for (let i = 0; i < new_enum.values.length; i++)
-	new_enum.values[i].C_value = enum_name + "_" + new_enum.values[i].Javascript_value;
+	if (dont_touch)
+	    new_enum.values[i].C_value = new_enum.values[i].Javascript_value;
+        else
+	    new_enum.values[i].C_value = enum_name + "_" + new_enum.values[i].Javascript_value;
 } /* expand_enums */
 
 
@@ -1639,9 +1644,10 @@ AugmentedAST.prototype.addEnum = function (new_enum, index) {
 	new_enum.values[i] = {"Javascript_value": new_enum.values[i]};
 
     /* to ensure that enum values are unique, we'll concatenate onto each
-       value the name of its enum */
-    if (!this.leave_enums_alone)
-	this.expand_enums(new_enum);
+       value the name of its enum (unless leave_enums_alone has been
+       set, in which case, this will just add the .C_value field with
+       the enum names untouched) */
+    this.expand_enums(new_enum, this.leave_enums_alone);
 
     new_enum.enumName = new_enum.name;
     this.enums[new_enum.name] = new_enum;

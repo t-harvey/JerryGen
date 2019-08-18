@@ -1,4 +1,4 @@
-ERROR: there is a cycle in structure definitions:
+ERROR: There is a cycle in structure definitions:
     >int1<  is a field of  >int3<
     >int3<  is a field of  >dict3<
     >dict3<  is a field of  >dict2<
