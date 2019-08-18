@@ -1,4 +1,4 @@
-ERROR: there is a cycle in inheritance:
+ERROR: There is a cycle in inheritance:
     >middle_interface_ancestor<  inherits from  >farthest_interface_ancestor<
     >farthest_interface_ancestor<  inherits from  >interface_compilation<
     >interface_compilation<  inherits from  >nearest_interface_ancestor<

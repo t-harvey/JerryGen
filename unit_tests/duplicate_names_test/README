@@ -5,7 +5,7 @@ callbacks, and interfaces with duplicate names scattered throughout.
 Expected output: the error messages that the parser (really,
 AugmentedAST) should produce are:
 
-ERROR: duplicate names in the input file:
+ERROR: Duplicate names in the input file:
 	The name "field1" is used 2 times in the dictionary named "test08".
 	The name "field2" is used 2 times in the dictionary named "test08".
 	The name "arg1" is used 2 times in the callback named "test03".
