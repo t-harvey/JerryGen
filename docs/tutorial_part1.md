@@ -363,23 +363,23 @@ the WebIDL file.
 NOTE: ignore the "`Native_Object`" code for now; that functionality will
 be explained, below.
 
-There is only one operation for the `Calculator` interface.  The name of
-the operation's stub is derived from the interface name and operation
-name, so the function that we'll edit is named
-`Calculator_calculate_body`.  Notice that the call signature for the
-`_body` functions match exactly the types specified by the WebIDL file;
-the underlying mechanics of hooking into the interpreter (e.g.,
-marshaling/unmarsharling parameters) is handled by all of the underlying
-C code (that we encourage the user to ignore).
+There is only one operation for the `Calculator` interface.  The name
+of the operation's stub is derived from the interface name and
+operation name, so the function that we'll edit is named
+`Calculator_calculate`.  Notice that the call signature for the stub
+functions matches exactly the types specified by the WebIDL file; the
+underlying mechanics of hooking into the interpreter (e.g.,
+marshaling/unmarsharling parameters) is handled by all of the
+underlying C code (that we encourage the user to ignore).
 
-So again: inside of Calculator\_calculator\_body, look for the string
+So again: inside of `Calculator\_calculator`, look for the string
 "USER CODE GOES HERE" – all code produced by the compiler will have this
 string wherever the user needs to specialize the code – and add the
 following.  (Notice that each value in an enumeration type has as its
-prefix the name of the enumeration type; this is b/c C doesn't
+prefix the name of the enumeration type; this is because C doesn't
 distinguish between two enumeration-type values in separate enumeration
 types, leading to annoying name clashes.  The way around this was to
-tack on the enumeration type's name onto each of its values – if this is
+tack on the enumeration type's name to each of its values – if this is
 too burdensome, the generator accepts the "–leave\_enums\_alone=true"
 flag.)
 
@@ -454,7 +454,7 @@ we'll use the macro; but it may be a better interface to allow the user
 to call the `extract_*` functions directly, which is why we've included
 them.
 
-With that function, we can rewrite the `Calculator_calculate_body`
+With that function, we can rewrite the `Calculator_calculate`
 function to use the `digits_of_precision` attribute as follows:
 
 ``` syntaxhighlighter-pre
@@ -540,7 +540,7 @@ directory, "simple\_calculator2") :
 ../JerryGen/generate.js --output_utility_files --package=simple_calculator2 simple_calculator2.idl
 ```
 
-...and we'll augment the Calculator\_calculate\_body as follows.  Note
+...and we'll augment the `Calculator\_calculate` function as follows.  Note
 that invoking a Javascript function from the C code requires an
 additional parameter, the "this" pointer that all operation's bodies
 have as their last parameter.  As a result, the C type associated with a
@@ -602,7 +602,7 @@ print(calc.round_it(calc.calculate("multiply", 1.55, 3.77), 2));
 **Using dictionaries**
 
 Now imagine that we want to send in the arguments and calculator
-operation directly in to the "calculate" method.  We can use a
+operation directly in to the `calculate` method.  We can use a
 dictionary for this:
 
 ``` syntaxhighlighter-pre
@@ -625,7 +625,7 @@ interface Calculator {
 
 Cut/paste this into a file called `simple_calculator3.idl` and invoke
 the generator.  The following code should be pasted into
-Calculator\_calculate\_body:
+`Calculator\_calculate`:
 
 ``` syntaxhighlighter-pre
 float answer;
@@ -702,7 +702,7 @@ Notice that invoking the generator on this file produces more files than
 the last example – arrays, because they are structs in their own right,
 will produce their own .c/.h files.
 
-The code for `Calculator_calculate_body` is:
+The code for `Calculator_calculate` is:
 
 ``` syntaxhighlighter-pre
 float answer = 0.0;
@@ -819,7 +819,7 @@ interface Calculator {
 };
 ```
 
-...and the C code for `Calculator_calculate_body`:
+...and the C code for `Calculator_calculate`:
 
 ``` syntaxhighlighter-pre
 float answer = 0.0;
@@ -898,7 +898,7 @@ As we've seen from our running example, interfaces are fully functional
 without utilizing the `Native Object` data structure.
 
 In our running example, let's add a feature to the calculator that every
-tenth time we call calculate, we'll print out an extra message
+tenth time we call `calculate`, we'll print out an extra message
 congratulating the user.
 
 To keep track of the call count, go into `Calculator_stubs.h` and edit
@@ -1052,8 +1052,8 @@ It is instructive to show how this code would be used inside
 of `calculate`.  Because the `my_teacher` parameter is an interface and
 interfaces live in memory on the Javascript side, we need to use a
 special macro designed to call functions that are stored as interface
-attributes.  Add the following code to \`Calculator\_calculate\_body\`
-in \`Calculate\_stubs.c\`.
+attributes.  Add the following code to `Calculator\_calculate`
+in \`Calculator\_stubs.c\`.
 
 ``` syntaxhighlighter-pre
 /* call the teacher's interface */
@@ -1164,8 +1164,8 @@ interface Calculator {
 Notice that we have removed the ExternalInterface attribute on the
 Calculator interface – the user of this API will no longer see the
 Teacher\_Feedback interface (because we have removed it from the call to
-calculate), even though we will still use it in
-require\_Calculator\_body function.
+`calculate`), even though we will still use it in
+the `Calculator\_calculate` function.
 
 We need to define the `Native_Object` to contain the `Teacher_Feedback`
 object, so add the following code to `Calculator_Native_Object` struct

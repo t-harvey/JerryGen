@@ -1070,7 +1070,7 @@ void *Native_Object_get({{{Interpreter.Type}}} object,
     		        zero */
 
     object_contains_native_object = jerry_get_object_native_pointer(
-                                             object, &thing, &stored_checksum);
+                                             object, &thing, stored_checksum);
     if (!object_contains_native_object)
         return NULL;
 
